@@ -1,2 +1,18 @@
+
 anthropic>=0.69.0
 chromadb>=0.5.0
+=======
+# semantic-mcp-data-access-gateway — dependencies for all workstreams.
+# Currently only the chatbot (Streamlit UI) has code; teammates add their own sections below
+# as the smart-agent and MCP-server workstreams come online.
+
+# --- chatbot (Streamlit UI) runtime ---
+streamlit>=1.31
+requests>=2.31
+python-dotenv>=1.0
+langsmith>=0.1
+
+# --- chatbot (Streamlit UI) dev / test ---
+pytest>=8.0
+responses>=0.25
+ruff>=0.4

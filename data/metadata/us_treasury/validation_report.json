@@ -1,0 +1,2014 @@
+{
+  "generated_at_utc": "2026-08-12T06:09:33+00:00",
+  "source": "U.S. Department of the Treasury",
+  "source_documentation": [
+    "https://home.treasury.gov/treasury-daily-interest-rate-xml-feed",
+    "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rate-archives"
+  ],
+  "overall_status": "WARNING",
+  "totals": {
+    "datasets": 5,
+    "raw_files": 140,
+    "records": 47842,
+    "disk_bytes": 62493917,
+    "disk_human": "59.6 MB",
+    "successful_downloads": 140,
+    "failed_downloads": 0
+  },
+  "datasets": [
+    {
+      "dataset": "Daily Treasury Par Yield Curve Rates",
+      "data_key": "daily_treasury_yield_curve",
+      "source": "U.S. Department of the Treasury",
+      "shape": "wide",
+      "natural_key": [
+        "NEW_DATE"
+      ],
+      "financial_caveat": "These are PAR yields, not zero-coupon/spot rates and not executable market prices. BC_30YEAR is absent 2003-2005 because the 30-year bond was discontinued in 2002 and reintroduced in 2006. BC_30YEARDISPLAY is Treasury's display variant and is published as a literal 0 for every date before 2011-01-03 - that 0 is a placeholder, not a 0.00% yield. Use BC_30YEAR as the 30-year series.",
+      "validation_status": "WARNING",
+      "coverage": {
+        "treasury_documented_first_year": 1990,
+        "requested_years": [
+          1990,
+          1991,
+          1992,
+          1993,
+          1994,
+          1995,
+          1996,
+          1997,
+          1998,
+          1999,
+          2000,
+          2001,
+          2002,
+          2003,
+          2004,
+          2005,
+          2006,
+          2007,
+          2008,
+          2009,
+          2010,
+          2011,
+          2012,
+          2013,
+          2014,
+          2015,
+          2016,
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025,
+          2026
+        ],
+        "years_downloaded": [
+          1990,
+          1991,
+          1992,
+          1993,
+          1994,
+          1995,
+          1996,
+          1997,
+          1998,
+          1999,
+          2000,
+          2001,
+          2002,
+          2003,
+          2004,
+          2005,
+          2006,
+          2007,
+          2008,
+          2009,
+          2010,
+          2011,
+          2012,
+          2013,
+          2014,
+          2015,
+          2016,
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025,
+          2026
+        ],
+        "years_failed": [],
+        "years_with_zero_observations": [],
+        "years_missing_from_output": [],
+        "earliest_observation_date": "1990-01-02",
+        "latest_observation_date": "2026-08-11",
+        "distinct_observation_dates": 9159,
+        "records_per_year": {
+          "1990": 250,
+          "1991": 250,
+          "1992": 251,
+          "1993": 250,
+          "1994": 249,
+          "1995": 250,
+          "1996": 252,
+          "1997": 250,
+          "1998": 250,
+          "1999": 251,
+          "2000": 251,
+          "2001": 248,
+          "2002": 250,
+          "2003": 250,
+          "2004": 250,
+          "2005": 250,
+          "2006": 250,
+          "2007": 251,
+          "2008": 251,
+          "2009": 250,
+          "2010": 252,
+          "2011": 250,
+          "2012": 250,
+          "2013": 250,
+          "2014": 250,
+          "2015": 251,
+          "2016": 250,
+          "2017": 250,
+          "2018": 249,
+          "2019": 250,
+          "2020": 251,
+          "2021": 251,
+          "2022": 249,
+          "2023": 250,
+          "2024": 250,
+          "2025": 249,
+          "2026": 153
+        }
+      },
+      "volume": {
+        "rows_parsed": 9159,
+        "rows_after_exact_dedup": 9159,
+        "columns": 17,
+        "raw_files": 37,
+        "raw_bytes": 12418084,
+        "processed_file": "par_yield_curve.csv",
+        "processed_bytes": 1060709
+      },
+      "dates": {
+        "chronologically_ordered": true,
+        "malformed_dates": [],
+        "malformed_date_count": 0,
+        "future_dated_observations": [],
+        "missing_expected_business_days_count": 0,
+        "missing_expected_business_days_sample": [],
+        "longest_gap_between_observations": {
+          "calendar_days": 4,
+          "from": "1990-01-12",
+          "to": "1990-01-16"
+        }
+      },
+      "duplicates": {
+        "exact_duplicate_records_removed": 0,
+        "exact_duplicate_sample": [],
+        "natural_key_duplicate_count": 0,
+        "natural_key_duplicate_sample": []
+      },
+      "missing_values": [
+        {
+          "column": "NEW_DATE",
+          "inferred_type": "date",
+          "total_rows": 9159,
+          "non_null_rows": 9159,
+          "null_rows": 0,
+          "null_percentage": 0.0
+        },
+        {
+          "column": "Id",
+          "inferred_type": "integer",
+          "total_rows": 9159,
+          "non_null_rows": 8501,
+          "null_rows": 658,
+          "null_percentage": 7.1842,
+          "min": 1,
+          "max": 307556,
+          "mean": 4039.603458
+        },
+        {
+          "column": "BC_3MONTH",
+          "inferred_type": "numeric",
+          "total_rows": 9159,
+          "non_null_rows": 9155,
+          "null_rows": 4,
+          "null_percentage": 0.0437,
+          "min": 0.0,
+          "max": 8.26,
+          "mean": 2.807981
+        },
+        {
+          "column": "BC_6MONTH",
+          "inferred_type": "numeric",
+          "total_rows": 9159,
+          "non_null_rows": 9158,
+          "null_rows": 1,
+          "null_percentage": 0.0109,
+          "min": 0.02,
+          "max": 8.49,
+          "mean": 2.921284
+        },
+        {
+          "column": "BC_1YEAR",
+          "inferred_type": "numeric",
+          "total_rows": 9159,
+          "non_null_rows": 9158,
+          "null_rows": 1,
+          "null_percentage": 0.0109,
+          "min": 0.04,
+          "max": 8.64,
+          "mean": 3.015976
+        },
+        {
+          "column": "BC_2YEAR",
+          "inferred_type": "numeric",
+          "total_rows": 9159,
+          "non_null_rows": 9158,
+          "null_rows": 1,
+          "null_percentage": 0.0109,
+          "min": 0.09,
+          "max": 9.05,
+          "mean": 3.25311
+        },
+        {
+          "column": "BC_3YEAR",
+          "inferred_type": "numeric",
+          "total_rows": 9159,
+          "non_null_rows": 9158,
+          "null_rows": 1,
+          "null_percentage": 0.0109,
+          "min": 0.1,
+          "max": 9.11,
+          "mean": 3.429788
+        },
+        {
+          "column": "BC_5YEAR",
+          "inferred_type": "numeric",
+          "total_rows": 9159,
+          "non_null_rows": 9158,
+          "null_rows": 1,
+          "null_percentage": 0.0109,
+          "min": 0.19,
+          "max": 9.1,
+          "mean": 3.765276
+        },
+        {
+          "column": "BC_7YEAR",
+          "inferred_type": "numeric",
+          "total_rows": 9159,
+          "non_null_rows": 9158,
+          "null_rows": 1,
+          "null_percentage": 0.0109,
+          "min": 0.36,
+          "max": 9.12,
+          "mean": 4.039922
+        },
+        {
+          "column": "BC_10YEAR",
+          "inferred_type": "numeric",
+          "total_rows": 9159,
+          "non_null_rows": 9158,
+          "null_rows": 1,
+          "null_percentage": 0.0109,
+          "min": 0.52,
+          "max": 9.09,
+          "mean": 4.253154
+        },
+        {
+          "column": "BC_30YEAR",
+          "inferred_type": "numeric",
+          "total_rows": 9159,
+          "non_null_rows": 8164,
+          "null_rows": 995,
+          "null_percentage": 10.8636,
+          "min": 0.99,
+          "max": 9.18,
+          "mean": 4.738906
+        },
+        {
+          "column": "BC_30YEARDISPLAY",
+          "inferred_type": "numeric",
+          "total_rows": 9159,
+          "non_null_rows": 9159,
+          "null_rows": 0,
+          "null_percentage": 0.0,
+          "min": 0.0,
+          "max": 5.27,
+          "mean": 1.382366
+        },
+        {
+          "column": "BC_20YEAR",
+          "inferred_type": "numeric",
+          "total_rows": 9159,
+          "non_null_rows": 8219,
+          "null_rows": 940,
+          "null_percentage": 10.2631,
+          "min": 0.87,
+          "max": 8.3,
+          "mean": 4.38647
+        },
+        {
+          "column": "BC_1MONTH",
+          "inferred_type": "numeric",
+          "total_rows": 9159,
+          "non_null_rows": 6259,
+          "null_rows": 2900,
+          "null_percentage": 31.6628,
+          "min": 0.0,
+          "max": 6.02,
+          "mean": 1.713291
+        },
+        {
+          "column": "BC_2MONTH",
+          "inferred_type": "numeric",
+          "total_rows": 9159,
+          "non_null_rows": 1954,
+          "null_rows": 7205,
+          "null_percentage": 78.6658,
+          "min": 0.0,
+          "max": 5.61,
+          "mean": 2.801095
+        },
+        {
+          "column": "BC_4MONTH",
+          "inferred_type": "numeric",
+          "total_rows": 9159,
+          "non_null_rows": 952,
+          "null_rows": 8207,
+          "null_percentage": 89.6059,
+          "min": 3.58,
+          "max": 5.64,
+          "mean": 4.678267
+        },
+        {
+          "column": "BC_1_5MONTH",
+          "inferred_type": "numeric",
+          "total_rows": 9159,
+          "non_null_rows": 371,
+          "null_rows": 8788,
+          "null_percentage": 95.9493,
+          "min": 3.65,
+          "max": 4.53,
+          "mean": 4.03186
+        }
+      ],
+      "numeric_validation": {
+        "columns_with_non_numeric_values": [],
+        "parse_errors": [],
+        "parse_error_count": 0,
+        "flagged_observations_count": 1,
+        "flagged_observations_sample": [
+          {
+            "column": "BC_30YEARDISPLAY",
+            "date": "2011-01-03",
+            "previous_date": "2010-12-31",
+            "value": 4.39,
+            "previous_value": 0.0,
+            "change_pp": 4.39,
+            "reason": "day-over-day move exceeds threshold"
+          }
+        ],
+        "zero_value_screening": [
+          {
+            "column": "BC_3MONTH",
+            "zero_valued_observations": 18,
+            "first_zero_date": "2011-09-22",
+            "last_zero_date": "2020-03-26",
+            "leading_zero_run": 0,
+            "suspected_placeholder": false,
+            "assessment": "Consistent with genuine 0.00% prints during zero-rate episodes; retained as published."
+          },
+          {
+            "column": "BC_30YEARDISPLAY",
+            "zero_valued_observations": 5256,
+            "first_zero_date": "1990-01-02",
+            "last_zero_date": "2010-12-31",
+            "leading_zero_run": 5256,
+            "suspected_placeholder": true,
+            "assessment": "Suspected PLACEHOLDER: the column opens with an unbroken run of 5256 zeros ending 2010-12-31 and holds no other zeros. Treat these as 'no observation', not as a 0.00% rate. Values are preserved exactly as published - the correction belongs in the load/modelling layer, not in the source of record."
+          },
+          {
+            "column": "BC_1MONTH",
+            "zero_valued_observations": 100,
+            "first_zero_date": "2008-12-10",
+            "last_zero_date": "2021-06-03",
+            "leading_zero_run": 0,
+            "suspected_placeholder": false,
+            "assessment": "Consistent with genuine 0.00% prints during zero-rate episodes; retained as published."
+          },
+          {
+            "column": "BC_2MONTH",
+            "zero_valued_observations": 2,
+            "first_zero_date": "2020-03-25",
+            "last_zero_date": "2021-05-26",
+            "leading_zero_run": 0,
+            "suspected_placeholder": false,
+            "assessment": "Consistent with genuine 0.00% prints during zero-rate episodes; retained as published."
+          }
+        ],
+        "screening_rule": {
+          "plausible_range_percent": [
+            -10.0,
+            25.0
+          ],
+          "day_over_day_move_threshold_pp": 1.5,
+          "action": "flag only - no value is removed, clipped or imputed",
+          "note": "Negative Treasury rates are legitimate, especially for real/TIPS yields, and are not flagged by the range rule."
+        }
+      },
+      "warnings": [
+        "1 rate observations flagged for review (out-of-band level or large day-over-day move); none removed",
+        "columns whose leading zeros look like placeholders rather than 0.00% rates (preserved as published - must be treated as 'no observation' when loading): BC_30YEARDISPLAY (5256 rows through 2010-12-31)"
+      ],
+      "errors": [],
+      "schema_changes": {
+        "columns_added_by_year": {
+          "1990": [
+            "BC_10YEAR",
+            "BC_1YEAR",
+            "BC_2YEAR",
+            "BC_30YEAR",
+            "BC_30YEARDISPLAY",
+            "BC_3MONTH",
+            "BC_3YEAR",
+            "BC_5YEAR",
+            "BC_6MONTH",
+            "BC_7YEAR",
+            "Id",
+            "NEW_DATE"
+          ],
+          "1993": [
+            "BC_20YEAR"
+          ],
+          "2001": [
+            "BC_1MONTH"
+          ],
+          "2006": [
+            "BC_30YEAR"
+          ],
+          "2018": [
+            "BC_2MONTH"
+          ],
+          "2022": [
+            "BC_4MONTH"
+          ],
+          "2025": [
+            "BC_1_5MONTH",
+            "Id"
+          ]
+        },
+        "columns_removed_by_year": {
+          "2003": [
+            "BC_30YEAR"
+          ],
+          "2023": [
+            "Id"
+          ]
+        }
+      }
+    },
+    {
+      "dataset": "Daily Treasury Bill Rates",
+      "data_key": "daily_treasury_bill_rates",
+      "source": "U.S. Department of the Treasury",
+      "shape": "wide",
+      "natural_key": [
+        "INDEX_DATE"
+      ],
+      "financial_caveat": "ROUND_B1_CLOSE_* / CS_*_CLOSE_AVG are DISCOUNT rates on a bank-discount (actual/360) basis. ROUND_B1_YIELD_* / CS_*_YIELD_AVG are COUPON-EQUIVALENT yields. The two are not interchangeable and must not be mixed on one curve.",
+      "validation_status": "PASS",
+      "coverage": {
+        "treasury_documented_first_year": 2002,
+        "requested_years": [
+          2002,
+          2003,
+          2004,
+          2005,
+          2006,
+          2007,
+          2008,
+          2009,
+          2010,
+          2011,
+          2012,
+          2013,
+          2014,
+          2015,
+          2016,
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025,
+          2026
+        ],
+        "years_downloaded": [
+          2002,
+          2003,
+          2004,
+          2005,
+          2006,
+          2007,
+          2008,
+          2009,
+          2010,
+          2011,
+          2012,
+          2013,
+          2014,
+          2015,
+          2016,
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025,
+          2026
+        ],
+        "years_failed": [],
+        "years_with_zero_observations": [],
+        "years_missing_from_output": [],
+        "earliest_observation_date": "2002-01-02",
+        "latest_observation_date": "2026-08-11",
+        "distinct_observation_dates": 6157,
+        "records_per_year": {
+          "2002": 250,
+          "2003": 250,
+          "2004": 250,
+          "2005": 250,
+          "2006": 250,
+          "2007": 251,
+          "2008": 251,
+          "2009": 250,
+          "2010": 252,
+          "2011": 250,
+          "2012": 250,
+          "2013": 250,
+          "2014": 250,
+          "2015": 251,
+          "2016": 250,
+          "2017": 250,
+          "2018": 249,
+          "2019": 250,
+          "2020": 251,
+          "2021": 251,
+          "2022": 249,
+          "2023": 250,
+          "2024": 250,
+          "2025": 249,
+          "2026": 153
+        }
+      },
+      "volume": {
+        "rows_parsed": 6157,
+        "rows_after_exact_dedup": 6157,
+        "columns": 48,
+        "raw_files": 25,
+        "raw_bytes": 16809343,
+        "processed_file": "bill_rates.csv",
+        "processed_bytes": 1693433
+      },
+      "dates": {
+        "chronologically_ordered": true,
+        "malformed_dates": [],
+        "malformed_date_count": 0,
+        "future_dated_observations": [],
+        "missing_expected_business_days_count": 0,
+        "missing_expected_business_days_sample": [],
+        "longest_gap_between_observations": {
+          "calendar_days": 4,
+          "from": "2002-01-18",
+          "to": "2002-01-22"
+        }
+      },
+      "duplicates": {
+        "exact_duplicate_records_removed": 0,
+        "exact_duplicate_sample": [],
+        "natural_key_duplicate_count": 0,
+        "natural_key_duplicate_sample": []
+      },
+      "missing_values": [
+        {
+          "column": "INDEX_DATE",
+          "inferred_type": "date",
+          "total_rows": 6157,
+          "non_null_rows": 6157,
+          "null_rows": 0,
+          "null_percentage": 0.0
+        },
+        {
+          "column": "DailyTreasuryBillRateDataId",
+          "inferred_type": "integer",
+          "total_rows": 6157,
+          "non_null_rows": 5497,
+          "null_rows": 660,
+          "null_percentage": 10.7195,
+          "min": 1,
+          "max": 5206,
+          "mean": 2472.761324
+        },
+        {
+          "column": "ROUND_B1_CLOSE_4WK_2",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 6155,
+          "null_rows": 2,
+          "null_percentage": 0.0325,
+          "min": -0.04,
+          "max": 5.78,
+          "mean": 1.654933
+        },
+        {
+          "column": "ROUND_B1_YIELD_4WK_2",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 6155,
+          "null_rows": 2,
+          "null_percentage": 0.0325,
+          "min": -0.04,
+          "max": 5.9,
+          "mean": 1.683297
+        },
+        {
+          "column": "ROUND_B1_CLOSE_13WK_2",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 6156,
+          "null_rows": 1,
+          "null_percentage": 0.0162,
+          "min": -0.05,
+          "max": 5.36,
+          "mean": 1.712481
+        },
+        {
+          "column": "ROUND_B1_YIELD_13WK_2",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 6156,
+          "null_rows": 1,
+          "null_percentage": 0.0162,
+          "min": -0.05,
+          "max": 5.52,
+          "mean": 1.752753
+        },
+        {
+          "column": "ROUND_B1_CLOSE_26WK_2",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 6156,
+          "null_rows": 1,
+          "null_percentage": 0.0162,
+          "min": 0.02,
+          "max": 5.36,
+          "mean": 1.793315
+        },
+        {
+          "column": "ROUND_B1_YIELD_26WK_2",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 6156,
+          "null_rows": 1,
+          "null_percentage": 0.0162,
+          "min": 0.02,
+          "max": 5.6,
+          "mean": 1.85224
+        },
+        {
+          "column": "BOND_MKT_UNAVAIL_REASON",
+          "inferred_type": "string",
+          "total_rows": 6157,
+          "non_null_rows": 1,
+          "null_rows": 6156,
+          "null_percentage": 99.9838
+        },
+        {
+          "column": "MATURITY_DATE_4WK",
+          "inferred_type": "date",
+          "total_rows": 6157,
+          "non_null_rows": 6156,
+          "null_rows": 1,
+          "null_percentage": 0.0162
+        },
+        {
+          "column": "MATURITY_DATE_13WK",
+          "inferred_type": "date",
+          "total_rows": 6157,
+          "non_null_rows": 6156,
+          "null_rows": 1,
+          "null_percentage": 0.0162
+        },
+        {
+          "column": "MATURITY_DATE_26WK",
+          "inferred_type": "date",
+          "total_rows": 6157,
+          "non_null_rows": 6156,
+          "null_rows": 1,
+          "null_percentage": 0.0162
+        },
+        {
+          "column": "CUSIP_4WK",
+          "inferred_type": "string",
+          "total_rows": 6157,
+          "non_null_rows": 6156,
+          "null_rows": 1,
+          "null_percentage": 0.0162
+        },
+        {
+          "column": "CUSIP_13WK",
+          "inferred_type": "string",
+          "total_rows": 6157,
+          "non_null_rows": 6156,
+          "null_rows": 1,
+          "null_percentage": 0.0162
+        },
+        {
+          "column": "CUSIP_26WK",
+          "inferred_type": "string",
+          "total_rows": 6157,
+          "non_null_rows": 6156,
+          "null_rows": 1,
+          "null_percentage": 0.0162
+        },
+        {
+          "column": "QUOTE_DATE",
+          "inferred_type": "date",
+          "total_rows": 6157,
+          "non_null_rows": 6157,
+          "null_rows": 0,
+          "null_percentage": 0.0
+        },
+        {
+          "column": "CF_NEW_DATE",
+          "inferred_type": "date",
+          "total_rows": 6157,
+          "non_null_rows": 6157,
+          "null_rows": 0,
+          "null_percentage": 0.0
+        },
+        {
+          "column": "CS_4WK_CLOSE_AVG",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 6155,
+          "null_rows": 2,
+          "null_percentage": 0.0325,
+          "min": -0.02,
+          "max": 5.62,
+          "mean": 1.654224
+        },
+        {
+          "column": "CS_4WK_YIELD_AVG",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 6155,
+          "null_rows": 2,
+          "null_percentage": 0.0325,
+          "min": -0.02,
+          "max": 5.74,
+          "mean": 1.682559
+        },
+        {
+          "column": "CS_13WK_CLOSE_AVG",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 6155,
+          "null_rows": 2,
+          "null_percentage": 0.0325,
+          "min": -0.02,
+          "max": 5.35,
+          "mean": 1.714703
+        },
+        {
+          "column": "CS_13WK_YIELD_AVG",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 6155,
+          "null_rows": 2,
+          "null_percentage": 0.0325,
+          "min": -0.02,
+          "max": 5.51,
+          "mean": 1.755089
+        },
+        {
+          "column": "CS_26WK_CLOSE_AVG",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 6155,
+          "null_rows": 2,
+          "null_percentage": 0.0325,
+          "min": 0.03,
+          "max": 5.35,
+          "mean": 1.794643
+        },
+        {
+          "column": "CS_26WK_YIELD_AVG",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 6155,
+          "null_rows": 2,
+          "null_percentage": 0.0325,
+          "min": 0.03,
+          "max": 5.59,
+          "mean": 1.853732
+        },
+        {
+          "column": "CF_WEEK",
+          "inferred_type": "integer",
+          "total_rows": 6157,
+          "non_null_rows": 6157,
+          "null_rows": 0,
+          "null_percentage": 0.0,
+          "min": 200201,
+          "max": 202633,
+          "mean": 201407.214065
+        },
+        {
+          "column": "CS_52WK_CLOSE_AVG",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 4561,
+          "null_rows": 1596,
+          "null_percentage": 25.9217,
+          "min": 0.04,
+          "max": 5.22,
+          "mean": 1.483203
+        },
+        {
+          "column": "CS_52WK_YIELD_AVG",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 4561,
+          "null_rows": 1596,
+          "null_percentage": 25.9217,
+          "min": 0.04,
+          "max": 5.51,
+          "mean": 1.541451
+        },
+        {
+          "column": "ROUND_B1_CLOSE_52WK_2",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 4555,
+          "null_rows": 1602,
+          "null_percentage": 26.0192,
+          "min": 0.04,
+          "max": 5.22,
+          "mean": 1.482637
+        },
+        {
+          "column": "ROUND_B1_YIELD_52WK_2",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 4555,
+          "null_rows": 1602,
+          "null_percentage": 26.0192,
+          "min": 0.04,
+          "max": 5.51,
+          "mean": 1.540887
+        },
+        {
+          "column": "MATURITY_DATE_52WK",
+          "inferred_type": "date",
+          "total_rows": 6157,
+          "non_null_rows": 4555,
+          "null_rows": 1602,
+          "null_percentage": 26.0192
+        },
+        {
+          "column": "CUSIP_52WK",
+          "inferred_type": "string",
+          "total_rows": 6157,
+          "non_null_rows": 4555,
+          "null_rows": 1602,
+          "null_percentage": 26.0192
+        },
+        {
+          "column": "ROUND_B1_CLOSE_8WK_2",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 1954,
+          "null_rows": 4203,
+          "null_percentage": 68.2638,
+          "min": -0.03,
+          "max": 5.36,
+          "mean": 2.703567
+        },
+        {
+          "column": "ROUND_B1_YIELD_8WK_2",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 1954,
+          "null_rows": 4203,
+          "null_percentage": 68.2638,
+          "min": -0.03,
+          "max": 5.5,
+          "mean": 2.760977
+        },
+        {
+          "column": "MATURITY_DATE_8WK",
+          "inferred_type": "date",
+          "total_rows": 6157,
+          "non_null_rows": 1954,
+          "null_rows": 4203,
+          "null_percentage": 68.2638
+        },
+        {
+          "column": "CUSIP_8WK",
+          "inferred_type": "string",
+          "total_rows": 6157,
+          "non_null_rows": 1954,
+          "null_rows": 4203,
+          "null_percentage": 68.2638
+        },
+        {
+          "column": "CS_8WK_CLOSE_AVG",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 1954,
+          "null_rows": 4203,
+          "null_percentage": 68.2638,
+          "min": 0.01,
+          "max": 5.36,
+          "mean": 2.702984
+        },
+        {
+          "column": "CS_8WK_YIELD_AVG",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 1954,
+          "null_rows": 4203,
+          "null_percentage": 68.2638,
+          "min": 0.01,
+          "max": 5.49,
+          "mean": 2.760353
+        },
+        {
+          "column": "ROUND_B1_CLOSE_17WK_2",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 952,
+          "null_rows": 5205,
+          "null_percentage": 84.5379,
+          "min": 3.5,
+          "max": 5.37,
+          "mean": 4.505777
+        },
+        {
+          "column": "ROUND_B1_YIELD_17WK_2",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 952,
+          "null_rows": 5205,
+          "null_percentage": 84.5379,
+          "min": 3.59,
+          "max": 5.56,
+          "mean": 4.642605
+        },
+        {
+          "column": "MATURITY_DATE_17WK",
+          "inferred_type": "date",
+          "total_rows": 6157,
+          "non_null_rows": 952,
+          "null_rows": 5205,
+          "null_percentage": 84.5379
+        },
+        {
+          "column": "CUSIP_17WK",
+          "inferred_type": "string",
+          "total_rows": 6157,
+          "non_null_rows": 952,
+          "null_rows": 5205,
+          "null_percentage": 84.5379
+        },
+        {
+          "column": "CS_17WK_CLOSE_AVG",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 952,
+          "null_rows": 5205,
+          "null_percentage": 84.5379,
+          "min": 3.51,
+          "max": 5.37,
+          "mean": 4.507426
+        },
+        {
+          "column": "CS_17WK_YIELD_AVG",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 952,
+          "null_rows": 5205,
+          "null_percentage": 84.5379,
+          "min": 3.6,
+          "max": 5.56,
+          "mean": 4.644254
+        },
+        {
+          "column": "ROUND_B1_CLOSE_6WK_2",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 371,
+          "null_rows": 5786,
+          "null_percentage": 93.9743,
+          "min": 3.53,
+          "max": 4.41,
+          "mean": 3.903315
+        },
+        {
+          "column": "ROUND_B1_YIELD_6WK_2",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 371,
+          "null_rows": 5786,
+          "null_percentage": 93.9743,
+          "min": 3.59,
+          "max": 4.49,
+          "mean": 3.975094
+        },
+        {
+          "column": "MATURITY_DATE_6WK",
+          "inferred_type": "date",
+          "total_rows": 6157,
+          "non_null_rows": 371,
+          "null_rows": 5786,
+          "null_percentage": 93.9743
+        },
+        {
+          "column": "CUSIP_6WK",
+          "inferred_type": "string",
+          "total_rows": 6157,
+          "non_null_rows": 371,
+          "null_rows": 5786,
+          "null_percentage": 93.9743
+        },
+        {
+          "column": "CS_6WK_CLOSE_AVG",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 371,
+          "null_rows": 5786,
+          "null_percentage": 93.9743,
+          "min": 3.55,
+          "max": 4.32,
+          "mean": 3.905229
+        },
+        {
+          "column": "CS_6WK_YIELD_AVG",
+          "inferred_type": "numeric",
+          "total_rows": 6157,
+          "non_null_rows": 371,
+          "null_rows": 5786,
+          "null_percentage": 93.9743,
+          "min": 3.61,
+          "max": 4.4,
+          "mean": 3.976765
+        }
+      ],
+      "numeric_validation": {
+        "columns_with_non_numeric_values": [],
+        "parse_errors": [],
+        "parse_error_count": 0,
+        "flagged_observations_count": 0,
+        "flagged_observations_sample": [],
+        "zero_value_screening": [
+          {
+            "column": "ROUND_B1_CLOSE_4WK_2",
+            "zero_valued_observations": 64,
+            "first_zero_date": "2008-12-10",
+            "last_zero_date": "2021-06-03",
+            "leading_zero_run": 0,
+            "suspected_placeholder": false,
+            "assessment": "Consistent with genuine 0.00% prints during zero-rate episodes; retained as published."
+          },
+          {
+            "column": "ROUND_B1_YIELD_4WK_2",
+            "zero_valued_observations": 64,
+            "first_zero_date": "2008-12-10",
+            "last_zero_date": "2021-06-03",
+            "leading_zero_run": 0,
+            "suspected_placeholder": false,
+            "assessment": "Consistent with genuine 0.00% prints during zero-rate episodes; retained as published."
+          },
+          {
+            "column": "ROUND_B1_CLOSE_13WK_2",
+            "zero_valued_observations": 13,
+            "first_zero_date": "2008-12-10",
+            "last_zero_date": "2015-10-22",
+            "leading_zero_run": 0,
+            "suspected_placeholder": false,
+            "assessment": "Consistent with genuine 0.00% prints during zero-rate episodes; retained as published."
+          },
+          {
+            "column": "ROUND_B1_YIELD_13WK_2",
+            "zero_valued_observations": 13,
+            "first_zero_date": "2008-12-10",
+            "last_zero_date": "2015-10-22",
+            "leading_zero_run": 0,
+            "suspected_placeholder": false,
+            "assessment": "Consistent with genuine 0.00% prints during zero-rate episodes; retained as published."
+          },
+          {
+            "column": "CS_4WK_CLOSE_AVG",
+            "zero_valued_observations": 49,
+            "first_zero_date": "2011-08-15",
+            "last_zero_date": "2021-05-21",
+            "leading_zero_run": 0,
+            "suspected_placeholder": false,
+            "assessment": "Consistent with genuine 0.00% prints during zero-rate episodes; retained as published."
+          },
+          {
+            "column": "CS_4WK_YIELD_AVG",
+            "zero_valued_observations": 49,
+            "first_zero_date": "2011-08-15",
+            "last_zero_date": "2021-05-21",
+            "leading_zero_run": 0,
+            "suspected_placeholder": false,
+            "assessment": "Consistent with genuine 0.00% prints during zero-rate episodes; retained as published."
+          },
+          {
+            "column": "CS_13WK_CLOSE_AVG",
+            "zero_valued_observations": 8,
+            "first_zero_date": "2015-09-22",
+            "last_zero_date": "2020-03-25",
+            "leading_zero_run": 0,
+            "suspected_placeholder": false,
+            "assessment": "Consistent with genuine 0.00% prints during zero-rate episodes; retained as published."
+          },
+          {
+            "column": "CS_13WK_YIELD_AVG",
+            "zero_valued_observations": 8,
+            "first_zero_date": "2015-09-22",
+            "last_zero_date": "2020-03-25",
+            "leading_zero_run": 0,
+            "suspected_placeholder": false,
+            "assessment": "Consistent with genuine 0.00% prints during zero-rate episodes; retained as published."
+          },
+          {
+            "column": "ROUND_B1_CLOSE_8WK_2",
+            "zero_valued_observations": 1,
+            "first_zero_date": "2021-05-26",
+            "last_zero_date": "2021-05-26",
+            "leading_zero_run": 0,
+            "suspected_placeholder": false,
+            "assessment": "Consistent with genuine 0.00% prints during zero-rate episodes; retained as published."
+          },
+          {
+            "column": "ROUND_B1_YIELD_8WK_2",
+            "zero_valued_observations": 1,
+            "first_zero_date": "2021-05-26",
+            "last_zero_date": "2021-05-26",
+            "leading_zero_run": 0,
+            "suspected_placeholder": false,
+            "assessment": "Consistent with genuine 0.00% prints during zero-rate episodes; retained as published."
+          }
+        ],
+        "screening_rule": {
+          "plausible_range_percent": [
+            -10.0,
+            25.0
+          ],
+          "day_over_day_move_threshold_pp": 1.5,
+          "action": "flag only - no value is removed, clipped or imputed",
+          "note": "Negative Treasury rates are legitimate, especially for real/TIPS yields, and are not flagged by the range rule."
+        }
+      },
+      "warnings": [],
+      "errors": [],
+      "schema_changes": {
+        "columns_added_by_year": {
+          "2002": [
+            "BOND_MKT_UNAVAIL_REASON",
+            "CF_NEW_DATE",
+            "CF_WEEK",
+            "CS_13WK_CLOSE_AVG",
+            "CS_13WK_YIELD_AVG",
+            "CS_26WK_CLOSE_AVG",
+            "CS_26WK_YIELD_AVG",
+            "CS_4WK_CLOSE_AVG",
+            "CS_4WK_YIELD_AVG",
+            "CS_52WK_CLOSE_AVG",
+            "CS_52WK_YIELD_AVG",
+            "CUSIP_13WK",
+            "CUSIP_26WK",
+            "CUSIP_4WK",
+            "CUSIP_52WK",
+            "DailyTreasuryBillRateDataId",
+            "INDEX_DATE",
+            "MATURITY_DATE_13WK",
+            "MATURITY_DATE_26WK",
+            "MATURITY_DATE_4WK",
+            "MATURITY_DATE_52WK",
+            "QUOTE_DATE",
+            "ROUND_B1_CLOSE_13WK_2",
+            "ROUND_B1_CLOSE_26WK_2",
+            "ROUND_B1_CLOSE_4WK_2",
+            "ROUND_B1_CLOSE_52WK_2",
+            "ROUND_B1_YIELD_13WK_2",
+            "ROUND_B1_YIELD_26WK_2",
+            "ROUND_B1_YIELD_4WK_2",
+            "ROUND_B1_YIELD_52WK_2"
+          ],
+          "2008": [
+            "CS_52WK_CLOSE_AVG",
+            "CS_52WK_YIELD_AVG",
+            "CUSIP_52WK",
+            "MATURITY_DATE_52WK",
+            "ROUND_B1_CLOSE_52WK_2",
+            "ROUND_B1_YIELD_52WK_2"
+          ],
+          "2018": [
+            "CS_8WK_CLOSE_AVG",
+            "CS_8WK_YIELD_AVG",
+            "CUSIP_8WK",
+            "MATURITY_DATE_8WK",
+            "ROUND_B1_CLOSE_8WK_2",
+            "ROUND_B1_YIELD_8WK_2"
+          ],
+          "2022": [
+            "CS_17WK_CLOSE_AVG",
+            "CS_17WK_YIELD_AVG",
+            "CUSIP_17WK",
+            "MATURITY_DATE_17WK",
+            "ROUND_B1_CLOSE_17WK_2",
+            "ROUND_B1_YIELD_17WK_2"
+          ],
+          "2025": [
+            "CS_6WK_CLOSE_AVG",
+            "CS_6WK_YIELD_AVG",
+            "CUSIP_6WK",
+            "DailyTreasuryBillRateDataId",
+            "MATURITY_DATE_6WK",
+            "ROUND_B1_CLOSE_6WK_2",
+            "ROUND_B1_YIELD_6WK_2"
+          ]
+        },
+        "columns_removed_by_year": {
+          "2003": [
+            "CS_52WK_CLOSE_AVG",
+            "CS_52WK_YIELD_AVG",
+            "CUSIP_52WK",
+            "MATURITY_DATE_52WK",
+            "ROUND_B1_CLOSE_52WK_2",
+            "ROUND_B1_YIELD_52WK_2"
+          ],
+          "2023": [
+            "DailyTreasuryBillRateDataId"
+          ]
+        }
+      }
+    },
+    {
+      "dataset": "Daily Treasury Long-Term Rates",
+      "data_key": "daily_treasury_long_term_rate",
+      "source": "U.S. Department of the Treasury",
+      "shape": "long",
+      "natural_key": [
+        "QUOTE_DATE",
+        "RATE_TYPE"
+      ],
+      "financial_caveat": "The natural key is (QUOTE_DATE, RATE_TYPE) - a date legitimately carries several rows. The Real_Rate rows inside this nominal feed are Treasury's long-term real rate average; do not merge them with the nominal series.",
+      "validation_status": "PASS",
+      "coverage": {
+        "treasury_documented_first_year": 2000,
+        "requested_years": [
+          2000,
+          2001,
+          2002,
+          2003,
+          2004,
+          2005,
+          2006,
+          2007,
+          2008,
+          2009,
+          2010,
+          2011,
+          2012,
+          2013,
+          2014,
+          2015,
+          2016,
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025,
+          2026
+        ],
+        "years_downloaded": [
+          2000,
+          2001,
+          2002,
+          2003,
+          2004,
+          2005,
+          2006,
+          2007,
+          2008,
+          2009,
+          2010,
+          2011,
+          2012,
+          2013,
+          2014,
+          2015,
+          2016,
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025,
+          2026
+        ],
+        "years_failed": [],
+        "years_with_zero_observations": [],
+        "years_missing_from_output": [],
+        "earliest_observation_date": "2000-01-03",
+        "latest_observation_date": "2026-08-11",
+        "distinct_observation_dates": 6655,
+        "records_per_year": {
+          "2000": 753,
+          "2001": 744,
+          "2002": 750,
+          "2003": 750,
+          "2004": 750,
+          "2005": 750,
+          "2006": 750,
+          "2007": 753,
+          "2008": 753,
+          "2009": 750,
+          "2010": 753,
+          "2011": 750,
+          "2012": 750,
+          "2013": 750,
+          "2014": 750,
+          "2015": 753,
+          "2016": 750,
+          "2017": 750,
+          "2018": 747,
+          "2019": 750,
+          "2020": 753,
+          "2021": 753,
+          "2022": 747,
+          "2023": 750,
+          "2024": 750,
+          "2025": 747,
+          "2026": 459
+        }
+      },
+      "volume": {
+        "rows_parsed": 19965,
+        "rows_after_exact_dedup": 19965,
+        "columns": 5,
+        "raw_files": 27,
+        "raw_bytes": 16555463,
+        "processed_file": "long_term_rates.csv",
+        "processed_bytes": 1560162
+      },
+      "dates": {
+        "chronologically_ordered": true,
+        "malformed_dates": [],
+        "malformed_date_count": 0,
+        "future_dated_observations": [],
+        "missing_expected_business_days_count": 0,
+        "missing_expected_business_days_sample": [],
+        "longest_gap_between_observations": {
+          "calendar_days": 4,
+          "from": "2000-01-14",
+          "to": "2000-01-18"
+        }
+      },
+      "duplicates": {
+        "exact_duplicate_records_removed": 0,
+        "exact_duplicate_sample": [],
+        "natural_key_duplicate_count": 0,
+        "natural_key_duplicate_sample": []
+      },
+      "missing_values": [
+        {
+          "column": "QUOTE_DATE",
+          "inferred_type": "date",
+          "total_rows": 19965,
+          "non_null_rows": 19965,
+          "null_rows": 0,
+          "null_percentage": 0.0
+        },
+        {
+          "column": "Id",
+          "inferred_type": "integer",
+          "total_rows": 19965,
+          "non_null_rows": 19965,
+          "null_rows": 0,
+          "null_percentage": 0.0,
+          "min": 1,
+          "max": 17235,
+          "mean": 7626.298272
+        },
+        {
+          "column": "EXTRAPOLATION_FACTOR",
+          "inferred_type": "string",
+          "total_rows": 19965,
+          "non_null_rows": 2982,
+          "null_rows": 16983,
+          "null_percentage": 85.0639
+        },
+        {
+          "column": "RATE_TYPE",
+          "inferred_type": "string",
+          "total_rows": 19965,
+          "non_null_rows": 19965,
+          "null_rows": 0,
+          "null_percentage": 0.0
+        },
+        {
+          "column": "RATE",
+          "inferred_type": "numeric",
+          "total_rows": 19965,
+          "non_null_rows": 19965,
+          "null_rows": 0,
+          "null_percentage": 0.0,
+          "min": -0.64,
+          "max": 6.97,
+          "mean": 3.104793
+        }
+      ],
+      "numeric_validation": {
+        "columns_with_non_numeric_values": [],
+        "parse_errors": [],
+        "parse_error_count": 0,
+        "flagged_observations_count": 0,
+        "flagged_observations_sample": [],
+        "zero_value_screening": [
+          {
+            "column": "RATE",
+            "zero_valued_observations": 15,
+            "first_zero_date": "2012-06-05",
+            "last_zero_date": "2022-04-01",
+            "leading_zero_run": 0,
+            "suspected_placeholder": false,
+            "assessment": "Consistent with genuine 0.00% prints during zero-rate episodes; retained as published."
+          }
+        ],
+        "screening_rule": {
+          "plausible_range_percent": [
+            -10.0,
+            25.0
+          ],
+          "day_over_day_move_threshold_pp": 1.5,
+          "action": "flag only - no value is removed, clipped or imputed",
+          "note": "Negative Treasury rates are legitimate, especially for real/TIPS yields, and are not flagged by the range rule."
+        }
+      },
+      "warnings": [],
+      "errors": [],
+      "schema_changes": {
+        "columns_added_by_year": {
+          "2000": [
+            "EXTRAPOLATION_FACTOR",
+            "Id",
+            "QUOTE_DATE",
+            "RATE",
+            "RATE_TYPE"
+          ]
+        },
+        "columns_removed_by_year": {}
+      }
+    },
+    {
+      "dataset": "Daily Treasury Par Real Yield Curve Rates",
+      "data_key": "daily_treasury_real_yield_curve",
+      "source": "U.S. Department of the Treasury",
+      "shape": "wide",
+      "natural_key": [
+        "NEW_DATE"
+      ],
+      "financial_caveat": "REAL yields (TIPS-based), not nominal. Negative values are normal and correct - they must never be treated as errors or clipped. The nominal-minus-real difference is a breakeven-inflation calculation and is deliberately not computed here.",
+      "validation_status": "WARNING",
+      "coverage": {
+        "treasury_documented_first_year": 2003,
+        "requested_years": [
+          2003,
+          2004,
+          2005,
+          2006,
+          2007,
+          2008,
+          2009,
+          2010,
+          2011,
+          2012,
+          2013,
+          2014,
+          2015,
+          2016,
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025,
+          2026
+        ],
+        "years_downloaded": [
+          2003,
+          2004,
+          2005,
+          2006,
+          2007,
+          2008,
+          2009,
+          2010,
+          2011,
+          2012,
+          2013,
+          2014,
+          2015,
+          2016,
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025,
+          2026
+        ],
+        "years_failed": [],
+        "years_with_zero_observations": [],
+        "years_missing_from_output": [],
+        "earliest_observation_date": "2003-01-02",
+        "latest_observation_date": "2026-08-11",
+        "distinct_observation_dates": 5906,
+        "records_per_year": {
+          "2003": 250,
+          "2004": 250,
+          "2005": 250,
+          "2006": 250,
+          "2007": 251,
+          "2008": 251,
+          "2009": 250,
+          "2010": 251,
+          "2011": 250,
+          "2012": 250,
+          "2013": 250,
+          "2014": 250,
+          "2015": 251,
+          "2016": 250,
+          "2017": 250,
+          "2018": 249,
+          "2019": 250,
+          "2020": 251,
+          "2021": 251,
+          "2022": 249,
+          "2023": 250,
+          "2024": 250,
+          "2025": 249,
+          "2026": 153
+        }
+      },
+      "volume": {
+        "rows_parsed": 5906,
+        "rows_after_exact_dedup": 5906,
+        "columns": 7,
+        "raw_files": 24,
+        "raw_bytes": 6132991,
+        "processed_file": "real_yield_curve.csv",
+        "processed_bytes": 502788
+      },
+      "dates": {
+        "chronologically_ordered": true,
+        "malformed_dates": [],
+        "malformed_date_count": 0,
+        "future_dated_observations": [],
+        "missing_expected_business_days_count": 0,
+        "missing_expected_business_days_sample": [],
+        "longest_gap_between_observations": {
+          "calendar_days": 4,
+          "from": "2003-01-17",
+          "to": "2003-01-21"
+        }
+      },
+      "duplicates": {
+        "exact_duplicate_records_removed": 0,
+        "exact_duplicate_sample": [],
+        "natural_key_duplicate_count": 0,
+        "natural_key_duplicate_sample": []
+      },
+      "missing_values": [
+        {
+          "column": "NEW_DATE",
+          "inferred_type": "date",
+          "total_rows": 5906,
+          "non_null_rows": 5906,
+          "null_rows": 0,
+          "null_percentage": 0.0
+        },
+        {
+          "column": "DailyTreasuryRealYieldCurveRateDataId",
+          "inferred_type": "integer",
+          "total_rows": 5906,
+          "non_null_rows": 5246,
+          "null_rows": 660,
+          "null_percentage": 11.1751,
+          "min": 1,
+          "max": 4954,
+          "mean": 2347.753145
+        },
+        {
+          "column": "TC_5YEAR",
+          "inferred_type": "numeric",
+          "total_rows": 5906,
+          "non_null_rows": 5906,
+          "null_rows": 0,
+          "null_percentage": 0.0,
+          "min": -1.91,
+          "max": 4.24,
+          "mean": 0.577389
+        },
+        {
+          "column": "TC_7YEAR",
+          "inferred_type": "numeric",
+          "total_rows": 5906,
+          "non_null_rows": 5906,
+          "null_rows": 0,
+          "null_percentage": 0.0,
+          "min": -1.5,
+          "max": 4.27,
+          "mean": 0.805003
+        },
+        {
+          "column": "TC_10YEAR",
+          "inferred_type": "numeric",
+          "total_rows": 5906,
+          "non_null_rows": 5906,
+          "null_rows": 0,
+          "null_percentage": 0.0,
+          "min": -1.19,
+          "max": 3.15,
+          "mean": 1.000112
+        },
+        {
+          "column": "TC_20YEAR",
+          "inferred_type": "numeric",
+          "total_rows": 5906,
+          "non_null_rows": 5515,
+          "null_rows": 391,
+          "null_percentage": 6.6204,
+          "min": -0.76,
+          "max": 3.35,
+          "mean": 1.268234
+        },
+        {
+          "column": "TC_30YEAR",
+          "inferred_type": "numeric",
+          "total_rows": 5906,
+          "non_null_rows": 4121,
+          "null_rows": 1785,
+          "null_percentage": 30.2235,
+          "min": -0.59,
+          "max": 3.03,
+          "mean": 1.148102
+        }
+      ],
+      "numeric_validation": {
+        "columns_with_non_numeric_values": [],
+        "parse_errors": [],
+        "parse_error_count": 0,
+        "flagged_observations_count": 2,
+        "flagged_observations_sample": [
+          {
+            "column": "TC_5YEAR",
+            "date": "2008-12-01",
+            "previous_date": "2008-11-28",
+            "value": 2.03,
+            "previous_value": 4.17,
+            "change_pp": -2.14,
+            "reason": "day-over-day move exceeds threshold"
+          },
+          {
+            "column": "TC_7YEAR",
+            "date": "2008-12-01",
+            "previous_date": "2008-11-28",
+            "value": 2.19,
+            "previous_value": 3.78,
+            "change_pp": -1.59,
+            "reason": "day-over-day move exceeds threshold"
+          }
+        ],
+        "zero_value_screening": [
+          {
+            "column": "TC_5YEAR",
+            "zero_valued_observations": 15,
+            "first_zero_date": "2010-11-16",
+            "last_zero_date": "2017-06-06",
+            "leading_zero_run": 0,
+            "suspected_placeholder": false,
+            "assessment": "Consistent with genuine 0.00% prints during zero-rate episodes; retained as published."
+          },
+          {
+            "column": "TC_7YEAR",
+            "zero_valued_observations": 16,
+            "first_zero_date": "2010-10-12",
+            "last_zero_date": "2022-08-01",
+            "leading_zero_run": 0,
+            "suspected_placeholder": false,
+            "assessment": "Consistent with genuine 0.00% prints during zero-rate episodes; retained as published."
+          },
+          {
+            "column": "TC_10YEAR",
+            "zero_valued_observations": 15,
+            "first_zero_date": "2011-08-09",
+            "last_zero_date": "2022-04-19",
+            "leading_zero_run": 0,
+            "suspected_placeholder": false,
+            "assessment": "Consistent with genuine 0.00% prints during zero-rate episodes; retained as published."
+          },
+          {
+            "column": "TC_20YEAR",
+            "zero_valued_observations": 12,
+            "first_zero_date": "2012-07-12",
+            "last_zero_date": "2020-03-31",
+            "leading_zero_run": 0,
+            "suspected_placeholder": false,
+            "assessment": "Consistent with genuine 0.00% prints during zero-rate episodes; retained as published."
+          },
+          {
+            "column": "TC_30YEAR",
+            "zero_valued_observations": 9,
+            "first_zero_date": "2020-03-25",
+            "last_zero_date": "2022-04-01",
+            "leading_zero_run": 0,
+            "suspected_placeholder": false,
+            "assessment": "Consistent with genuine 0.00% prints during zero-rate episodes; retained as published."
+          }
+        ],
+        "screening_rule": {
+          "plausible_range_percent": [
+            -10.0,
+            25.0
+          ],
+          "day_over_day_move_threshold_pp": 1.5,
+          "action": "flag only - no value is removed, clipped or imputed",
+          "note": "Negative Treasury rates are legitimate, especially for real/TIPS yields, and are not flagged by the range rule."
+        }
+      },
+      "warnings": [
+        "2 rate observations flagged for review (out-of-band level or large day-over-day move); none removed"
+      ],
+      "errors": [],
+      "schema_changes": {
+        "columns_added_by_year": {
+          "2003": [
+            "DailyTreasuryRealYieldCurveRateDataId",
+            "NEW_DATE",
+            "TC_10YEAR",
+            "TC_5YEAR",
+            "TC_7YEAR"
+          ],
+          "2004": [
+            "TC_20YEAR"
+          ],
+          "2010": [
+            "TC_30YEAR"
+          ],
+          "2025": [
+            "DailyTreasuryRealYieldCurveRateDataId"
+          ]
+        },
+        "columns_removed_by_year": {
+          "2023": [
+            "DailyTreasuryRealYieldCurveRateDataId"
+          ]
+        }
+      }
+    },
+    {
+      "dataset": "Daily Treasury Real Long-Term Rates",
+      "data_key": "daily_treasury_real_long_term",
+      "source": "U.S. Department of the Treasury",
+      "shape": "wide",
+      "natural_key": [
+        "QUOTE_DATE"
+      ],
+      "financial_caveat": "REAL (TIPS) rate. Coverage is interrupted where Treasury suspended publication; missing days are genuinely absent, not zero.",
+      "validation_status": "PASS",
+      "coverage": {
+        "treasury_documented_first_year": 2000,
+        "requested_years": [
+          2000,
+          2001,
+          2002,
+          2003,
+          2004,
+          2005,
+          2006,
+          2007,
+          2008,
+          2009,
+          2010,
+          2011,
+          2012,
+          2013,
+          2014,
+          2015,
+          2016,
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025,
+          2026
+        ],
+        "years_downloaded": [
+          2000,
+          2001,
+          2002,
+          2003,
+          2004,
+          2005,
+          2006,
+          2007,
+          2008,
+          2009,
+          2010,
+          2011,
+          2012,
+          2013,
+          2014,
+          2015,
+          2016,
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025,
+          2026
+        ],
+        "years_failed": [],
+        "years_with_zero_observations": [],
+        "years_missing_from_output": [],
+        "earliest_observation_date": "2000-01-03",
+        "latest_observation_date": "2026-08-11",
+        "distinct_observation_dates": 6655,
+        "records_per_year": {
+          "2000": 251,
+          "2001": 248,
+          "2002": 250,
+          "2003": 250,
+          "2004": 250,
+          "2005": 250,
+          "2006": 250,
+          "2007": 251,
+          "2008": 251,
+          "2009": 250,
+          "2010": 251,
+          "2011": 250,
+          "2012": 250,
+          "2013": 250,
+          "2014": 250,
+          "2015": 251,
+          "2016": 250,
+          "2017": 250,
+          "2018": 249,
+          "2019": 250,
+          "2020": 251,
+          "2021": 251,
+          "2022": 249,
+          "2023": 250,
+          "2024": 250,
+          "2025": 249,
+          "2026": 153
+        }
+      },
+      "volume": {
+        "rows_parsed": 6655,
+        "rows_after_exact_dedup": 6655,
+        "columns": 2,
+        "raw_files": 27,
+        "raw_bytes": 5361887,
+        "processed_file": "real_long_term_rates.csv",
+        "processed_bytes": 399057
+      },
+      "dates": {
+        "chronologically_ordered": true,
+        "malformed_dates": [],
+        "malformed_date_count": 0,
+        "future_dated_observations": [],
+        "missing_expected_business_days_count": 0,
+        "missing_expected_business_days_sample": [],
+        "longest_gap_between_observations": {
+          "calendar_days": 4,
+          "from": "2000-01-14",
+          "to": "2000-01-18"
+        }
+      },
+      "duplicates": {
+        "exact_duplicate_records_removed": 0,
+        "exact_duplicate_sample": [],
+        "natural_key_duplicate_count": 0,
+        "natural_key_duplicate_sample": []
+      },
+      "missing_values": [
+        {
+          "column": "QUOTE_DATE",
+          "inferred_type": "date",
+          "total_rows": 6655,
+          "non_null_rows": 6655,
+          "null_rows": 0,
+          "null_percentage": 0.0
+        },
+        {
+          "column": "RATE",
+          "inferred_type": "numeric",
+          "total_rows": 6655,
+          "non_null_rows": 6655,
+          "null_rows": 0,
+          "null_percentage": 0.0,
+          "min": -0.64,
+          "max": 4.4,
+          "mean": 1.627581
+        }
+      ],
+      "numeric_validation": {
+        "columns_with_non_numeric_values": [],
+        "parse_errors": [],
+        "parse_error_count": 0,
+        "flagged_observations_count": 0,
+        "flagged_observations_sample": [],
+        "zero_value_screening": [
+          {
+            "column": "RATE",
+            "zero_valued_observations": 15,
+            "first_zero_date": "2012-06-05",
+            "last_zero_date": "2022-04-01",
+            "leading_zero_run": 0,
+            "suspected_placeholder": false,
+            "assessment": "Consistent with genuine 0.00% prints during zero-rate episodes; retained as published."
+          }
+        ],
+        "screening_rule": {
+          "plausible_range_percent": [
+            -10.0,
+            25.0
+          ],
+          "day_over_day_move_threshold_pp": 1.5,
+          "action": "flag only - no value is removed, clipped or imputed",
+          "note": "Negative Treasury rates are legitimate, especially for real/TIPS yields, and are not flagged by the range rule."
+        }
+      },
+      "warnings": [],
+      "errors": [],
+      "schema_changes": {
+        "columns_added_by_year": {
+          "2000": [
+            "QUOTE_DATE",
+            "RATE"
+          ]
+        },
+        "columns_removed_by_year": {}
+      }
+    }
+  ]
+}

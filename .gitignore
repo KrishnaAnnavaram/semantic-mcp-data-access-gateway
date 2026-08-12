@@ -1,3 +1,4 @@
+
 # Python
 __pycache__/
 *.py[cod]
@@ -18,3 +19,36 @@ chroma_db/
 Thumbs.db
 .vscode/
 .idea/
+=======
+
+# Secrets
+.env
+
+# Separate repository living inside this working directory. It carries its own
+# .git — committing it produces a broken submodule reference or absorbs its
+# history, neither of which is cleanly recoverable once pushed. See CLAUDE.md.
+adaptive-legacy-code-complexity-harness/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# Partially written raw downloads. A complete raw file is committed on purpose;
+# a .part file is a download that never finished.
+data/raw/**/*.part
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+=======
+.venv/
+__pycache__/
+*.pyc
+.env
+.pytest_cache/
