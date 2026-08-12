@@ -58,6 +58,22 @@ python tools/verify_load.py --self-test
 
 Expected: `self-test OK: corruption detected ...` then `Verification PASS: 58/58 checks passed`.
 
+**MCP layer** — two stdio servers plus the host that drives them
+
+```bash
+python -m src.mcp_data.bootstrap       # once: set the mcp_reader password
+python -m src.host --tools             # discover both servers' tools
+python -m src.host --demo              # full chain: curve -> price -> DV01 -> VaR -> stress
+python -m src.host --isolation         # prove the risk engine cannot reach the database
+python tools/verify_mcp.py --self-test # 35 checks; 3 canaries must be caught
+pytest tests/                          # SDK contract + risk-engine golden tests
+```
+
+The servers are never run by hand — the host launches them as child processes
+over stdio. If you do run one directly, remember **stdout is the protocol
+channel**: a stray `print()` corrupts the stream and the failure looks like a
+mysterious client disconnect. Diagnostics go to stderr.
+
 **Reasoning layer**
 
 ```bash
@@ -91,8 +107,11 @@ cd chatbot && cp .env.example .env && streamlit run app.py
 | `db/migrations/` | V001–V007. Forward-only, checksummed |
 | `data/` | Source of record: raw XML, processed CSVs, reports |
 | `docs/` | Data-layer contracts and architecture decisions |
-| `tools/` | `verify_load.py` — reconciliation with a self-test |
-| `src/` | VectorStore, KnowledgeBase, DataProvider, SmartAgent |
+| `tools/` | `verify_load.py`, `verify_mcp.py` — reconciliation, each with a self-test |
+| `src/mcp_data/` | **Product code.** market-risk-data-mcp: 12 tools, read-only |
+| `src/mcp_risk/` | **Product code.** risk-engine-mcp: curves, pricing, VaR. No DB, no LLM |
+| `src/host/` | **Product code.** MCP host + client; launches both servers over stdio |
+| `src/` (rest) | VectorStore, KnowledgeBase, DataProvider, SmartAgent |
 | `knowledge/<domain>/*.md` | RAG source docs. **Subfolder name = domain tag** |
 | `chatbot/` | Streamlit UI, its own README and CLAUDE.md |
 | `chroma_db/` | Local vector store, auto-created — do not edit by hand |
@@ -146,6 +165,26 @@ lives in `treasury.series.placeholder_zero_before`, as data, not code.
 - **No financial transformation in this layer.** No returns, DV01, VaR, spreads, breakevens or
   bootstrapped curves. The data layer ends at trustworthy facts; those calculations belong to the
   reasoning layer.
+
+## Conventions — MCP layer
+
+- **Par yields are not zero rates.** Treasury publishes a par curve and no
+  zero-coupon curve. The risk engine bootstraps discount factors before pricing
+  anything; using a 4.25% 10-year CMT as a discount rate is the most common way
+  to get bond analytics wrong, and it fails silently.
+- **`quote_basis` travels with every rate**, not just the catalogue. A bill
+  discount rate and a par coupon yield are different quantities.
+- **No `run_sql`, ever.** SQL templates live in `repository.py`; caller input
+  supplies values only.
+- **The risk engine gets no database credential.** Its child process is launched
+  with a sanitised environment. That is what makes "bad input or bad maths?" a
+  question with a mechanical answer.
+- **Bulk arrays go through `_meta`**, never model context. `_meta` is a
+  context-efficiency channel, not a security boundary — nothing secret in it.
+- **Missing history is refused by default.** `intersection` must report
+  `excluded_dates`.
+- **Numerical conventions are versioned**, in `src/mcp_risk/manifest.py`.
+  Changing the quantile rule changes the run fingerprint, by design.
 
 ## Conventions — reasoning layer
 

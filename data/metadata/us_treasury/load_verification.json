@@ -1,9 +1,9 @@
 {
-  "generated_at_utc": "2026-08-12T06:09:58+00:00",
+  "generated_at_utc": "2026-08-12T23:19:53+00:00",
   "load_run_id": 4,
   "target": "postgresql://gateway:***@localhost:5432/gateway",
   "status": "PASS",
-  "checks_total": 58,
+  "checks_total": 74,
   "checks_failed": 0,
   "checks": [
     {
@@ -437,6 +437,134 @@
       "actual": true,
       "passed": true,
       "detail": "5 rows"
+    },
+    {
+      "check": "mcp_reader_can:read_curve_view",
+      "data_key": null,
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "mcp_reader_can:read_observation_view",
+      "data_key": null,
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "mcp_reader_can:read_demo_positions",
+      "data_key": null,
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "mcp_reader_can:read_scenarios",
+      "data_key": null,
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "mcp_reader_can:read_source_provenance",
+      "data_key": null,
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "mcp_reader_cannot:read_raw_treasury",
+      "data_key": null,
+      "expected": false,
+      "actual": false,
+      "passed": true,
+      "detail": "privilege boundary, not an annotation"
+    },
+    {
+      "check": "mcp_reader_cannot:read_raw_staging",
+      "data_key": null,
+      "expected": false,
+      "actual": false,
+      "passed": true,
+      "detail": "privilege boundary, not an annotation"
+    },
+    {
+      "check": "mcp_reader_cannot:insert_demo",
+      "data_key": null,
+      "expected": false,
+      "actual": false,
+      "passed": true,
+      "detail": "privilege boundary, not an annotation"
+    },
+    {
+      "check": "mcp_reader_cannot:update_demo",
+      "data_key": null,
+      "expected": false,
+      "actual": false,
+      "passed": true,
+      "detail": "privilege boundary, not an annotation"
+    },
+    {
+      "check": "mcp_reader_cannot:delete_demo",
+      "data_key": null,
+      "expected": false,
+      "actual": false,
+      "passed": true,
+      "detail": "privilege boundary, not an annotation"
+    },
+    {
+      "check": "mcp_reader_cannot:create_table",
+      "data_key": null,
+      "expected": false,
+      "actual": false,
+      "passed": true,
+      "detail": "privilege boundary, not an annotation"
+    },
+    {
+      "check": "mcp_reader_cannot:write_treasury",
+      "data_key": null,
+      "expected": false,
+      "actual": false,
+      "passed": true,
+      "detail": "privilege boundary, not an annotation"
+    },
+    {
+      "check": "mcp_view_matches_curated_view",
+      "data_key": null,
+      "expected": 258358,
+      "actual": 258358,
+      "passed": true,
+      "detail": "v_mcp_observation must not expose anything v_observation hides"
+    },
+    {
+      "check": "mcp_view_excludes_placeholders",
+      "data_key": null,
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "mcp_rates_all_carry_quote_basis",
+      "data_key": null,
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": "the semantic envelope is mandatory on every row"
+    },
+    {
+      "check": "demo_rows_all_classified_synthetic",
+      "data_key": null,
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": ""
     },
     {
       "check": "constraint:treasury.observation:p",

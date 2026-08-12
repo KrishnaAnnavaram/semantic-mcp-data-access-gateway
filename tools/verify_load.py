@@ -46,6 +46,8 @@ from typing import Any, Sequence
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / ".claude" / "loading"))
 
+import psycopg2  # noqa: E402  (needed for the privilege probes)
+
 from _db import connect, describe_target, fetch_all, scalar  # noqa: E402
 from load_us_treasury import (  # noqa: E402
     LOAD_SPECS,
@@ -370,6 +372,87 @@ def check_integrity(v: Verifier) -> None:
             v.record(f"view_queryable:{view}", None, True, False, str(exc)[:120])
 
 
+def check_mcp_boundary(v: Verifier) -> None:
+    """Prove the MCP database identity can only read what it is meant to.
+
+    Tool annotations (`readOnlyHint` and friends) are advisory - the spec tells
+    clients to treat them as untrusted. Privileges are not advisory, so the
+    boundary is asserted here against the live database rather than assumed
+    from the migration having run.
+
+    Each probe runs inside a SAVEPOINT so a denied statement does not abort the
+    surrounding transaction, and the whole thing is rolled back regardless.
+    """
+    LOGGER.info("mcp boundary")
+
+    must_succeed = [
+        ("read_curve_view", "SELECT 1 FROM analytics.v_mcp_curve LIMIT 1"),
+        ("read_observation_view", "SELECT 1 FROM analytics.v_mcp_observation LIMIT 1"),
+        ("read_demo_positions", "SELECT 1 FROM analytics.v_mcp_portfolio_position LIMIT 1"),
+        ("read_scenarios", "SELECT 1 FROM demo.scenario LIMIT 1"),
+        ("read_source_provenance", "SELECT 1 FROM meta.source_file LIMIT 1"),
+    ]
+    must_fail = [
+        ("read_raw_treasury", "SELECT 1 FROM treasury.observation LIMIT 1"),
+        ("read_raw_staging", "SELECT 1 FROM staging.par_yield_curve LIMIT 1"),
+        ("insert_demo", "INSERT INTO demo.portfolio (portfolio_id, name, seed_version) "
+                        "VALUES ('DEMO_ZZ', 'x', 'v')"),
+        ("update_demo", "UPDATE demo.position SET face_notional = 1"),
+        ("delete_demo", "DELETE FROM demo.scenario"),
+        ("create_table", "CREATE TABLE demo.should_not_exist (id int)"),
+        ("write_treasury", "UPDATE treasury.observation SET rate_percent = 0"),
+    ]
+
+    def probe(sql: str) -> bool:
+        """Run sql as mcp_reader; True if it was permitted."""
+        with v.conn.cursor() as cur:
+            cur.execute("SAVEPOINT mcp_probe")
+            try:
+                cur.execute("SET LOCAL ROLE mcp_reader")
+                cur.execute(sql)
+                permitted = True
+            except psycopg2.Error:
+                permitted = False
+            finally:
+                cur.execute("ROLLBACK TO SAVEPOINT mcp_probe")
+        return permitted
+
+    try:
+        for name, sql in must_succeed:
+            v.record(f"mcp_reader_can:{name}", None, True, probe(sql))
+        for name, sql in must_fail:
+            v.record(f"mcp_reader_cannot:{name}", None, False, probe(sql),
+                     "privilege boundary, not an annotation")
+    finally:
+        v.conn.rollback()
+
+    # The MCP read view is rebuilt from base tables rather than layered on
+    # v_observation, so it repeats two filter predicates. If those ever drift,
+    # a placeholder row becomes reachable through the MCP layer. Catch it here.
+    v.record(
+        "mcp_view_matches_curated_view", None,
+        scalar(v.conn, "SELECT count(*) FROM analytics.v_observation"),
+        scalar(v.conn, "SELECT count(*) FROM analytics.v_mcp_observation"),
+        "v_mcp_observation must not expose anything v_observation hides",
+    )
+    v.record(
+        "mcp_view_excludes_placeholders", None, 0,
+        scalar(v.conn,
+               "SELECT count(*) FROM analytics.v_mcp_observation "
+               "WHERE series_code = 'BC_30YEARDISPLAY'"))
+    v.record(
+        "mcp_rates_all_carry_quote_basis", None, 0,
+        scalar(v.conn,
+               "SELECT count(*) FROM analytics.v_mcp_observation "
+               "WHERE quote_basis IS NULL OR unit IS NULL OR rate_kind IS NULL"),
+        "the semantic envelope is mandatory on every row")
+    v.record(
+        "demo_rows_all_classified_synthetic", None, 0,
+        scalar(v.conn,
+               "SELECT count(*) FROM analytics.v_mcp_portfolio_position "
+               "WHERE data_classification <> 'SYNTHETIC_DEMO'"))
+
+
 def check_constraints(v: Verifier) -> None:
     LOGGER.info("constraints")
     expected = {
@@ -565,6 +648,7 @@ def run(args: argparse.Namespace) -> int:
             check_values(v, spec, facts)
         check_placeholders(v)
         check_integrity(v)
+        check_mcp_boundary(v)
         check_constraints(v)
 
         status = "PASS" if not v.failures else "FAIL"
