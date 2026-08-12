@@ -81,7 +81,18 @@ def discover() -> list[tuple[int, str, Path]]:
 
 
 def sha256_of(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    """Checksum a migration by its CONTENT, not its encoding.
+
+    CRLF is normalised to LF first. Git rewrites line endings on checkout on
+    Windows, so hashing raw bytes makes a migration's identity depend on which
+    machine cloned it: every file looks "edited" on a fresh Windows clone and
+    the drift guard fires on all of them at once. That turns a real safety
+    check into noise people learn to ignore, which is worse than not having it.
+
+    `.gitattributes` pins *.sql to LF as well; this is the belt to that
+    braces, because a checkout can always be configured otherwise.
+    """
+    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 
 def applied_migrations(conn) -> dict[int, dict]:

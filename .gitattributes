@@ -1,0 +1,24 @@
+# Normalise line endings so a file's identity does not depend on which machine
+# cloned it. This matters most for db/migrations/: the migration runner records
+# a SHA-256 per applied file and refuses to run if one changes, and without this
+# every migration looks "edited" on a fresh Windows checkout.
+
+* text=auto
+
+*.sql   text eol=lf
+*.py    text eol=lf
+*.md    text eol=lf
+*.json  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.csv   text eol=lf
+*.xml   text eol=lf
+
+# Windows-only helpers keep CRLF.
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# Never touch binaries.
+*.png   binary
+*.jpg   binary
+*.pdf   binary
