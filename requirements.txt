@@ -1,3 +1,7 @@
+
+anthropic>=0.69.0
+chromadb>=0.5.0
+=======
 # semantic-mcp-data-access-gateway — dependencies for all workstreams.
 # Currently only the chatbot (Streamlit UI) has code; teammates add their own sections below
 # as the smart-agent and MCP-server workstreams come online.
