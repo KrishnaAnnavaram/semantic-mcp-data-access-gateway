@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+
+  "permissions": {
+    "allow": [
+      "Bash(python .claude/acquisition/download_us_treasury.py *)",
+      "Bash(python .claude/loading/migrate.py *)",
+      "Bash(python .claude/loading/load_us_treasury.py *)",
+      "Bash(python tools/verify_load.py *)",
+      "Bash(docker compose ps *)",
+      "Bash(docker compose up -d *)",
+      "Bash(docker compose logs *)",
+      "Bash(docker compose exec postgres pg_isready *)",
+      "Bash(docker exec smdag-postgres psql -U gateway -d gateway -c *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)"
+    ],
+
+    "ask": [
+      "Bash(docker compose down *)",
+      "Bash(git push *)"
+    ],
+
+    "deny": [
+      "Read(./adaptive-legacy-code-complexity-harness/**)",
+      "Edit(./adaptive-legacy-code-complexity-harness/**)",
+      "Write(./adaptive-legacy-code-complexity-harness/**)",
+      "Edit(./data/raw/**)",
+      "Write(./data/raw/**)",
+      "Read(./.env)"
+    ]
+  }
+}
