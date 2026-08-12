@@ -14,10 +14,9 @@ from __future__ import annotations
 import pathlib
 import re
 
-from vector_store import ChromaVectorStore, VectorStore
+from vector_store import VectorStore, make_vector_store
 
 KNOWLEDGE_DIR = pathlib.Path(__file__).resolve().parent.parent / "knowledge"
-CHROMA_DIR = pathlib.Path(__file__).resolve().parent.parent / "chroma_db"
 
 
 def _chunk_markdown(text: str) -> list[dict]:
@@ -49,7 +48,7 @@ def _iter_chunks(knowledge_dir: pathlib.Path):
 
 class KnowledgeBase:
     def __init__(self, store: VectorStore | None = None, rebuild: bool = False):
-        self.store = store or ChromaVectorStore(path=str(CHROMA_DIR))
+        self.store = store or make_vector_store()
         if rebuild:
             self.store.reset()
         if self.store.count() == 0:

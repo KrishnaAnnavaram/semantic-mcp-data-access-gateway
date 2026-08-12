@@ -61,7 +61,7 @@ Then sanity-check with a couple of `retrieve()` calls (see the `__main__` block
 in `src/knowledge_base.py`).
 
 ## Swap seams — do not break them
-- `KnowledgeBase` uses a **`VectorStore`** interface (Chroma now, pgvector later).
+- `KnowledgeBase` uses a **`VectorStore`** interface (`QdrantVectorStore` — embedded for dev, or a Docker Qdrant server via `QDRANT_URL`).
 - Data tools use a **`DataProvider`** interface (mock now, MCP/DB later).
 - The agent imports interfaces, never concrete engines.
 

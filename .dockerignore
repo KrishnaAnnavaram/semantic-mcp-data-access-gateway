@@ -1,0 +1,15 @@
+# Keep the agent image small — none of this belongs in it.
+.git/
+data/
+db/
+docs/
+chatbot/
+tools/
+qdrant_db/
+__pycache__/
+*.pyc
+.venv/
+venv/
+tests/
+.env
+adaptive-legacy-code-complexity-harness/

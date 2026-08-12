@@ -20,5 +20,31 @@ services:
       retries: 10
       start_period: 10s
 
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: smdag-qdrant
+    restart: unless-stopped
+    ports:
+      - "${QDRANT_PORT:-6333}:6333"   # REST
+      - "${QDRANT_GRPC_PORT:-6334}:6334"  # gRPC
+    volumes:
+      - qdrant-data:/qdrant/storage
+
+  agent:
+    build: .
+    container_name: smdag-agent
+    restart: unless-stopped
+    depends_on:
+      - qdrant
+      - postgres
+    environment:
+      QDRANT_URL: http://qdrant:6333
+      DATA_BACKEND: postgres
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+    ports:
+      - "${AGENT_PORT:-8000}:8000"
+
 volumes:
   postgres-data:
+  qdrant-data:

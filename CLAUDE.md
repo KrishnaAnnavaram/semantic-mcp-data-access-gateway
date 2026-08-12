@@ -11,23 +11,23 @@ requirement planning, filtering, and optimized retrieval across enterprise data 
    user ──► UI LAYER          chatbot/                    Streamlit + LangSmith
               │
               ▼
-            REASONING LAYER   src/ + knowledge/           SmartAgent (Claude) + ChromaDB
-              │
-              ▼  ⚠ DataProvider is still a mock — this seam is not connected yet
+            REASONING LAYER   src/ + knowledge/           SmartAgent (Claude) + Qdrant
+              │                                           /chat service + decision trace
+              ▼  DataProvider seam → PostgresDataProvider (DATA_BACKEND=postgres)
             DATA LAYER        .claude/ + db/ + data/      PostgreSQL 17, Treasury rates
 ```
 
 The reasoning layer decides *what data a question needs*; the data layer is *where that data
 truthfully lives*; the UI layer is *how a human sees the answer and how it was reached*.
 
-Each layer is built and runnable on its own. **They are not wired together yet.** The seam that
-joins reasoning to data is `DataProvider` in `src/data_provider.py`, currently a mock.
-Connecting it to `analytics.v_observation` is the next piece of work and touches one file.
+The reasoning and data layers **are wired**, through two swap seams: `VectorStore` (Qdrant) for
+knowledge and `DataProvider` (`PostgresDataProvider`, reading `analytics.*`) for facts. The
+chatbot still runs on a mock agent client until it is pointed at the `/chat` service.
 
 | Layer | Owns | Status | Its own docs |
 |---|---|---|---|
-| `chatbot/` | Streamlit chat UI + LangSmith | In progress | `chatbot/CLAUDE.md` |
-| `src/` + `knowledge/` | Smart agent + vector knowledge base | Built (Phases 3–4) | this file |
+| `chatbot/` | Streamlit chat UI + LangSmith | Built (trace panel pending) | `chatbot/CLAUDE.md` |
+| `src/` + `knowledge/` | Smart agent + `/chat` + Qdrant knowledge | Built & wired to real data | `docs/reasoning-layer.md` |
 | `.claude/` + `db/` + `data/` | Treasury data foundation | Built and verified | `docs/` |
 
 ## Commands
@@ -61,12 +61,15 @@ Expected: `self-test OK: corruption detected ...` then `Verification PASS: 58/58
 **Reasoning layer**
 
 ```bash
-python src/knowledge_base.py           # Phase 3 only, no API key needed
-$env:ANTHROPIC_API_KEY = "sk-ant-..."  # Phases 3+4 live
-python demo.py
+docker compose up -d qdrant            # vector DB (or leave QDRANT_URL unset for embedded)
+$env:QDRANT_URL = "http://localhost:6333"; python src/knowledge_base.py   # ingest, no key
+
+$env:ANTHROPIC_API_KEY = "sk-ant-..."; $env:DATA_BACKEND = "postgres"
+python src/agent_service.py            # POST /chat on :8000
+python demo.py "What is the current 2s10s slope?"   # or a quick CLI run
 ```
 
-Re-ingest after changing any knowledge doc:
+Re-ingest after changing any knowledge doc (point QDRANT_URL at the server first):
 
 ```bash
 python -c "import sys; sys.path.insert(0,'src'); from knowledge_base import KnowledgeBase; KnowledgeBase(rebuild=True)"
@@ -92,10 +95,10 @@ cd chatbot && cp .env.example .env && streamlit run app.py
 | `data/` | Source of record: raw XML, processed CSVs, reports |
 | `docs/` | Data-layer contracts and architecture decisions |
 | `tools/` | `verify_load.py` — reconciliation with a self-test |
-| `src/` | VectorStore, KnowledgeBase, DataProvider, SmartAgent |
+| `src/` | VectorStore (Qdrant), KnowledgeBase, DataProvider (mock + Postgres), SmartAgent, agent_service |
 | `knowledge/<domain>/*.md` | RAG source docs. **Subfolder name = domain tag** |
 | `chatbot/` | Streamlit UI, its own README and CLAUDE.md |
-| `chroma_db/` | Local vector store, auto-created — do not edit by hand |
+| `qdrant_db/` | Embedded local vector store, auto-created — do not edit by hand |
 
 > `.claude/acquisition/` and `.claude/loading/` are the **deliverable**, not editor
 > configuration. Do not delete `.claude/` assuming it is tooling.
@@ -157,10 +160,13 @@ lives in `treasury.series.placeholder_zero_before`, as data, not code.
 - **Adding a domain** = new subfolder under `knowledge/` + docs; ingest picks it up
   automatically. Add the domain to `DOMAINS` in `src/smart_agent.py`.
 - **Keep the seams.** The agent talks only to interfaces — do not let it import a concrete engine
-  directly. `VectorStore` (ChromaDB now, `PgVectorStore` later) and `DataProvider` (mock now,
-  PostgreSQL-backed later) must stay swappable.
-- **Don't invent risk data.** The mock lives in `src/data_provider.py`; real data arrives through
-  the `DataProvider` seam.
+  directly. `VectorStore` (`QdrantVectorStore`, embedded or Docker via `QDRANT_URL`) and
+  `DataProvider` (`PostgresDataProvider` when `DATA_BACKEND=postgres`, else `MockDataProvider`)
+  must stay swappable.
+- **Scope is interest-rate market risk.** Data tools cover the yield curve; CVA/RWA/PD-LGD-EAD are
+  explained from knowledge but not computed (no portfolio/counterparty data).
+- **Don't invent risk data.** The mock (`src/data_provider.py`) is Treasury-shaped and seeded from
+  the real published curve; real data comes from `PostgresDataProvider` via the same seam.
 - **Don't bloat the knowledge base** — add only risk-analysis-essential docs.
 
 ## Adding a maturity Treasury has started publishing

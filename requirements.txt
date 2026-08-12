@@ -8,7 +8,11 @@ psycopg2-binary>=2.9    # PostgreSQL driver for migrate.py / load_us_treasury.py
 
 # --- knowledge layer + smart agent ---
 anthropic>=0.69.0
-chromadb>=0.5.0
+qdrant-client[fastembed]>=1.12 # vector store: embedded (dev) or Qdrant server (Docker)
+
+# --- agent service (Layer 2 /chat API) ---
+fastapi>=0.110
+uvicorn[standard]>=0.29
 
 # --- chatbot (Streamlit UI) runtime ---
 streamlit>=1.31

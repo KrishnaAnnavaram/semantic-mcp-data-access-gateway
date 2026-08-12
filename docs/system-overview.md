@@ -88,8 +88,10 @@ decisions with their own assumptions, and mixing them into an acquisition
 pipeline makes the source data impossible to audit. This project ends at
 trustworthy facts.
 
-The semantic MCP gateway the repository is ultimately named for is not built
-yet. This is its data foundation.
+This is the data foundation. The reasoning layer that consumes it — the smart
+agent, its Qdrant knowledge base, and the `/chat` service — is now built on top;
+see [reasoning-layer.md](reasoning-layer.md). The MCP *protocol* server is the
+remaining piece.
 
 ## Reference figures
 
@@ -112,3 +114,4 @@ yet. This is its data foundation.
 | How do I get this running? | [postgres-setup.md](postgres-setup.md) |
 | How do I add a dataset or a maturity? | [loading-contract.md](loading-contract.md) |
 | Why is it built this way? | [architecture-decisions.md](architecture-decisions.md) |
+| How does the agent use this data? | [reasoning-layer.md](reasoning-layer.md) |
