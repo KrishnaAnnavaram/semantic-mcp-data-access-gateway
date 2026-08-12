@@ -107,6 +107,7 @@ yet. This is its data foundation.
 
 | Question | Document |
 |---|---|
+| **What is this data, and what is actually in it?** | **[data-guide.md](data-guide.md)** — start here for the data itself |
 | What did Treasury publish, and what are the traps? | [data-contract.md](data-contract.md) |
 | What do the tables look like? | [database-schema.md](database-schema.md) |
 | How do I get this running? | [postgres-setup.md](postgres-setup.md) |

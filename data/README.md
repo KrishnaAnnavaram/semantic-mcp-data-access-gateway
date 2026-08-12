@@ -310,3 +310,7 @@ independently to check what was loaded. The two documents in this directory that
 begin `load_verification` are the evidence that the database matches these files.
 
 Setup instructions: [docs/postgres-setup.md](../docs/postgres-setup.md).
+
+For a complete explanation of the data itself — what each series is, what the numbers
+mean, the historical extremes, and every trap in the source — see
+[docs/data-guide.md](../docs/data-guide.md).
