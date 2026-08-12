@@ -292,6 +292,7 @@ right. Setup and usage in [`chatbot/README.md`](chatbot/README.md); architecture
 
 | Question | Document |
 |---|---|
+| **What is this data, and what is actually in it?** | **[docs/data-guide.md](docs/data-guide.md)** |
 | How does the whole data pipeline fit together? | [docs/system-overview.md](docs/system-overview.md) |
 | What did Treasury publish, and what are the traps? | [docs/data-contract.md](docs/data-contract.md) |
 | What do the tables and views look like? | [docs/database-schema.md](docs/database-schema.md) |
