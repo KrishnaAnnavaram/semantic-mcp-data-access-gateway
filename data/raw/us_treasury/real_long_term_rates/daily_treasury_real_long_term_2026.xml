@@ -1,0 +1,2302 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<feed xml:base="https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml" xmlns:d="http://schemas.microsoft.com/ado/2007/08/dataservices" xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata" xmlns="http://www.w3.org/2005/Atom"> 
+<title type="text">DailyTreasuryRealLongTermRateAverageData</title>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term</id>
+  <updated>2026-08-12T00:41:22Z</updated>
+  <link rel="self" title="DailyTreasuryRealLongTermRateAverageData" href="DailyTreasuryRealLongTermRateAverageData"/>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=140</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=140"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-01-02T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.55</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=141</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=141"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-01-05T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.53</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=142</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=142"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-01-06T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.54</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=143</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=143"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-01-07T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.51</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=144</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=144"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-01-08T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.54</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=145</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=145"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-01-09T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.50</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=146</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=146"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-01-12T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.51</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=147</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=147"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-01-13T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.50</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=148</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=148"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-01-14T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.47</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=149</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=149"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-01-15T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.47</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=150</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=150"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-01-16T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.50</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=151</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=151"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-01-20T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.57</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=152</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=152"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-01-21T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.52</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=153</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=153"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-01-22T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.51</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=154</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=154"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-01-23T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.48</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=155</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=155"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-01-26T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.46</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=156</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=156"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-01-27T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.48</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=157</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=157"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-01-28T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.49</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=158</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=158"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-01-29T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.50</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=159</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=159"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-01-30T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.52</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=160</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=160"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-02-02T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.55</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=161</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=161"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-02-03T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.54</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=162</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=162"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-02-04T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.55</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=163</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=163"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-02-05T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.50</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=164</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=164"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-02-06T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.50</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=165</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=165"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-02-09T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.49</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=166</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=166"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-02-10T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.44</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=167</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=167"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-02-11T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.46</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=168</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=168"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-02-12T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.39</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=169</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=169"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-02-13T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.37</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=170</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=170"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-02-17T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.38</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=171</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=171"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-02-18T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.39</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=172</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=172"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-02-19T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.38</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=173</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=173"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-02-20T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.40</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=174</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=174"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-02-23T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.39</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=175</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=175"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-02-24T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.39</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=176</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=176"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-02-25T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.38</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=177</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=177"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-02-26T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.35</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=178</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=178"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-02-27T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.35</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=179</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=179"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-03-02T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.39</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=180</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=180"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-03-03T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.40</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=181</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=181"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-03-04T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.43</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=182</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=182"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-03-05T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.44</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=183</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=183"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-03-06T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.47</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=184</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=184"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-03-09T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.44</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=185</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=185"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-03-10T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.48</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=186</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=186"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-03-11T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.53</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=187</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=187"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-03-12T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.56</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=188</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=188"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-03-13T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.59</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=189</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=189"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-03-16T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.54</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=190</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=190"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-03-17T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.51</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=191</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=191"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-03-18T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.53</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=192</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=192"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-03-19T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.52</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=193</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=193"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-03-20T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.66</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=194</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=194"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-03-23T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.63</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=195</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=195"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-03-24T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.66</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=196</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=196"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-03-25T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.62</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=197</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=197"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-03-26T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.65</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=198</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=198"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-03-27T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.72</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=199</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=199"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-03-30T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.64</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=200</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=200"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-03-31T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.62</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=201</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=201"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-04-01T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.64</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=202</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=202"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-04-02T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.59</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=203</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=203"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-04-03T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.60</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=204</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=204"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-04-06T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.59</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=205</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=205"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-04-07T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.60</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=206</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=206"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-04-08T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.59</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=207</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=207"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-04-09T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.60</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=208</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=208"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-04-10T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.59</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=209</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=209"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-04-13T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.57</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=210</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=210"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-04-14T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.54</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=211</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=211"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-04-15T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.55</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=212</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=212"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-04-16T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.60</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=213</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=213"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-04-17T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.58</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=214</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=214"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-04-20T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.58</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=215</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=215"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-04-21T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.58</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=216</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=216"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-04-22T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.57</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=217</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=217"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-04-23T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.58</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=218</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=218"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-04-24T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.57</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=219</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=219"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-04-27T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.60</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=220</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=220"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-04-28T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.60</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=221</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=221"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-04-29T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.63</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=222</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=222"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-04-30T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.63</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=223</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=223"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-05-01T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.59</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=224</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=224"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-05-04T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.64</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=225</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=225"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-05-05T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.62</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=226</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=226"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-05-06T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.60</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=227</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=227"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-05-07T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.62</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=228</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=228"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-05-08T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.60</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=229</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=229"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-05-11T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.63</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=230</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=230"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-05-12T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.67</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=231</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=231"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-05-13T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.67</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=232</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=232"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-05-14T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.66</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=233</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=233"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-05-15T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.75</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=234</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=234"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-05-18T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.75</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=235</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=235"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-05-19T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.78</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=236</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=236"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-05-20T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.75</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=237</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=237"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-05-21T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.74</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=238</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=238"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-05-22T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.71</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=239</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=239"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-05-26T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.67</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=240</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=240"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-05-27T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.66</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=241</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=241"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-05-28T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.63</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=242</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=242"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-05-29T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.64</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=243</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=243"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-06-01T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.64</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=244</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=244"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-06-02T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.63</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=245</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=245"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-06-03T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.66</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=246</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=246"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-06-04T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.65</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=247</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=247"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-06-05T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.69</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=248</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=248"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-06-08T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.72</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=249</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=249"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-06-09T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.70</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=250</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=250"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-06-10T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.73</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=251</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=251"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-06-11T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.67</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=252</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=252"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-06-12T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.68</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=253</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=253"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-06-15T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.67</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=254</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=254"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-06-16T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.65</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=255</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=255"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-06-17T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.68</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=256</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=256"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-06-18T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.66</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=257</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=257"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-06-22T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.71</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=258</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=258"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-06-23T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.72</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=259</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=259"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-06-24T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.67</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=260</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=260"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-06-25T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.64</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=261</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=261"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-06-26T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.65</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=262</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=262"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-06-29T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.64</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=263</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=263"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-06-30T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.69</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=264</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=264"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-07-01T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.74</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=265</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=265"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-07-02T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.76</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=266</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=266"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-07-06T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.75</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=267</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=267"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-07-07T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.81</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=268</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=268"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-07-08T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.82</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=269</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=269"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-07-09T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.82</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=270</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=270"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-07-10T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.83</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=271</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=271"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-07-13T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.85</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=272</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=272"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-07-14T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.84</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=273</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=273"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-07-15T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.85</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=274</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=274"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-07-16T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.88</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=275</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=275"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-07-17T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.83</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=276</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=276"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-07-20T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.87</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=277</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=277"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-07-21T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.89</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=278</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=278"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-07-22T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.91</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=279</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=279"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-07-23T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.95</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=280</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=280"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-07-24T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.95</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=281</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=281"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-07-27T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.95</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=282</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=282"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-07-28T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.91</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=283</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=283"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-07-29T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.96</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=284</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=284"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-07-30T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.97</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=285</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=285"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-07-31T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">3.02</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=286</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=286"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-08-03T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.97</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=287</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=287"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-08-04T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.94</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=288</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=288"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-08-05T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.94</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=289</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=289"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-08-06T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.96</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=290</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=290"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-08-07T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.94</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=291</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=291"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-08-10T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.98</d:RATE>
+</m:properties>
+</content>
+</entry>
+<entry>
+<id>https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=292</id>
+<title type="text"></title>
+<updated>2026-08-12T00:41:22Z</updated>
+<author><name /></author>
+<link rel="edit" title="DailyTreasuryRealLongTermRateAverageDatum"
+              href="resource-center/data-chart-center/interest-rates/pages/xml-item?data=daily_treasury_real_long_term&amp;id=292"/>
+<category term="TreasuryDataWarehouseModel.DailyTreasuryRealLongTermRateAverageDatum" scheme="http://schemas.microsoft.com/ado/2007/08/dataservices/scheme"/>
+<content type="application/xml">
+<m:properties>
+<d:QUOTE_DATE m:type="Edm.DateTime">2026-08-11T00:00:00</d:QUOTE_DATE>
+<d:RATE m:type="Edm.Double">2.98</d:RATE>
+</m:properties>
+</content>
+</entry>
+</feed>

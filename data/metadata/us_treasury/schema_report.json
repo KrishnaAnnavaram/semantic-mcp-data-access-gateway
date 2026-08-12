@@ -1,0 +1,2528 @@
+{
+  "generated_at_utc": "2026-08-12T06:09:32+00:00",
+  "source": "U.S. Department of the Treasury",
+  "source_documentation": [
+    "https://home.treasury.gov/treasury-daily-interest-rate-xml-feed",
+    "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rate-archives"
+  ],
+  "note": "Schema is discovered from the actual Treasury responses, per year. Column presence is tracked over time so that the eventual relational design reflects the source rather than an assumption.",
+  "datasets": {
+    "daily_treasury_yield_curve": {
+      "dataset": "Daily Treasury Par Yield Curve Rates",
+      "data_key": "daily_treasury_yield_curve",
+      "shape": "wide",
+      "date_field": "NEW_DATE",
+      "natural_key": [
+        "NEW_DATE"
+      ],
+      "total_rows": 9159,
+      "total_columns": 17,
+      "years_covered": [
+        1990,
+        1991,
+        1992,
+        1993,
+        1994,
+        1995,
+        1996,
+        1997,
+        1998,
+        1999,
+        2000,
+        2001,
+        2002,
+        2003,
+        2004,
+        2005,
+        2006,
+        2007,
+        2008,
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "columns": [
+        {
+          "column": "NEW_DATE",
+          "inferred_type": "date",
+          "source_edm_types": [
+            "Edm.DateTime"
+          ],
+          "first_year_present": 1990,
+          "last_year_present": 2026,
+          "years_present_count": 37,
+          "years_absent_from_response": [],
+          "total_rows": 9159,
+          "non_null_rows": 9159,
+          "null_rows": 0,
+          "null_percentage": 0.0,
+          "examples": [
+            "1990-01-02",
+            "1990-01-03",
+            "1990-01-04"
+          ]
+        },
+        {
+          "column": "Id",
+          "inferred_type": "integer",
+          "source_edm_types": [
+            "Edm.Int32"
+          ],
+          "first_year_present": 1990,
+          "last_year_present": 2026,
+          "years_present_count": 35,
+          "years_absent_from_response": [
+            2023,
+            2024
+          ],
+          "total_rows": 9159,
+          "non_null_rows": 8501,
+          "null_rows": 658,
+          "null_percentage": 7.1842,
+          "examples": [
+            1753,
+            1752,
+            1754
+          ]
+        },
+        {
+          "column": "BC_3MONTH",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 1990,
+          "last_year_present": 2026,
+          "years_present_count": 37,
+          "years_absent_from_response": [],
+          "total_rows": 9159,
+          "non_null_rows": 9155,
+          "null_rows": 4,
+          "null_percentage": 0.0437,
+          "examples": [
+            7.83,
+            7.89,
+            7.84
+          ]
+        },
+        {
+          "column": "BC_6MONTH",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 1990,
+          "last_year_present": 2026,
+          "years_present_count": 37,
+          "years_absent_from_response": [],
+          "total_rows": 9159,
+          "non_null_rows": 9158,
+          "null_rows": 1,
+          "null_percentage": 0.0109,
+          "examples": [
+            7.89,
+            7.94,
+            7.9
+          ]
+        },
+        {
+          "column": "BC_1YEAR",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 1990,
+          "last_year_present": 2026,
+          "years_present_count": 37,
+          "years_absent_from_response": [],
+          "total_rows": 9159,
+          "non_null_rows": 9158,
+          "null_rows": 1,
+          "null_percentage": 0.0109,
+          "examples": [
+            7.81,
+            7.85,
+            7.82
+          ]
+        },
+        {
+          "column": "BC_2YEAR",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 1990,
+          "last_year_present": 2026,
+          "years_present_count": 37,
+          "years_absent_from_response": [],
+          "total_rows": 9159,
+          "non_null_rows": 9158,
+          "null_rows": 1,
+          "null_percentage": 0.0109,
+          "examples": [
+            7.87,
+            7.94,
+            7.92
+          ]
+        },
+        {
+          "column": "BC_3YEAR",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 1990,
+          "last_year_present": 2026,
+          "years_present_count": 37,
+          "years_absent_from_response": [],
+          "total_rows": 9159,
+          "non_null_rows": 9158,
+          "null_rows": 1,
+          "null_percentage": 0.0109,
+          "examples": [
+            7.9,
+            7.96,
+            7.93
+          ]
+        },
+        {
+          "column": "BC_5YEAR",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 1990,
+          "last_year_present": 2026,
+          "years_present_count": 37,
+          "years_absent_from_response": [],
+          "total_rows": 9159,
+          "non_null_rows": 9158,
+          "null_rows": 1,
+          "null_percentage": 0.0109,
+          "examples": [
+            7.87,
+            7.92,
+            7.91
+          ]
+        },
+        {
+          "column": "BC_7YEAR",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 1990,
+          "last_year_present": 2026,
+          "years_present_count": 37,
+          "years_absent_from_response": [],
+          "total_rows": 9159,
+          "non_null_rows": 9158,
+          "null_rows": 1,
+          "null_percentage": 0.0109,
+          "examples": [
+            7.98,
+            8.04,
+            8.02
+          ]
+        },
+        {
+          "column": "BC_10YEAR",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 1990,
+          "last_year_present": 2026,
+          "years_present_count": 37,
+          "years_absent_from_response": [],
+          "total_rows": 9159,
+          "non_null_rows": 9158,
+          "null_rows": 1,
+          "null_percentage": 0.0109,
+          "examples": [
+            7.94,
+            7.99,
+            7.98
+          ]
+        },
+        {
+          "column": "BC_30YEAR",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 1990,
+          "last_year_present": 2026,
+          "years_present_count": 34,
+          "years_absent_from_response": [
+            2003,
+            2004,
+            2005
+          ],
+          "total_rows": 9159,
+          "non_null_rows": 8164,
+          "null_rows": 995,
+          "null_percentage": 10.8636,
+          "examples": [
+            8.0,
+            8.04,
+            8.06
+          ]
+        },
+        {
+          "column": "BC_30YEARDISPLAY",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 1990,
+          "last_year_present": 2026,
+          "years_present_count": 37,
+          "years_absent_from_response": [],
+          "total_rows": 9159,
+          "non_null_rows": 9159,
+          "null_rows": 0,
+          "null_percentage": 0.0,
+          "examples": [
+            0.0,
+            4.39,
+            4.44
+          ]
+        },
+        {
+          "column": "BC_20YEAR",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 1993,
+          "last_year_present": 2026,
+          "years_present_count": 34,
+          "years_absent_from_response": [
+            1990,
+            1991,
+            1992
+          ],
+          "total_rows": 9159,
+          "non_null_rows": 8219,
+          "null_rows": 940,
+          "null_percentage": 10.2631,
+          "examples": [
+            6.12,
+            6.1,
+            6.11
+          ]
+        },
+        {
+          "column": "BC_1MONTH",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2001,
+          "last_year_present": 2026,
+          "years_present_count": 26,
+          "years_absent_from_response": [
+            1990,
+            1991,
+            1992,
+            1993,
+            1994,
+            1995,
+            1996,
+            1997,
+            1998,
+            1999,
+            2000
+          ],
+          "total_rows": 9159,
+          "non_null_rows": 6259,
+          "null_rows": 2900,
+          "null_percentage": 31.6628,
+          "examples": [
+            3.67,
+            3.65,
+            3.63
+          ]
+        },
+        {
+          "column": "BC_2MONTH",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2018,
+          "last_year_present": 2026,
+          "years_present_count": 9,
+          "years_absent_from_response": [
+            1990,
+            1991,
+            1992,
+            1993,
+            1994,
+            1995,
+            1996,
+            1997,
+            1998,
+            1999,
+            2000,
+            2001,
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016,
+            2017
+          ],
+          "total_rows": 9159,
+          "non_null_rows": 1954,
+          "null_rows": 7205,
+          "null_percentage": 78.6658,
+          "examples": [
+            2.22,
+            2.23,
+            2.25
+          ]
+        },
+        {
+          "column": "BC_4MONTH",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2022,
+          "last_year_present": 2026,
+          "years_present_count": 5,
+          "years_absent_from_response": [
+            1990,
+            1991,
+            1992,
+            1993,
+            1994,
+            1995,
+            1996,
+            1997,
+            1998,
+            1999,
+            2000,
+            2001,
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ],
+          "total_rows": 9159,
+          "non_null_rows": 952,
+          "null_rows": 8207,
+          "null_percentage": 89.6059,
+          "examples": [
+            4.32,
+            4.33,
+            4.31
+          ]
+        },
+        {
+          "column": "BC_1_5MONTH",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2025,
+          "last_year_present": 2026,
+          "years_present_count": 2,
+          "years_absent_from_response": [
+            1990,
+            1991,
+            1992,
+            1993,
+            1994,
+            1995,
+            1996,
+            1997,
+            1998,
+            1999,
+            2000,
+            2001,
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021,
+            2022,
+            2023,
+            2024
+          ],
+          "total_rows": 9159,
+          "non_null_rows": 371,
+          "null_rows": 8788,
+          "null_percentage": 95.9493,
+          "examples": [
+            4.41,
+            4.42,
+            4.4
+          ]
+        }
+      ],
+      "schema_changes": {
+        "columns_added_by_year": {
+          "1990": [
+            "BC_10YEAR",
+            "BC_1YEAR",
+            "BC_2YEAR",
+            "BC_30YEAR",
+            "BC_30YEARDISPLAY",
+            "BC_3MONTH",
+            "BC_3YEAR",
+            "BC_5YEAR",
+            "BC_6MONTH",
+            "BC_7YEAR",
+            "Id",
+            "NEW_DATE"
+          ],
+          "1993": [
+            "BC_20YEAR"
+          ],
+          "2001": [
+            "BC_1MONTH"
+          ],
+          "2006": [
+            "BC_30YEAR"
+          ],
+          "2018": [
+            "BC_2MONTH"
+          ],
+          "2022": [
+            "BC_4MONTH"
+          ],
+          "2025": [
+            "BC_1_5MONTH",
+            "Id"
+          ]
+        },
+        "columns_removed_by_year": {
+          "2003": [
+            "BC_30YEAR"
+          ],
+          "2023": [
+            "Id"
+          ]
+        }
+      },
+      "financial_caveat": "These are PAR yields, not zero-coupon/spot rates and not executable market prices. BC_30YEAR is absent 2003-2005 because the 30-year bond was discontinued in 2002 and reintroduced in 2006. BC_30YEARDISPLAY is Treasury's display variant and is published as a literal 0 for every date before 2011-01-03 - that 0 is a placeholder, not a 0.00% yield. Use BC_30YEAR as the 30-year series."
+    },
+    "daily_treasury_bill_rates": {
+      "dataset": "Daily Treasury Bill Rates",
+      "data_key": "daily_treasury_bill_rates",
+      "shape": "wide",
+      "date_field": "INDEX_DATE",
+      "natural_key": [
+        "INDEX_DATE"
+      ],
+      "total_rows": 6157,
+      "total_columns": 48,
+      "years_covered": [
+        2002,
+        2003,
+        2004,
+        2005,
+        2006,
+        2007,
+        2008,
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "columns": [
+        {
+          "column": "INDEX_DATE",
+          "inferred_type": "date",
+          "source_edm_types": [
+            "Edm.DateTime"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 25,
+          "years_absent_from_response": [],
+          "total_rows": 6157,
+          "non_null_rows": 6157,
+          "null_rows": 0,
+          "null_percentage": 0.0,
+          "examples": [
+            "2002-01-02",
+            "2002-01-03",
+            "2002-01-04"
+          ]
+        },
+        {
+          "column": "DailyTreasuryBillRateDataId",
+          "inferred_type": "integer",
+          "source_edm_types": [
+            "Edm.Int32"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 23,
+          "years_absent_from_response": [
+            2023,
+            2024
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 5497,
+          "null_rows": 660,
+          "null_percentage": 10.7195,
+          "examples": [
+            84,
+            85,
+            86
+          ]
+        },
+        {
+          "column": "ROUND_B1_CLOSE_4WK_2",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 25,
+          "years_absent_from_response": [],
+          "total_rows": 6157,
+          "non_null_rows": 6155,
+          "null_rows": 2,
+          "null_percentage": 0.0325,
+          "examples": [
+            1.71,
+            1.7,
+            1.69
+          ]
+        },
+        {
+          "column": "ROUND_B1_YIELD_4WK_2",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 25,
+          "years_absent_from_response": [],
+          "total_rows": 6157,
+          "non_null_rows": 6155,
+          "null_rows": 2,
+          "null_percentage": 0.0325,
+          "examples": [
+            1.74,
+            1.73,
+            1.72
+          ]
+        },
+        {
+          "column": "ROUND_B1_CLOSE_13WK_2",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 25,
+          "years_absent_from_response": [],
+          "total_rows": 6157,
+          "non_null_rows": 6156,
+          "null_rows": 1,
+          "null_percentage": 0.0162,
+          "examples": [
+            1.71,
+            1.7,
+            1.69
+          ]
+        },
+        {
+          "column": "ROUND_B1_YIELD_13WK_2",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 25,
+          "years_absent_from_response": [],
+          "total_rows": 6157,
+          "non_null_rows": 6156,
+          "null_rows": 1,
+          "null_percentage": 0.0162,
+          "examples": [
+            1.74,
+            1.73,
+            1.72
+          ]
+        },
+        {
+          "column": "ROUND_B1_CLOSE_26WK_2",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 25,
+          "years_absent_from_response": [],
+          "total_rows": 6157,
+          "non_null_rows": 6156,
+          "null_rows": 1,
+          "null_percentage": 0.0162,
+          "examples": [
+            1.81,
+            1.78,
+            1.73
+          ]
+        },
+        {
+          "column": "ROUND_B1_YIELD_26WK_2",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 25,
+          "years_absent_from_response": [],
+          "total_rows": 6157,
+          "non_null_rows": 6156,
+          "null_rows": 1,
+          "null_percentage": 0.0162,
+          "examples": [
+            1.85,
+            1.82,
+            1.77
+          ]
+        },
+        {
+          "column": "BOND_MKT_UNAVAIL_REASON",
+          "inferred_type": "string",
+          "source_edm_types": [
+            "(untyped string)"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 25,
+          "years_absent_from_response": [],
+          "total_rows": 6157,
+          "non_null_rows": 1,
+          "null_rows": 6156,
+          "null_percentage": 99.9838,
+          "examples": [
+            "FEDERAL HOLIDAY"
+          ]
+        },
+        {
+          "column": "MATURITY_DATE_4WK",
+          "inferred_type": "date",
+          "source_edm_types": [
+            "Edm.DateTime"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 25,
+          "years_absent_from_response": [],
+          "total_rows": 6157,
+          "non_null_rows": 6156,
+          "null_rows": 1,
+          "null_percentage": 0.0162,
+          "examples": [
+            "2002-01-24",
+            "2002-01-31",
+            "2002-02-07"
+          ]
+        },
+        {
+          "column": "MATURITY_DATE_13WK",
+          "inferred_type": "date",
+          "source_edm_types": [
+            "Edm.DateTime"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 25,
+          "years_absent_from_response": [],
+          "total_rows": 6157,
+          "non_null_rows": 6156,
+          "null_rows": 1,
+          "null_percentage": 0.0162,
+          "examples": [
+            "2002-04-04",
+            "2002-04-11",
+            "2002-04-18"
+          ]
+        },
+        {
+          "column": "MATURITY_DATE_26WK",
+          "inferred_type": "date",
+          "source_edm_types": [
+            "Edm.DateTime"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 25,
+          "years_absent_from_response": [],
+          "total_rows": 6157,
+          "non_null_rows": 6156,
+          "null_rows": 1,
+          "null_percentage": 0.0162,
+          "examples": [
+            "2002-07-05",
+            "2002-07-11",
+            "2002-07-18"
+          ]
+        },
+        {
+          "column": "CUSIP_4WK",
+          "inferred_type": "string",
+          "source_edm_types": [
+            "(untyped string)"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 25,
+          "years_absent_from_response": [],
+          "total_rows": 6157,
+          "non_null_rows": 6156,
+          "null_rows": 1,
+          "null_percentage": 0.0162,
+          "examples": [
+            "912795JD4",
+            "912795JE2",
+            "912795JF9"
+          ]
+        },
+        {
+          "column": "CUSIP_13WK",
+          "inferred_type": "string",
+          "source_edm_types": [
+            "(untyped string)"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 25,
+          "years_absent_from_response": [],
+          "total_rows": 6157,
+          "non_null_rows": 6156,
+          "null_rows": 1,
+          "null_percentage": 0.0162,
+          "examples": [
+            "912795JN2",
+            "912795JP7",
+            "912795JQ5"
+          ]
+        },
+        {
+          "column": "CUSIP_26WK",
+          "inferred_type": "string",
+          "source_edm_types": [
+            "(untyped string)"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 25,
+          "years_absent_from_response": [],
+          "total_rows": 6157,
+          "non_null_rows": 6156,
+          "null_rows": 1,
+          "null_percentage": 0.0162,
+          "examples": [
+            "912795KQ3",
+            "912795KR1",
+            "912795KS9"
+          ]
+        },
+        {
+          "column": "QUOTE_DATE",
+          "inferred_type": "date",
+          "source_edm_types": [
+            "Edm.DateTime"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 25,
+          "years_absent_from_response": [],
+          "total_rows": 6157,
+          "non_null_rows": 6157,
+          "null_rows": 0,
+          "null_percentage": 0.0,
+          "examples": [
+            "2002-01-02",
+            "2002-01-03",
+            "2002-01-04"
+          ]
+        },
+        {
+          "column": "CF_NEW_DATE",
+          "inferred_type": "date",
+          "source_edm_types": [
+            "(untyped string)"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 25,
+          "years_absent_from_response": [],
+          "total_rows": 6157,
+          "non_null_rows": 6157,
+          "null_rows": 0,
+          "null_percentage": 0.0,
+          "examples": [
+            "2002-01-02",
+            "2002-01-03",
+            "2002-01-04"
+          ]
+        },
+        {
+          "column": "CS_4WK_CLOSE_AVG",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 25,
+          "years_absent_from_response": [],
+          "total_rows": 6157,
+          "non_null_rows": 6155,
+          "null_rows": 2,
+          "null_percentage": 0.0325,
+          "examples": [
+            1.7,
+            1.65,
+            1.59
+          ]
+        },
+        {
+          "column": "CS_4WK_YIELD_AVG",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 25,
+          "years_absent_from_response": [],
+          "total_rows": 6157,
+          "non_null_rows": 6155,
+          "null_rows": 2,
+          "null_percentage": 0.0325,
+          "examples": [
+            1.73,
+            1.67,
+            1.61
+          ]
+        },
+        {
+          "column": "CS_13WK_CLOSE_AVG",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 25,
+          "years_absent_from_response": [],
+          "total_rows": 6157,
+          "non_null_rows": 6155,
+          "null_rows": 2,
+          "null_percentage": 0.0325,
+          "examples": [
+            1.7,
+            1.63,
+            1.58
+          ]
+        },
+        {
+          "column": "CS_13WK_YIELD_AVG",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 25,
+          "years_absent_from_response": [],
+          "total_rows": 6157,
+          "non_null_rows": 6155,
+          "null_rows": 2,
+          "null_percentage": 0.0325,
+          "examples": [
+            1.73,
+            1.66,
+            1.61
+          ]
+        },
+        {
+          "column": "CS_26WK_CLOSE_AVG",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 25,
+          "years_absent_from_response": [],
+          "total_rows": 6157,
+          "non_null_rows": 6155,
+          "null_rows": 2,
+          "null_percentage": 0.0325,
+          "examples": [
+            1.79,
+            1.7,
+            1.63
+          ]
+        },
+        {
+          "column": "CS_26WK_YIELD_AVG",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 25,
+          "years_absent_from_response": [],
+          "total_rows": 6157,
+          "non_null_rows": 6155,
+          "null_rows": 2,
+          "null_percentage": 0.0325,
+          "examples": [
+            1.83,
+            1.74,
+            1.67
+          ]
+        },
+        {
+          "column": "CF_WEEK",
+          "inferred_type": "integer",
+          "source_edm_types": [
+            "Edm.Int32"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 25,
+          "years_absent_from_response": [],
+          "total_rows": 6157,
+          "non_null_rows": 6157,
+          "null_rows": 0,
+          "null_percentage": 0.0,
+          "examples": [
+            200201,
+            200202,
+            200203
+          ]
+        },
+        {
+          "column": "CS_52WK_CLOSE_AVG",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 20,
+          "years_absent_from_response": [
+            2003,
+            2004,
+            2005,
+            2006,
+            2007
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 4561,
+          "null_rows": 1596,
+          "null_percentage": 25.9217,
+          "examples": [
+            1.66,
+            1.67,
+            2.08
+          ]
+        },
+        {
+          "column": "CS_52WK_YIELD_AVG",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 20,
+          "years_absent_from_response": [
+            2003,
+            2004,
+            2005,
+            2006,
+            2007
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 4561,
+          "null_rows": 1596,
+          "null_percentage": 25.9217,
+          "examples": [
+            1.69,
+            1.7,
+            2.14
+          ]
+        },
+        {
+          "column": "ROUND_B1_CLOSE_52WK_2",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 20,
+          "years_absent_from_response": [
+            2003,
+            2004,
+            2005,
+            2006,
+            2007
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 4555,
+          "null_rows": 1602,
+          "null_percentage": 26.0192,
+          "examples": [
+            1.67,
+            1.66,
+            2.08
+          ]
+        },
+        {
+          "column": "ROUND_B1_YIELD_52WK_2",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 20,
+          "years_absent_from_response": [
+            2003,
+            2004,
+            2005,
+            2006,
+            2007
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 4555,
+          "null_rows": 1602,
+          "null_percentage": 26.0192,
+          "examples": [
+            1.7,
+            1.69,
+            1.68
+          ]
+        },
+        {
+          "column": "MATURITY_DATE_52WK",
+          "inferred_type": "date",
+          "source_edm_types": [
+            "Edm.DateTime"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 20,
+          "years_absent_from_response": [
+            2003,
+            2004,
+            2005,
+            2006,
+            2007
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 4555,
+          "null_rows": 1602,
+          "null_percentage": 26.0192,
+          "examples": [
+            "2002-02-28",
+            "2009-06-04",
+            "2009-07-02"
+          ]
+        },
+        {
+          "column": "CUSIP_52WK",
+          "inferred_type": "string",
+          "source_edm_types": [
+            "(untyped string)"
+          ],
+          "first_year_present": 2002,
+          "last_year_present": 2026,
+          "years_present_count": 20,
+          "years_absent_from_response": [
+            2003,
+            2004,
+            2005,
+            2006,
+            2007
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 4555,
+          "null_rows": 1602,
+          "null_percentage": 26.0192,
+          "examples": [
+            "912795HJ3",
+            "912795Q79",
+            "912795Q87"
+          ]
+        },
+        {
+          "column": "ROUND_B1_CLOSE_8WK_2",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2018,
+          "last_year_present": 2026,
+          "years_present_count": 9,
+          "years_absent_from_response": [
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016,
+            2017
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 1954,
+          "null_rows": 4203,
+          "null_percentage": 68.2638,
+          "examples": [
+            2.17,
+            2.18,
+            2.15
+          ]
+        },
+        {
+          "column": "ROUND_B1_YIELD_8WK_2",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2018,
+          "last_year_present": 2026,
+          "years_present_count": 9,
+          "years_absent_from_response": [
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016,
+            2017
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 1954,
+          "null_rows": 4203,
+          "null_percentage": 68.2638,
+          "examples": [
+            2.21,
+            2.22,
+            2.19
+          ]
+        },
+        {
+          "column": "MATURITY_DATE_8WK",
+          "inferred_type": "date",
+          "source_edm_types": [
+            "Edm.DateTime"
+          ],
+          "first_year_present": 2018,
+          "last_year_present": 2026,
+          "years_present_count": 9,
+          "years_absent_from_response": [
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016,
+            2017
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 1954,
+          "null_rows": 4203,
+          "null_percentage": 68.2638,
+          "examples": [
+            "2018-12-11",
+            "2018-12-18",
+            "2018-12-26"
+          ]
+        },
+        {
+          "column": "CUSIP_8WK",
+          "inferred_type": "string",
+          "source_edm_types": [
+            "(untyped string)"
+          ],
+          "first_year_present": 2018,
+          "last_year_present": 2026,
+          "years_present_count": 9,
+          "years_absent_from_response": [
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016,
+            2017
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 1954,
+          "null_rows": 4203,
+          "null_percentage": 68.2638,
+          "examples": [
+            "912796UD9",
+            "912796UE7",
+            "912796UF4"
+          ]
+        },
+        {
+          "column": "CS_8WK_CLOSE_AVG",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2018,
+          "last_year_present": 2026,
+          "years_present_count": 9,
+          "years_absent_from_response": [
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016,
+            2017
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 1954,
+          "null_rows": 4203,
+          "null_percentage": 68.2638,
+          "examples": [
+            2.17,
+            2.18,
+            2.14
+          ]
+        },
+        {
+          "column": "CS_8WK_YIELD_AVG",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2018,
+          "last_year_present": 2026,
+          "years_present_count": 9,
+          "years_absent_from_response": [
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016,
+            2017
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 1954,
+          "null_rows": 4203,
+          "null_percentage": 68.2638,
+          "examples": [
+            2.21,
+            2.22,
+            2.18
+          ]
+        },
+        {
+          "column": "ROUND_B1_CLOSE_17WK_2",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2022,
+          "last_year_present": 2026,
+          "years_present_count": 5,
+          "years_absent_from_response": [
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 952,
+          "null_rows": 5205,
+          "null_percentage": 84.5379,
+          "examples": [
+            4.15,
+            4.13,
+            4.14
+          ]
+        },
+        {
+          "column": "ROUND_B1_YIELD_17WK_2",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2022,
+          "last_year_present": 2026,
+          "years_present_count": 5,
+          "years_absent_from_response": [
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 952,
+          "null_rows": 5205,
+          "null_percentage": 84.5379,
+          "examples": [
+            4.27,
+            4.25,
+            4.26
+          ]
+        },
+        {
+          "column": "MATURITY_DATE_17WK",
+          "inferred_type": "date",
+          "source_edm_types": [
+            "Edm.DateTime"
+          ],
+          "first_year_present": 2022,
+          "last_year_present": 2026,
+          "years_present_count": 5,
+          "years_absent_from_response": [
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 952,
+          "null_rows": 5205,
+          "null_percentage": 84.5379,
+          "examples": [
+            "2023-02-21",
+            "2023-02-28",
+            "2023-03-07"
+          ]
+        },
+        {
+          "column": "CUSIP_17WK",
+          "inferred_type": "string",
+          "source_edm_types": [
+            "(untyped string)"
+          ],
+          "first_year_present": 2022,
+          "last_year_present": 2026,
+          "years_present_count": 5,
+          "years_absent_from_response": [
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 952,
+          "null_rows": 5205,
+          "null_percentage": 84.5379,
+          "examples": [
+            "912796Y60",
+            "912796Y78",
+            "912796Y86"
+          ]
+        },
+        {
+          "column": "CS_17WK_CLOSE_AVG",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2022,
+          "last_year_present": 2026,
+          "years_present_count": 5,
+          "years_absent_from_response": [
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 952,
+          "null_rows": 5205,
+          "null_percentage": 84.5379,
+          "examples": [
+            4.15,
+            4.14,
+            4.13
+          ]
+        },
+        {
+          "column": "CS_17WK_YIELD_AVG",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2022,
+          "last_year_present": 2026,
+          "years_present_count": 5,
+          "years_absent_from_response": [
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 952,
+          "null_rows": 5205,
+          "null_percentage": 84.5379,
+          "examples": [
+            4.27,
+            4.26,
+            4.25
+          ]
+        },
+        {
+          "column": "ROUND_B1_CLOSE_6WK_2",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2025,
+          "last_year_present": 2026,
+          "years_present_count": 2,
+          "years_absent_from_response": [
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021,
+            2022,
+            2023,
+            2024
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 371,
+          "null_rows": 5786,
+          "null_percentage": 93.9743,
+          "examples": [
+            4.27,
+            4.26,
+            4.25
+          ]
+        },
+        {
+          "column": "ROUND_B1_YIELD_6WK_2",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2025,
+          "last_year_present": 2026,
+          "years_present_count": 2,
+          "years_absent_from_response": [
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021,
+            2022,
+            2023,
+            2024
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 371,
+          "null_rows": 5786,
+          "null_percentage": 93.9743,
+          "examples": [
+            4.35,
+            4.34,
+            4.33
+          ]
+        },
+        {
+          "column": "MATURITY_DATE_6WK",
+          "inferred_type": "date",
+          "source_edm_types": [
+            "Edm.DateTime"
+          ],
+          "first_year_present": 2025,
+          "last_year_present": 2026,
+          "years_present_count": 2,
+          "years_absent_from_response": [
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021,
+            2022,
+            2023,
+            2024
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 371,
+          "null_rows": 5786,
+          "null_percentage": 93.9743,
+          "examples": [
+            "2025-04-03",
+            "2025-04-10",
+            "2025-04-17"
+          ]
+        },
+        {
+          "column": "CUSIP_6WK",
+          "inferred_type": "string",
+          "source_edm_types": [
+            "(untyped string)"
+          ],
+          "first_year_present": 2025,
+          "last_year_present": 2026,
+          "years_present_count": 2,
+          "years_absent_from_response": [
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021,
+            2022,
+            2023,
+            2024
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 371,
+          "null_rows": 5786,
+          "null_percentage": 93.9743,
+          "examples": [
+            "912797MV6",
+            "912797NB9",
+            "912797KS5"
+          ]
+        },
+        {
+          "column": "CS_6WK_CLOSE_AVG",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2025,
+          "last_year_present": 2026,
+          "years_present_count": 2,
+          "years_absent_from_response": [
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021,
+            2022,
+            2023,
+            2024
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 371,
+          "null_rows": 5786,
+          "null_percentage": 93.9743,
+          "examples": [
+            4.27,
+            4.26,
+            4.24
+          ]
+        },
+        {
+          "column": "CS_6WK_YIELD_AVG",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2025,
+          "last_year_present": 2026,
+          "years_present_count": 2,
+          "years_absent_from_response": [
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021,
+            2022,
+            2023,
+            2024
+          ],
+          "total_rows": 6157,
+          "non_null_rows": 371,
+          "null_rows": 5786,
+          "null_percentage": 93.9743,
+          "examples": [
+            4.35,
+            4.34,
+            4.32
+          ]
+        }
+      ],
+      "schema_changes": {
+        "columns_added_by_year": {
+          "2002": [
+            "BOND_MKT_UNAVAIL_REASON",
+            "CF_NEW_DATE",
+            "CF_WEEK",
+            "CS_13WK_CLOSE_AVG",
+            "CS_13WK_YIELD_AVG",
+            "CS_26WK_CLOSE_AVG",
+            "CS_26WK_YIELD_AVG",
+            "CS_4WK_CLOSE_AVG",
+            "CS_4WK_YIELD_AVG",
+            "CS_52WK_CLOSE_AVG",
+            "CS_52WK_YIELD_AVG",
+            "CUSIP_13WK",
+            "CUSIP_26WK",
+            "CUSIP_4WK",
+            "CUSIP_52WK",
+            "DailyTreasuryBillRateDataId",
+            "INDEX_DATE",
+            "MATURITY_DATE_13WK",
+            "MATURITY_DATE_26WK",
+            "MATURITY_DATE_4WK",
+            "MATURITY_DATE_52WK",
+            "QUOTE_DATE",
+            "ROUND_B1_CLOSE_13WK_2",
+            "ROUND_B1_CLOSE_26WK_2",
+            "ROUND_B1_CLOSE_4WK_2",
+            "ROUND_B1_CLOSE_52WK_2",
+            "ROUND_B1_YIELD_13WK_2",
+            "ROUND_B1_YIELD_26WK_2",
+            "ROUND_B1_YIELD_4WK_2",
+            "ROUND_B1_YIELD_52WK_2"
+          ],
+          "2008": [
+            "CS_52WK_CLOSE_AVG",
+            "CS_52WK_YIELD_AVG",
+            "CUSIP_52WK",
+            "MATURITY_DATE_52WK",
+            "ROUND_B1_CLOSE_52WK_2",
+            "ROUND_B1_YIELD_52WK_2"
+          ],
+          "2018": [
+            "CS_8WK_CLOSE_AVG",
+            "CS_8WK_YIELD_AVG",
+            "CUSIP_8WK",
+            "MATURITY_DATE_8WK",
+            "ROUND_B1_CLOSE_8WK_2",
+            "ROUND_B1_YIELD_8WK_2"
+          ],
+          "2022": [
+            "CS_17WK_CLOSE_AVG",
+            "CS_17WK_YIELD_AVG",
+            "CUSIP_17WK",
+            "MATURITY_DATE_17WK",
+            "ROUND_B1_CLOSE_17WK_2",
+            "ROUND_B1_YIELD_17WK_2"
+          ],
+          "2025": [
+            "CS_6WK_CLOSE_AVG",
+            "CS_6WK_YIELD_AVG",
+            "CUSIP_6WK",
+            "DailyTreasuryBillRateDataId",
+            "MATURITY_DATE_6WK",
+            "ROUND_B1_CLOSE_6WK_2",
+            "ROUND_B1_YIELD_6WK_2"
+          ]
+        },
+        "columns_removed_by_year": {
+          "2003": [
+            "CS_52WK_CLOSE_AVG",
+            "CS_52WK_YIELD_AVG",
+            "CUSIP_52WK",
+            "MATURITY_DATE_52WK",
+            "ROUND_B1_CLOSE_52WK_2",
+            "ROUND_B1_YIELD_52WK_2"
+          ],
+          "2023": [
+            "DailyTreasuryBillRateDataId"
+          ]
+        }
+      },
+      "financial_caveat": "ROUND_B1_CLOSE_* / CS_*_CLOSE_AVG are DISCOUNT rates on a bank-discount (actual/360) basis. ROUND_B1_YIELD_* / CS_*_YIELD_AVG are COUPON-EQUIVALENT yields. The two are not interchangeable and must not be mixed on one curve."
+    },
+    "daily_treasury_long_term_rate": {
+      "dataset": "Daily Treasury Long-Term Rates",
+      "data_key": "daily_treasury_long_term_rate",
+      "shape": "long",
+      "date_field": "QUOTE_DATE",
+      "natural_key": [
+        "QUOTE_DATE",
+        "RATE_TYPE"
+      ],
+      "total_rows": 19965,
+      "total_columns": 5,
+      "years_covered": [
+        2000,
+        2001,
+        2002,
+        2003,
+        2004,
+        2005,
+        2006,
+        2007,
+        2008,
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "columns": [
+        {
+          "column": "QUOTE_DATE",
+          "inferred_type": "date",
+          "source_edm_types": [
+            "Edm.DateTime"
+          ],
+          "first_year_present": 2000,
+          "last_year_present": 2026,
+          "years_present_count": 27,
+          "years_absent_from_response": [],
+          "total_rows": 19965,
+          "non_null_rows": 19965,
+          "null_rows": 0,
+          "null_percentage": 0.0,
+          "examples": [
+            "2000-01-03",
+            "2000-01-04",
+            "2000-01-05"
+          ]
+        },
+        {
+          "column": "Id",
+          "inferred_type": "integer",
+          "source_edm_types": [
+            "Edm.Int32"
+          ],
+          "first_year_present": 2000,
+          "last_year_present": 2026,
+          "years_present_count": 27,
+          "years_absent_from_response": [],
+          "total_rows": 19965,
+          "non_null_rows": 19965,
+          "null_rows": 0,
+          "null_percentage": 0.0,
+          "examples": [
+            1208,
+            1209,
+            1210
+          ]
+        },
+        {
+          "column": "EXTRAPOLATION_FACTOR",
+          "inferred_type": "string",
+          "source_edm_types": [
+            "(untyped string)"
+          ],
+          "first_year_present": 2000,
+          "last_year_present": 2026,
+          "years_present_count": 27,
+          "years_absent_from_response": [],
+          "total_rows": 19965,
+          "non_null_rows": 2982,
+          "null_rows": 16983,
+          "null_percentage": 85.0639,
+          "examples": [
+            "-0.04",
+            "-0.03",
+            "-0.06"
+          ]
+        },
+        {
+          "column": "RATE_TYPE",
+          "inferred_type": "string",
+          "source_edm_types": [
+            "(untyped string)"
+          ],
+          "first_year_present": 2000,
+          "last_year_present": 2026,
+          "years_present_count": 27,
+          "years_absent_from_response": [],
+          "total_rows": 19965,
+          "non_null_rows": 19965,
+          "null_rows": 0,
+          "null_percentage": 0.0,
+          "examples": [
+            "BC_20year",
+            "Over_10_Years",
+            "Real_Rate"
+          ]
+        },
+        {
+          "column": "RATE",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2000,
+          "last_year_present": 2026,
+          "years_present_count": 27,
+          "years_absent_from_response": [],
+          "total_rows": 19965,
+          "non_null_rows": 19965,
+          "null_rows": 0,
+          "null_percentage": 0.0,
+          "examples": [
+            6.94,
+            6.87,
+            4.3
+          ]
+        }
+      ],
+      "schema_changes": {
+        "columns_added_by_year": {
+          "2000": [
+            "EXTRAPOLATION_FACTOR",
+            "Id",
+            "QUOTE_DATE",
+            "RATE",
+            "RATE_TYPE"
+          ]
+        },
+        "columns_removed_by_year": {}
+      },
+      "financial_caveat": "The natural key is (QUOTE_DATE, RATE_TYPE) - a date legitimately carries several rows. The Real_Rate rows inside this nominal feed are Treasury's long-term real rate average; do not merge them with the nominal series."
+    },
+    "daily_treasury_real_yield_curve": {
+      "dataset": "Daily Treasury Par Real Yield Curve Rates",
+      "data_key": "daily_treasury_real_yield_curve",
+      "shape": "wide",
+      "date_field": "NEW_DATE",
+      "natural_key": [
+        "NEW_DATE"
+      ],
+      "total_rows": 5906,
+      "total_columns": 7,
+      "years_covered": [
+        2003,
+        2004,
+        2005,
+        2006,
+        2007,
+        2008,
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "columns": [
+        {
+          "column": "NEW_DATE",
+          "inferred_type": "date",
+          "source_edm_types": [
+            "Edm.DateTime"
+          ],
+          "first_year_present": 2003,
+          "last_year_present": 2026,
+          "years_present_count": 24,
+          "years_absent_from_response": [],
+          "total_rows": 5906,
+          "non_null_rows": 5906,
+          "null_rows": 0,
+          "null_percentage": 0.0,
+          "examples": [
+            "2003-01-02",
+            "2003-01-03",
+            "2003-01-06"
+          ]
+        },
+        {
+          "column": "DailyTreasuryRealYieldCurveRateDataId",
+          "inferred_type": "integer",
+          "source_edm_types": [
+            "Edm.Int32"
+          ],
+          "first_year_present": 2003,
+          "last_year_present": 2026,
+          "years_present_count": 22,
+          "years_absent_from_response": [
+            2023,
+            2024
+          ],
+          "total_rows": 5906,
+          "non_null_rows": 5246,
+          "null_rows": 660,
+          "null_percentage": 11.1751,
+          "examples": [
+            668,
+            667,
+            666
+          ]
+        },
+        {
+          "column": "TC_5YEAR",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2003,
+          "last_year_present": 2026,
+          "years_present_count": 24,
+          "years_absent_from_response": [],
+          "total_rows": 5906,
+          "non_null_rows": 5906,
+          "null_rows": 0,
+          "null_percentage": 0.0,
+          "examples": [
+            1.75,
+            1.79,
+            1.76
+          ]
+        },
+        {
+          "column": "TC_7YEAR",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2003,
+          "last_year_present": 2026,
+          "years_present_count": 24,
+          "years_absent_from_response": [],
+          "total_rows": 5906,
+          "non_null_rows": 5906,
+          "null_rows": 0,
+          "null_percentage": 0.0,
+          "examples": [
+            2.24,
+            2.25,
+            2.27
+          ]
+        },
+        {
+          "column": "TC_10YEAR",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2003,
+          "last_year_present": 2026,
+          "years_present_count": 24,
+          "years_absent_from_response": [],
+          "total_rows": 5906,
+          "non_null_rows": 5906,
+          "null_rows": 0,
+          "null_percentage": 0.0,
+          "examples": [
+            2.43,
+            2.46,
+            2.42
+          ]
+        },
+        {
+          "column": "TC_20YEAR",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2004,
+          "last_year_present": 2026,
+          "years_present_count": 23,
+          "years_absent_from_response": [
+            2003
+          ],
+          "total_rows": 5906,
+          "non_null_rows": 5515,
+          "null_rows": 391,
+          "null_percentage": 6.6204,
+          "examples": [
+            2.49,
+            2.46,
+            2.44
+          ]
+        },
+        {
+          "column": "TC_30YEAR",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2010,
+          "last_year_present": 2026,
+          "years_present_count": 17,
+          "years_absent_from_response": [
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009
+          ],
+          "total_rows": 5906,
+          "non_null_rows": 4121,
+          "null_rows": 1785,
+          "null_percentage": 30.2235,
+          "examples": [
+            2.22,
+            2.14,
+            2.16
+          ]
+        }
+      ],
+      "schema_changes": {
+        "columns_added_by_year": {
+          "2003": [
+            "DailyTreasuryRealYieldCurveRateDataId",
+            "NEW_DATE",
+            "TC_10YEAR",
+            "TC_5YEAR",
+            "TC_7YEAR"
+          ],
+          "2004": [
+            "TC_20YEAR"
+          ],
+          "2010": [
+            "TC_30YEAR"
+          ],
+          "2025": [
+            "DailyTreasuryRealYieldCurveRateDataId"
+          ]
+        },
+        "columns_removed_by_year": {
+          "2023": [
+            "DailyTreasuryRealYieldCurveRateDataId"
+          ]
+        }
+      },
+      "financial_caveat": "REAL yields (TIPS-based), not nominal. Negative values are normal and correct - they must never be treated as errors or clipped. The nominal-minus-real difference is a breakeven-inflation calculation and is deliberately not computed here."
+    },
+    "daily_treasury_real_long_term": {
+      "dataset": "Daily Treasury Real Long-Term Rates",
+      "data_key": "daily_treasury_real_long_term",
+      "shape": "wide",
+      "date_field": "QUOTE_DATE",
+      "natural_key": [
+        "QUOTE_DATE"
+      ],
+      "total_rows": 6655,
+      "total_columns": 2,
+      "years_covered": [
+        2000,
+        2001,
+        2002,
+        2003,
+        2004,
+        2005,
+        2006,
+        2007,
+        2008,
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "columns": [
+        {
+          "column": "QUOTE_DATE",
+          "inferred_type": "date",
+          "source_edm_types": [
+            "Edm.DateTime"
+          ],
+          "first_year_present": 2000,
+          "last_year_present": 2026,
+          "years_present_count": 27,
+          "years_absent_from_response": [],
+          "total_rows": 6655,
+          "non_null_rows": 6655,
+          "null_rows": 0,
+          "null_percentage": 0.0,
+          "examples": [
+            "2000-01-03",
+            "2000-01-04",
+            "2000-01-05"
+          ]
+        },
+        {
+          "column": "RATE",
+          "inferred_type": "numeric",
+          "source_edm_types": [
+            "Edm.Double"
+          ],
+          "first_year_present": 2000,
+          "last_year_present": 2026,
+          "years_present_count": 27,
+          "years_absent_from_response": [],
+          "total_rows": 6655,
+          "non_null_rows": 6655,
+          "null_rows": 0,
+          "null_percentage": 0.0,
+          "examples": [
+            4.3,
+            4.32,
+            4.34
+          ]
+        }
+      ],
+      "schema_changes": {
+        "columns_added_by_year": {
+          "2000": [
+            "QUOTE_DATE",
+            "RATE"
+          ]
+        },
+        "columns_removed_by_year": {}
+      },
+      "financial_caveat": "REAL (TIPS) rate. Coverage is interrupted where Treasury suspended publication; missing days are genuinely absent, not zero."
+    }
+  }
+}

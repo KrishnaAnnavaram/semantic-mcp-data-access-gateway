@@ -1,0 +1,474 @@
+{
+  "generated_at_utc": "2026-08-12T06:09:58+00:00",
+  "load_run_id": 4,
+  "target": "postgresql://gateway:***@localhost:5432/gateway",
+  "status": "PASS",
+  "checks_total": 58,
+  "checks_failed": 0,
+  "checks": [
+    {
+      "check": "manifest_files_registered",
+      "data_key": null,
+      "expected": 140,
+      "actual": 140,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "all_checksums_verified",
+      "data_key": null,
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": "count of files loaded without a verified SHA-256"
+    },
+    {
+      "check": "load_run_succeeded",
+      "data_key": null,
+      "expected": "succeeded",
+      "actual": "succeeded",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "no_failed_load_steps",
+      "data_key": null,
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "staging_rows",
+      "data_key": "daily_treasury_bill_rates",
+      "expected": 6157,
+      "actual": 6157,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "observations",
+      "data_key": "daily_treasury_bill_rates",
+      "expected": 105204,
+      "actual": 105204,
+      "passed": true,
+      "detail": "non-null rate cells counted from the CSV"
+    },
+    {
+      "check": "distinct_dates",
+      "data_key": "daily_treasury_bill_rates",
+      "expected": 6157,
+      "actual": 6157,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "first_observation",
+      "data_key": "daily_treasury_bill_rates",
+      "expected": "2002-01-02",
+      "actual": "2002-01-02",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "last_observation",
+      "data_key": "daily_treasury_bill_rates",
+      "expected": "2026-08-11",
+      "actual": "2026-08-11",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "value_sample_mismatches",
+      "data_key": "daily_treasury_bill_rates",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": "250 cells sampled"
+    },
+    {
+      "check": "staging_rows",
+      "data_key": "daily_treasury_long_term_rate",
+      "expected": 19965,
+      "actual": 19965,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "observations",
+      "data_key": "daily_treasury_long_term_rate",
+      "expected": 19965,
+      "actual": 19965,
+      "passed": true,
+      "detail": "non-null rate cells counted from the CSV"
+    },
+    {
+      "check": "distinct_dates",
+      "data_key": "daily_treasury_long_term_rate",
+      "expected": 6655,
+      "actual": 6655,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "first_observation",
+      "data_key": "daily_treasury_long_term_rate",
+      "expected": "2000-01-03",
+      "actual": "2000-01-03",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "last_observation",
+      "data_key": "daily_treasury_long_term_rate",
+      "expected": "2026-08-11",
+      "actual": "2026-08-11",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "value_sample_mismatches",
+      "data_key": "daily_treasury_long_term_rate",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": "250 cells sampled"
+    },
+    {
+      "check": "staging_rows",
+      "data_key": "daily_treasury_real_long_term",
+      "expected": 6655,
+      "actual": 6655,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "observations",
+      "data_key": "daily_treasury_real_long_term",
+      "expected": 6655,
+      "actual": 6655,
+      "passed": true,
+      "detail": "non-null rate cells counted from the CSV"
+    },
+    {
+      "check": "distinct_dates",
+      "data_key": "daily_treasury_real_long_term",
+      "expected": 6655,
+      "actual": 6655,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "first_observation",
+      "data_key": "daily_treasury_real_long_term",
+      "expected": "2000-01-03",
+      "actual": "2000-01-03",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "last_observation",
+      "data_key": "daily_treasury_real_long_term",
+      "expected": "2026-08-11",
+      "actual": "2026-08-11",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "value_sample_mismatches",
+      "data_key": "daily_treasury_real_long_term",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": "250 cells sampled"
+    },
+    {
+      "check": "staging_rows",
+      "data_key": "daily_treasury_real_yield_curve",
+      "expected": 5906,
+      "actual": 5906,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "observations",
+      "data_key": "daily_treasury_real_yield_curve",
+      "expected": 27354,
+      "actual": 27354,
+      "passed": true,
+      "detail": "non-null rate cells counted from the CSV"
+    },
+    {
+      "check": "distinct_dates",
+      "data_key": "daily_treasury_real_yield_curve",
+      "expected": 5906,
+      "actual": 5906,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "first_observation",
+      "data_key": "daily_treasury_real_yield_curve",
+      "expected": "2003-01-02",
+      "actual": "2003-01-02",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "last_observation",
+      "data_key": "daily_treasury_real_yield_curve",
+      "expected": "2026-08-11",
+      "actual": "2026-08-11",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "value_sample_mismatches",
+      "data_key": "daily_treasury_real_yield_curve",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": "250 cells sampled"
+    },
+    {
+      "check": "staging_rows",
+      "data_key": "daily_treasury_yield_curve",
+      "expected": 9159,
+      "actual": 9159,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "observations",
+      "data_key": "daily_treasury_yield_curve",
+      "expected": 108339,
+      "actual": 108339,
+      "passed": true,
+      "detail": "non-null rate cells counted from the CSV"
+    },
+    {
+      "check": "distinct_dates",
+      "data_key": "daily_treasury_yield_curve",
+      "expected": 9159,
+      "actual": 9159,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "first_observation",
+      "data_key": "daily_treasury_yield_curve",
+      "expected": "1990-01-02",
+      "actual": "1990-01-02",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "last_observation",
+      "data_key": "daily_treasury_yield_curve",
+      "expected": "2026-08-11",
+      "actual": "2026-08-11",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "value_sample_mismatches",
+      "data_key": "daily_treasury_yield_curve",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": "250 cells sampled"
+    },
+    {
+      "check": "placeholder_rows_recorded",
+      "data_key": "daily_treasury_yield_curve",
+      "expected": 5256,
+      "actual": 5256,
+      "passed": true,
+      "detail": "leading BC_30YEARDISPLAY zeros, stored with a NULL rate"
+    },
+    {
+      "check": "placeholders_have_no_rate",
+      "data_key": null,
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": "a placeholder must never present itself as a rate"
+    },
+    {
+      "check": "placeholders_excluded_from_analytics",
+      "data_key": null,
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "no_zero_30y_in_analytics",
+      "data_key": null,
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": "a 0.00% 30-year yield would be the placeholder leaking through"
+    },
+    {
+      "check": "future_dated_observations",
+      "data_key": null,
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "observations_without_series",
+      "data_key": null,
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "data_key_disagreements",
+      "data_key": null,
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "duplicate_observation_keys",
+      "data_key": null,
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "series_without_observations",
+      "data_key": null,
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": "a registered series that loaded nothing is a mapping error"
+    },
+    {
+      "check": "rates_outside_plausible_band",
+      "data_key": null,
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bill_securities_mature_after_quote",
+      "data_key": null,
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "view_queryable:v_series",
+      "data_key": null,
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "52 rows"
+    },
+    {
+      "check": "view_queryable:v_observation",
+      "data_key": null,
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "258,358 rows"
+    },
+    {
+      "check": "view_queryable:v_par_yield_curve",
+      "data_key": null,
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "9,158 rows"
+    },
+    {
+      "check": "view_queryable:v_real_yield_curve",
+      "data_key": null,
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "5,906 rows"
+    },
+    {
+      "check": "view_queryable:v_bill_rates_quoted",
+      "data_key": null,
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "26,299 rows"
+    },
+    {
+      "check": "view_queryable:v_long_term_rates",
+      "data_key": null,
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "6,655 rows"
+    },
+    {
+      "check": "view_queryable:v_latest_rates",
+      "data_key": null,
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "51 rows"
+    },
+    {
+      "check": "view_queryable:v_series_coverage",
+      "data_key": null,
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "52 rows"
+    },
+    {
+      "check": "view_queryable:v_dataset_summary",
+      "data_key": null,
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "5 rows"
+    },
+    {
+      "check": "constraint:treasury.observation:p",
+      "data_key": null,
+      "expected": ">=1",
+      "actual": 1,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "constraint:treasury.observation:f",
+      "data_key": null,
+      "expected": ">=2",
+      "actual": 2,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "constraint:treasury.series:f",
+      "data_key": null,
+      "expected": ">=1",
+      "actual": 1,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "check_constraints_on_observation",
+      "data_key": null,
+      "expected": ">=2",
+      "actual": 2,
+      "passed": true,
+      "detail": ""
+    }
+  ]
+}
