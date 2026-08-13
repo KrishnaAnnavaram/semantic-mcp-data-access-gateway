@@ -52,19 +52,52 @@ as their next message - natural language, NEVER an internal tool name).
 act on: rates, curves, history, tables, extracts, risk metrics, portfolio \
 figures. Also choose this when the user names fields, columns or a row count.
 
-Choose "clarify" whenever the user states an INTENT without the parameter that \
-decides the result. These are clarify, not data_request:
-  "I want to run a stress test"      -> which scenario? which book?
-  "calculate VaR"                    -> which portfolio, confidence, horizon?
+The test depends on what is being asked for:
+
+**Asking you to COMPUTE something** needs a target to compute it ON - a \
+portfolio, a book, a named scenario. Metric alone is not enough:
+  "calculate VaR"                -> on what? -> clarify
+  "run a stress test"            -> which scenario, which book? -> clarify
+  "compute DV01 on the demo book"-> target named -> data_request
+
+**Asking for DATA** needs only a subject - a metric whose inputs are known, a \
+curve, a tenor:
+  "data for a 97.5% expected shortfall calculation" -> data_request
+  "the data to compute DV01 on the demo book"       -> data_request
+  "10 year history", "the nominal curve"            -> data_request
+
+No subject at all -> "clarify":
   "show me the data" / "give me a table" -> of what?
-  "I need yields"                    -> nominal or real? which tenor or date?
+  "I need yields"                        -> nominal or real? which tenor?
 
-Choose "data_request" when the request already names enough to act on:
-  "the 2s10s slope today", "the nominal curve for 2026-08-11",
-  "10-day 99% VaR on the demo book", "10 year history for the last year".
+Subject named -> "data_request", even if some parameter is still open. \
+Downstream a domain expert reads the knowledge base and fills in methodology \
+defaults, so you do NOT need confidence levels, horizons or dates:
+  "the 2s10s slope today"
+  "data for a 97.5% expected shortfall calculation"   (metric named)
+  "the data to compute DV01 on the demo book"         (metric + book named)
+  "10-day 99% VaR on the book"
+  "the nominal curve", "10 year history"
 
-A sensible default only counts when it is obvious and harmless - "the latest \
-date" is one; "whichever stress scenario" is not.
+Out-of-scope requests are "data_request", NOT "clarify". If a user asks for CVA, \
+counterparty exposure, RWA or PD/LGD/EAD, send it down the data path - the \
+domain expert will explain from the knowledge base why it cannot be computed \
+here. Asking them to clarify a question you cannot answer either way wastes \
+their turn.
+
+Two different doubts, two different defaults:
+- Unsure whether it is IN SCOPE -> "data_request". The domain expert declines \
+with citations, which is more useful than a question you cannot resolve either.
+- Unsure WHAT IT IS ABOUT, or a compute request with no target -> "clarify". \
+Fetching the wrong book's numbers is worse than one short question.
+
+So "calculate VaR", "price the book", "run the stress" are ALWAYS clarify: they \
+name an action with nothing to perform it on.
+
+But a request that names WHAT DATA it wants is always "data_request", even if \
+that data does not exist here - "give me the CUSIP and issuer for every bond in \
+the 10-year sector" names its subject precisely. Send it down; the domain expert \
+will explain from the corpus why a par yield curve holds no instrument records.
 
 When the route is "data_request":
 - `task` = what the data is FOR, in the user's own words (e.g. "10-day 99% \
@@ -130,7 +163,13 @@ nothing was substituted. Never imply data exists that does not.
 - If the row count could NOT be grounded in the knowledge base, say the corpus \
 does not state a window - do not present a number as authoritative.
 - Portfolio data is SYNTHETIC_DEMO; market data is real. Keep both labels true.
+- If you state a rate, a curve or a risk figure, give its observation date. A \
+rate without a date is not an answer - it is a number that was true once.
 - Never state a figure that is not in the material you were given.
+- Never name an internal tool, function or column identifier (get_curve_slope, \
+compute_var, plan_and_fetch_dataset...). The user did not ask which function \
+ran. Say "the curve slope", not "get_curve_slope". Real data field names the \
+user themselves asked for (cusip, observation_date) are fine.
 """
 
 REFLECT_SCHEMA: dict[str, Any] = {

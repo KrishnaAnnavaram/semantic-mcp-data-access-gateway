@@ -175,16 +175,41 @@ class DomainExpertAgent:
 
     @traced("knowledge_retrieval", run_type="retriever")
     def retrieve(self, subject: str) -> list[KnowledgeChunk]:
-        """Vector search over Qdrant. This is the agent's only source of authority."""
-        try:
-            hits = self.kb.retrieve(subject, n_results=self.n_results)
-        except Exception as exc:  # noqa: BLE001 - reported, never fatal
-            LOGGER.warning("knowledge retrieval failed: %s", exc)
-            return []
-        return [KnowledgeChunk(
-            domain=h.get("domain", ""), source=h.get("source", ""),
-            heading=h.get("heading", ""), text=h.get("text", ""),
-            distance=h.get("distance", 0.0)) for h in hits]
+        """Vector search over Qdrant. The agent's only source of authority.
+
+        Two queries, not one, because the agent needs two different things and a
+        single embedding cannot be near both. Asked "I need data for a 97.5%
+        expected shortfall calculation", one query returns the ES *definition* -
+        semantically the closest chunk - and never surfaces the section stating
+        the observation window, so the row count comes back ungrounded even
+        though the corpus contains it.
+
+        So: one query for what the task means, one for the window it reads. The
+        second is phrased in the corpus's own vocabulary rather than the user's,
+        which is the point - the agent knows what it is looking for even when
+        the user does not.
+        """
+        queries = [
+            subject,
+            f"{subject} observation window how many rows lookback observations read",
+        ]
+        merged: dict[tuple[str, str], KnowledgeChunk] = {}
+        for query in queries:
+            try:
+                hits = self.kb.retrieve(query, n_results=self.n_results)
+            except Exception as exc:  # noqa: BLE001 - reported, never fatal
+                LOGGER.warning("knowledge retrieval failed for %r: %s", query, exc)
+                continue
+            for hit in hits:
+                key = (hit.get("source", ""), hit.get("heading", ""))
+                chunk = KnowledgeChunk(
+                    domain=hit.get("domain", ""), source=hit.get("source", ""),
+                    heading=hit.get("heading", ""), text=hit.get("text", ""),
+                    distance=hit.get("distance", 0.0))
+                # Keep the better-scoring sighting when both queries find it.
+                if key not in merged or chunk.distance < merged[key].distance:
+                    merged[key] = chunk
+        return sorted(merged.values(), key=lambda c: c.distance)
 
     @staticmethod
     def _context(chunks: list[KnowledgeChunk]) -> str:
