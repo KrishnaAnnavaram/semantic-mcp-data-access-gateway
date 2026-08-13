@@ -1,15 +1,29 @@
-# Keep the agent image small — none of this belongs in it.
+# Keep the backend image small — none of this belongs in it.
+#
+# NOTE: source lives under .claude/src/, so this file must NOT exclude dotted
+# paths wholesale. A blanket `.*` rule here would silently produce an image with
+# no application code in it, and the failure only appears at container start.
 .git/
+.github/
 data/
-db/
-docs/
-chatbot/
+tests/
 tools/
 qdrant_db/
 __pycache__/
 *.pyc
+*.egg-info/
 .venv/
 venv/
-tests/
 .env
+.pytest_cache/
+.mypy_cache/
 adaptive-legacy-code-complexity-harness/
+
+# Claude Code configuration — the source tree beneath it is copied explicitly by
+# the Dockerfile, but the config itself is a development concern and must not be
+# shipped in a production image.
+.claude/agents/
+.claude/commands/
+.claude/rules/
+.claude/skills/
+.claude/settings.json

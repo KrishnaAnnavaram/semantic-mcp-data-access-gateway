@@ -1,0 +1,378 @@
+{
+  "generated_at_utc": "2026-08-13T06:17:26+00:00",
+  "status": "PASS",
+  "checks_total": 48,
+  "checks_failed": 0,
+  "checks": [
+    {
+      "check": "tools_advertised",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "14 tools"
+    },
+    {
+      "check": "all_have_output_schema",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": "structured results, not prose the model must parse"
+    },
+    {
+      "check": "no_undeclared_writers",
+      "expected": "set()",
+      "actual": "set()",
+      "passed": true,
+      "detail": "a tool that writes must be listed in DECLARED_WRITERS on purpose"
+    },
+    {
+      "check": "database_tools_all_read_only",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": "the mcp_reader grant enforces this; the annotation must agree"
+    },
+    {
+      "check": "none_destructive",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "all_described",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": "an undescribed tool cannot be selected correctly"
+    },
+    {
+      "check": "tool_order_deterministic",
+      "expected": [
+        "list_datasets",
+        "list_series",
+        "search_series",
+        "get_series_coverage",
+        "get_curve",
+        "get_rate_history",
+        "get_curve_history_matrix",
+        "explain_number",
+        "list_portfolios",
+        "get_portfolio",
+        "list_scenarios",
+        "get_scenario",
+        "export_curve_csv",
+        "brief_dataset_caveat"
+      ],
+      "actual": [
+        "list_datasets",
+        "list_series",
+        "search_series",
+        "get_series_coverage",
+        "get_curve",
+        "get_rate_history",
+        "get_curve_history_matrix",
+        "explain_number",
+        "list_portfolios",
+        "get_portfolio",
+        "list_scenarios",
+        "get_scenario",
+        "export_curve_csv",
+        "brief_dataset_caveat"
+      ],
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "no_sql_escape_hatch",
+      "expected": [],
+      "actual": [],
+      "passed": true,
+      "detail": "a run_sql tool would move schema knowledge into the prompt"
+    },
+    {
+      "check": "no_sql_fragment_parameters",
+      "expected": [],
+      "actual": [],
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "curve_returns_points",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "14 tenors on 2026-08-11"
+    },
+    {
+      "check": "envelope_complete:get_curve",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": "every rate carries its semantics"
+    },
+    {
+      "check": "no_placeholder_series:get_curve",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": "BC_30YEARDISPLAY must be unreachable through any tool"
+    },
+    {
+      "check": "curve_has_provenance",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "daily_treasury_yield_curve_2026.xml"
+    },
+    {
+      "check": "curve_tenors_unique",
+      "expected": 14,
+      "actual": 14,
+      "passed": true,
+      "detail": "one node per tenor, or the bootstrap consumes a duplicate"
+    },
+    {
+      "check": "curve_tenors_ordered",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "envelope_complete:get_rate_history",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": "every rate carries its semantics"
+    },
+    {
+      "check": "no_placeholder_series:get_rate_history",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": "BC_30YEARDISPLAY must be unreachable through any tool"
+    },
+    {
+      "check": "history_paginates",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "50 rows returned, cursor issued"
+    },
+    {
+      "check": "cursor_bound_to_query",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "replaying a cursor against different filters is rejected"
+    },
+    {
+      "check": "cursor_tamper_evident",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bulk_matrix_in_meta",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bulk_rates_absent_from_model_view",
+      "expected": false,
+      "actual": false,
+      "passed": true,
+      "detail": "summary 780B vs matrix 14264B"
+    },
+    {
+      "check": "bulk_matrix_shape",
+      "expected": 1000,
+      "actual": 1000,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "synthetic_labelled:get_portfolio",
+      "expected": 0,
+      "actual": 0,
+      "passed": true,
+      "detail": "demo rows must never appear unclassified"
+    },
+    {
+      "check": "portfolio_classified_synthetic",
+      "expected": "SYNTHETIC_DEMO",
+      "actual": "SYNTHETIC_DEMO",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "explain_number_has_sha256",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "daily_treasury_yield_curve_2026.xml"
+    },
+    {
+      "check": "holiday_error_code",
+      "expected": "DATE_NO_DATA",
+      "actual": "DATE_NO_DATA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "holiday_error_offers_dates",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "the model must be able to retry without a human"
+    },
+    {
+      "check": "unknown_series_error_code",
+      "expected": "UNKNOWN_SERIES",
+      "actual": "UNKNOWN_SERIES",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "unknown_series_suggests_alternatives",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "missing_history_refuses_by_default",
+      "expected": "MISSING_OBSERVATIONS",
+      "actual": "MISSING_OBSERVATIONS",
+      "passed": true,
+      "detail": "silently dropping dates changes any risk number computed from them"
+    },
+    {
+      "check": "reversed_range_rejected",
+      "expected": "INVALID_DATE_RANGE",
+      "actual": "INVALID_DATE_RANGE",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "sql_injection_rejected",
+      "expected": "UNKNOWN_SERIES",
+      "actual": "UNKNOWN_SERIES",
+      "passed": true,
+      "detail": "rejected as an unknown series, never interpolated into SQL"
+    },
+    {
+      "check": "catalogue_resources_present",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "4 resources"
+    },
+    {
+      "check": "caveat_resource_warns_on_quote_basis",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "the bill caveat must state the basis trap"
+    },
+    {
+      "check": "prompts_present",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "3 prompts"
+    },
+    {
+      "check": "modern_protocol_negotiated",
+      "expected": "2026-07-28",
+      "actual": "2026-07-28",
+      "passed": true,
+      "detail": "below this revision the three ride deprecated standalone requests"
+    },
+    {
+      "check": "ambiguous_query_elicits",
+      "expected": "elicited",
+      "actual": "elicited",
+      "passed": true,
+      "detail": "the server must ask, not choose, when a query spans rate kinds"
+    },
+    {
+      "check": "elicited_answer_filters_matches",
+      "expected": [
+        "TC_30YEAR"
+      ],
+      "actual": [
+        "TC_30YEAR"
+      ],
+      "passed": true,
+      "detail": "the caller's answer must actually narrow the result"
+    },
+    {
+      "check": "unambiguous_query_does_not_elicit",
+      "expected": "unambiguous",
+      "actual": "unambiguous",
+      "passed": true,
+      "detail": "one rate kind, so no question is owed"
+    },
+    {
+      "check": "export_uses_client_root",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "wrote to E:\\Virtusa Projects\\semantic-mcp-data-access-gateway\\data\\exports\\verify_curve.csv"
+    },
+    {
+      "check": "export_reports_roots_offered",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "a refusal must be diagnosable without guessing"
+    },
+    {
+      "check": "export_refuses_root_escape",
+      "expected": null,
+      "actual": null,
+      "passed": true,
+      "detail": "a path separator or '..' must be refused, never sanitised"
+    },
+    {
+      "check": "export_escape_states_reason",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "briefing_names_drafting_model",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "model=claude-opus-5"
+    },
+    {
+      "check": "briefing_carries_verbatim_caveat",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "a briefing that cannot be checked is worse than none"
+    },
+    {
+      "check": "root_containment_refuses_escape",
+      "expected": [],
+      "actual": [],
+      "passed": true,
+      "detail": "a path separator or '..' must be refused, never sanitised"
+    },
+    {
+      "check": "root_containment_allows_bare_name",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "a bare filename inside a granted root must still be writable"
+    }
+  ]
+}

@@ -670,8 +670,8 @@ Eastern time.
 Treasury publishes each business day around 4:15 PM ET.
 
 ```bash
-python .claude/acquisition/download_us_treasury.py    # current year is always re-fetched
-python .claude/loading/load_us_treasury.py            # delete-and-reload, so reruns are safe
+python -m acquisition.download_us_treasury    # current year is always re-fetched
+python -m treasury_db.load            # delete-and-reload, so reruns are safe
 python tools/verify_load.py --self-test
 ```
 

@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-servers"
+version = "0.1.0"
+description = "MCP data and risk servers plus the host that drives them"
+requires-python = ">=3.11"
+dependencies = ["mcp>=2.0.0", "psycopg2-binary>=2.9", "pydantic>=2.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["mcp_servers*"]

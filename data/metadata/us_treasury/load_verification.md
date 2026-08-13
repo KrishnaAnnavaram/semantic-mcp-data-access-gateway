@@ -1,9 +1,9 @@
 # PostgreSQL load verification
 
 - Target: `postgresql://gateway:***@localhost:5432/gateway`
-- Load run: **4**
-- Generated (UTC): **2026-08-12T06:09:58+00:00**
-- Result: **PASS** (58/58 checks passed)
+- Load run: **7**
+- Generated (UTC): **2026-08-13T06:17:09+00:00**
+- Result: **PASS** (74/74 checks passed)
 
 Every expected value below is recounted from the processed CSVs, not read back from the database.
 
@@ -63,6 +63,22 @@ Every expected value below is recounted from the processed CSVs, not read back f
 | `view_queryable:v_latest_rates` | - | True | True | PASS |
 | `view_queryable:v_series_coverage` | - | True | True | PASS |
 | `view_queryable:v_dataset_summary` | - | True | True | PASS |
+| `mcp_reader_can:read_curve_view` | - | True | True | PASS |
+| `mcp_reader_can:read_observation_view` | - | True | True | PASS |
+| `mcp_reader_can:read_demo_positions` | - | True | True | PASS |
+| `mcp_reader_can:read_scenarios` | - | True | True | PASS |
+| `mcp_reader_can:read_source_provenance` | - | True | True | PASS |
+| `mcp_reader_cannot:read_raw_treasury` | - | False | False | PASS |
+| `mcp_reader_cannot:read_raw_staging` | - | False | False | PASS |
+| `mcp_reader_cannot:insert_demo` | - | False | False | PASS |
+| `mcp_reader_cannot:update_demo` | - | False | False | PASS |
+| `mcp_reader_cannot:delete_demo` | - | False | False | PASS |
+| `mcp_reader_cannot:create_table` | - | False | False | PASS |
+| `mcp_reader_cannot:write_treasury` | - | False | False | PASS |
+| `mcp_view_matches_curated_view` | - | 258358 | 258358 | PASS |
+| `mcp_view_excludes_placeholders` | - | 0 | 0 | PASS |
+| `mcp_rates_all_carry_quote_basis` | - | 0 | 0 | PASS |
+| `demo_rows_all_classified_synthetic` | - | 0 | 0 | PASS |
 | `constraint:treasury.observation:p` | - | >=1 | 1 | PASS |
 | `constraint:treasury.observation:f` | - | >=2 | 2 | PASS |
 | `constraint:treasury.series:f` | - | >=1 | 1 | PASS |

@@ -3,10 +3,13 @@
 
   "permissions": {
     "allow": [
-      "Bash(python .claude/acquisition/download_us_treasury.py *)",
-      "Bash(python .claude/loading/migrate.py *)",
-      "Bash(python .claude/loading/load_us_treasury.py *)",
+      "Bash(python -m acquisition.download_us_treasury *)",
+      "Bash(python -m treasury_db.migrate *)",
+      "Bash(python -m treasury_db.load *)",
+      "Bash(python -m mcp_servers.host *)",
       "Bash(python tools/verify_load.py *)",
+      "Bash(python tools/verify_mcp.py *)",
+      "Bash(python -m pytest *)",
       "Bash(docker compose ps *)",
       "Bash(docker compose up -d *)",
       "Bash(docker compose logs *)",
@@ -29,7 +32,8 @@
       "Write(./adaptive-legacy-code-complexity-harness/**)",
       "Edit(./data/raw/**)",
       "Write(./data/raw/**)",
-      "Read(./.env)"
+      "Read(./.env)",
+      "Read(./.claude/src/frontend/.env)"
     ]
   }
 }

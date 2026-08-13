@@ -21,7 +21,7 @@ docker-compose.yml ──► smdag-postgres (postgres:17-alpine, :5432)
                               │
                               ▼
 db/init/01_bootstrap.sql   once, on an empty volume: UTC, ISO dates, readonly role
-db/migrations/V001..V007   every run: schemas, tables, series registry, views, grants
+.claude/src/postgres/migrations/V001..V007   every run: schemas, tables, series registry, views, grants
 ```
 
 ## Run it
@@ -31,9 +31,9 @@ cp .env.example .env          # then set a real password
 docker compose up -d
 docker compose ps             # expect: Up (healthy)
 
-python .claude/loading/migrate.py            # apply pending
-python .claude/loading/migrate.py --status   # what is applied, what is pending
-python .claude/loading/migrate.py --dry-run  # list pending, change nothing
+python -m treasury_db.migrate            # apply pending
+python -m treasury_db.migrate --status   # what is applied, what is pending
+python -m treasury_db.migrate --dry-run  # list pending, change nothing
 ```
 
 ## The four schemas
@@ -61,8 +61,8 @@ python .claude/loading/migrate.py --dry-run  # list pending, change nothing
 
 ```bash
 # next free number, descriptive name
-$EDITOR db/migrations/V008__add_bc_2_5month.sql
-python .claude/loading/migrate.py
+$EDITOR .claude/src/postgres/migrations/V008__add_bc_2_5month.sql
+python -m treasury_db.migrate
 ```
 
 Write it idempotently — `IF NOT EXISTS`, `ON CONFLICT DO UPDATE`, guarded
@@ -78,15 +78,15 @@ in DBeaver.
 | Container will not start, port in use | A native PostgreSQL already owns 5432 | Set `POSTGRES_PORT=5433` in `.env`, or stop the service |
 | `password authentication failed` | `.env` edited after the volume was initialised | `POSTGRES_PASSWORD` is only read on first init — `ALTER USER`, or `docker compose down -v` to start over (destroys data) |
 | `applied migrations have been edited` | Someone changed a `V00N` file that already ran | Revert the edit; add a new migration instead |
-| `dataset(s) not registered` from the loader | Migrations not applied | `python .claude/loading/migrate.py` |
+| `dataset(s) not registered` from the loader | Migrations not applied | `python -m treasury_db.migrate` |
 
 ## Rebuilding from nothing
 
 ```bash
 docker compose down -v      # destroys the volume and all data
 docker compose up -d
-python .claude/loading/migrate.py
-python .claude/loading/load_us_treasury.py
+python -m treasury_db.migrate
+python -m treasury_db.load
 python tools/verify_load.py --self-test
 ```
 

@@ -1,7 +1,8 @@
 ---
 paths:
   - "db/**/*.sql"
-  - ".claude/loading/**/*.py"
+  - ".claude/src/postgres/src/treasury_db/**/*.py"
+  - ".claude/src/postgres/src/treasury_db/db.py"
   - "tools/verify_load.py"
 ---
 
@@ -54,8 +55,8 @@ These load only when working on the files above.
 After any change here:
 
 ```bash
-python .claude/loading/migrate.py --status
-python .claude/loading/load_us_treasury.py
+python -m treasury_db.migrate --status
+python -m treasury_db.load
 python tools/verify_load.py --self-test
 ```
 

@@ -1,4 +1,4 @@
-# Reasoning layer — the smart agent
+# Reasoning layer — the quant agent
 
 How the middle layer works: it turns a natural-language risk question into a
 grounded, data-backed answer with a visible decision trace. It owns no data of
@@ -11,15 +11,15 @@ data layer, through two swap seams.
   question
      │
      ▼
-  SmartAgent (Claude, tool-calling loop)          src/smart_agent.py
+  QuantAgent (Claude, tool-calling loop)          .claude/src/backend/src/backend/agent/quant_agent.py
      │
-     ├─►  retrieve_knowledge ─► KnowledgeBase ─► Qdrant     src/knowledge_base.py
-     │        "what is this metric, and what data does it need?"   src/vector_store.py
+     ├─►  retrieve_knowledge ─► KnowledgeBase ─► Qdrant     gateway/reasoning/knowledge_base.py
+     │        "what is this metric, and what data does it need?"   gateway/reasoning/vector_store.py
      │
      ├─►  decide which rate data is actually required
      │
-     └─►  data tools ─────────► DataProvider ─► PostgreSQL  src/data_provider.py
-              get_yield_curve / get_rate_history / ...      src/postgres_data_provider.py
+     └─►  data tools ─────────► DataProvider ─► PostgreSQL  gateway/providers/base.py
+              get_yield_curve / get_rate_history / ...      gateway/providers/postgres.py
      │
      ▼
   answer  +  decision trace  (intent → knowledge → decision → tool_call → answer)
@@ -36,7 +36,7 @@ environment variable:
 | Data | `DataProvider` | `PostgresDataProvider` (real) · `MockDataProvider` (dev) | `DATA_BACKEND` |
 
 `QDRANT_URL` set → talk to the Docker Qdrant server; unset → embedded local store
-at `./qdrant_db`. `DATA_BACKEND=postgres` → read the real `analytics.*` views;
+at `./data/qdrant`. `DATA_BACKEND=postgres` → read the real `analytics.*` views;
 otherwise the synthetic mock (Treasury-shaped, seeded from the real 2026-08-11
 curve).
 
@@ -61,7 +61,7 @@ compute. The knowledge base spans `market_risk`, `xva`, `regulatory_capital`,
 
 ## The `/chat` service
 
-`src/agent_service.py` (FastAPI) exposes the agent over the contract the chatbot
+`.claude/src/backend/src/backend/api/api.py` (FastAPI) exposes the agent over the contract the chatbot
 expects:
 
 ```
@@ -79,9 +79,9 @@ knowledge docs the answer leaned on.
 
 ```bash
 docker compose up -d qdrant postgres          # both databases
-$env:QDRANT_URL = "http://localhost:6333"; python src/knowledge_base.py   # ingest knowledge
+$env:QDRANT_URL = "http://localhost:6333"; python -m backend.knowledge.knowledge_base   # ingest knowledge
 $env:ANTHROPIC_API_KEY = "sk-ant-..."; $env:DATA_BACKEND = "postgres"
-python src/agent_service.py                    # POST /chat on :8000
+python -m backend.api.service                    # POST /chat on :8000
 ```
 
 Or the whole stack — Postgres, Qdrant, and the agent container — with

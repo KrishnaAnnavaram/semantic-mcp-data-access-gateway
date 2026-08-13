@@ -185,7 +185,7 @@ cannot detect anything — the planted corruption is how you tell the difference
 
 ## ADR-010 — Pipeline code lives under `.claude/`
 
-**Decision.** `.claude/acquisition/` and `.claude/loading/` hold product code,
+**Decision.** `data/acquisition/` and `.claude/src/postgres/src/treasury_db/` hold product code,
 alongside `agents/`, `skills/`, `rules/` and `commands/`.
 
 **Why.** House convention, matching `adaptive-legacy-code-complexity-harness`
@@ -229,3 +229,98 @@ year.
 **Reversed if.** History growth becomes painful. Then move `data/raw/` to
 object storage or Git LFS, keeping the manifest in git — the checksums make
 that migration verifiable.
+
+---
+
+## ADR-012 — Two MCP servers, split by failure attribution
+
+**Decision.** `market-risk-data-mcp` retrieves trusted facts; `risk-engine-mcp`
+performs deterministic mathematics and has no database credential. The host
+reasons and routes. Not one combined server.
+
+**Why.** When a VaR number looks wrong there are exactly two causes: bad input or
+bad maths. With the split, each is checkable in isolation — replay the same
+payload through the engine, or query the data server's provenance. Combined,
+you are guessing, and "the model is fine, the input was wrong" is a very
+different conversation from its opposite.
+
+This is the same rule the data pipeline already lives by — stage 0 never touches
+the database, stages 1–3 never touch Treasury — extended one layer up.
+
+The two halves also have nothing operationally in common. The data server is I/O
+bound, cacheable, and changes when Treasury publishes; the engine is CPU bound,
+uncacheable (every call has different inputs), and changes when a quant changes
+methodology. Bundled, every one of those becomes a compromise.
+
+**Cost.** Two processes, and results must be carried between them by the host.
+
+**Reversed if.** Never for this workload. The boundary is the product.
+
+---
+
+## ADR-013 — Build on the existing schema rather than the proposed one
+
+**Decision.** The reviewed design document proposed a PostgreSQL schema
+(`treasury.dataset`, `series`, `source_batch`, `observation`,
+`analytics.v_rate_observation`). That schema already existed here under
+different names. Map to it; add only what is genuinely missing.
+
+**Why.** Rebuilding would have meant rewriting V001–V007 and reloading 267,517
+verified rows to gain nothing but a naming convention. The mapping is total:
+`curve_family` → `rate_kind`, `tenor_months` → `tenor_years`,
+`quality_status` → `value_status`, `source_batch` → `meta.source_file`.
+
+Genuinely missing, and added: the `demo` schema (V008), the `mcp_reader` role
+(V009), and MCP-shaped read views (V010–V013).
+
+**What made it cheap.** `security_invoker` is unset on the analytics views, so
+they execute with the owner's privileges. Granting `SELECT` on views while
+revoking `treasury.*` gives the intended "the MCP role cannot reach raw data"
+boundary with no schema change at all.
+
+**Reversed if.** Never; the alternative was churn.
+
+---
+
+## ADR-014 — Bulk numeric data bypasses model context via `_meta`
+
+**Decision.** `get_curve_history_matrix` returns a summary in
+`structured_content` and the numeric matrix in the result's `_meta`. The host
+lifts the matrix and passes it to the risk engine directly.
+
+**Why.** A 250-day × 5-tenor history is 1,250 yields — 21× larger than the
+summary. The model does not reason over individual yields; it decides *that* a
+history is needed and hands it to the engine. Putting them in context spends
+tokens for nothing and invites truncation partway through a matrix, which would
+corrupt a VaR silently.
+
+The summary still carries shape, completeness, excluded dates and provenance, so
+the model can verify the request was satisfied without seeing a single rate.
+
+**Cost.** The host must know to look in `_meta`. Verified by
+`bulk_rates_absent_from_model_view` in `verify_mcp.py`.
+
+**Note.** `_meta` is not a security boundary — the SDK says so explicitly. It is
+a context-efficiency channel, and nothing secret goes in it.
+
+---
+
+## ADR-015 — Missing history is refused by default
+
+**Decision.** `missing_policy` defaults to `reject`. `intersection` is available
+but must report `excluded_dates`.
+
+**Why.** The 30-year has a real 994-business-day hole from 2002 to 2006 — the
+bond did not exist. Under `intersection`, a VaR window spanning it silently
+drops those dates and returns a number computed from a different history than
+the one requested. Nothing fails. The answer is simply wrong, and there is no
+signal that anything was lost.
+
+Refusing by default makes the gap a decision rather than an accident. It is also
+a better demonstration than any number: the system declining to answer is
+evidence it knows what it does not know.
+
+**Cost.** A caller must opt in to accept gaps.
+
+**Reversed if.** Never. This is ADR-002's rule — absence is not zero — at the
+query layer.

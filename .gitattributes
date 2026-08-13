@@ -14,6 +14,15 @@
 *.csv   text eol=lf
 *.xml   text eol=lf
 
+# Raw source files are byte-immutable and their SHA-256 is recorded in
+# download_manifest.json, which the loader checks before it will load anything.
+# Line-ending normalisation rewrites those bytes and the hashes stop matching -
+# on a machine with core.autocrlf=true the loader then refuses every file with
+# "raw source files do not match the manifest". Treat them as binary so git
+# never touches them. This rule must stay AFTER the *.xml rule above; in
+# .gitattributes the last matching pattern wins.
+data/raw/** -text
+
 # Windows-only helpers keep CRLF.
 *.bat   text eol=crlf
 *.cmd   text eol=crlf

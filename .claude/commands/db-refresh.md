@@ -13,7 +13,7 @@ a refresh.
 ## 1. Refresh the source
 
 ```bash
-python .claude/acquisition/download_us_treasury.py
+python -m acquisition.download_us_treasury
 ```
 
 The current year is always re-fetched; cached prior years are not. Note the
@@ -25,7 +25,7 @@ including the date it is current to.
 ## 2. Reload
 
 ```bash
-python .claude/loading/load_us_treasury.py
+python -m treasury_db.load
 ```
 
 The load is delete-then-insert per dataset, so this is a full, consistent

@@ -17,7 +17,7 @@ ever re-reads what an upstream stage already interpreted.
         │
         ▼
 ┌──────────────────┐   agent: treasury-acquisition
-│  0. ACQUIRE      │   .claude/acquisition/download_us_treasury.py
+│  0. ACQUIRE      │   data/acquisition/download_us_treasury.py
 └──────────────────┘   140 GETs, one immutable XML per dataset-year
         │
         ▼  data/raw/           immutable, SHA-256 in the manifest
@@ -31,7 +31,7 @@ ever re-reads what an upstream stage already interpreted.
         │
         ▼
 ┌──────────────────┐
-│  2. LOAD         │   .claude/loading/load_us_treasury.py
+│  2. LOAD         │   .claude/src/postgres/src/treasury_db/load_us_treasury.py
 └──────────────────┘   COPY to staging, generic unpivot to core
         │
         ▼  52 series, 267,517 observations
@@ -88,10 +88,10 @@ decisions with their own assumptions, and mixing them into an acquisition
 pipeline makes the source data impossible to audit. This project ends at
 trustworthy facts.
 
-This is the data foundation. The reasoning layer that consumes it — the smart
-agent, its Qdrant knowledge base, and the `/chat` service — is now built on top;
-see [reasoning-layer.md](reasoning-layer.md). The MCP *protocol* server is the
-remaining piece.
+This is the data foundation. The reasoning layer that consumes it — the quant
+agent, its Qdrant knowledge base, and the `/chat` service — is built on top; see
+[reasoning-layer.md](reasoning-layer.md). Both MCP servers and the host that
+drives them are built and verified; see [mcp-contract.md](mcp-contract.md).
 
 ## Reference figures
 

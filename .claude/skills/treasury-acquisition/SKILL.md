@@ -64,10 +64,10 @@ with its own checksum.
 ## Run it
 
 ```bash
-python .claude/acquisition/download_us_treasury.py
-python .claude/acquisition/download_us_treasury.py --dataset daily_treasury_yield_curve
-python .claude/acquisition/download_us_treasury.py --start-year 2020 --end-year 2026
-python .claude/acquisition/download_us_treasury.py --refresh
+python -m acquisition.download_us_treasury
+python -m acquisition.download_us_treasury --dataset daily_treasury_yield_curve
+python -m acquisition.download_us_treasury --start-year 2020 --end-year 2026
+python -m acquisition.download_us_treasury --refresh
 ```
 
 The current year is always re-fetched; Treasury appends to it daily. Cached
