@@ -20,13 +20,19 @@ from styles import inject_custom_css
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
 
-st.set_page_config(page_title="semantic-mcp-data-access-gateway Interface", page_icon="💬", layout="centered")
+st.set_page_config(page_title="semantic-mcp-data-access-gateway Interface", page_icon="💬", layout="wide")
 
 configure_observability()
 inject_custom_css()
 
 
 _TITLE_MAX_LEN = 40
+
+# Each pane gets a fixed height so it scrolls on its own. Without this the page
+# has a single scrollbar and reading a 250-row table drags the conversation off
+# screen with it - which is the whole complaint the artifact panel exists to fix.
+_CHAT_HEIGHT = 620
+_PANEL_HEIGHT = 560
 
 # A conversation earns a real name once it has had time to become about
 # something. Before that, the opening question is usually the vaguest thing the
@@ -213,9 +219,14 @@ def _render_artifact_panel(table: dict, plan: dict | None,
     usually wants exactly one of them. Flattening them into a single scroll
     pushes the reasoning below a 250-row grid, where nobody reads it.
     """
+    # Header and tabs stay pinned; only the tab bodies scroll. A title that
+    # wraps over four lines eats the panel, so it is trimmed for display while
+    # the full text stays available on hover.
+    title = table.get("title", "Result")
+    shown = title if len(title) <= 64 else title[:61].rstrip(" ,—-") + "…"
     header, close = st.columns([9, 1])
     with header:
-        st.markdown(f"### ▦ {table.get('title', 'Result')}")
+        st.markdown(f"#### ▦ {shown}", help=title if shown != title else None)
     with close:
         if st.button("✕", key="artifact-close", help="Close panel"):
             st.session_state.open_artifact = None
@@ -227,7 +238,7 @@ def _render_artifact_panel(table: dict, plan: dict | None,
     with tab_table:
         try:
             frame = _artifact_dataframe(table)
-            st.dataframe(frame, use_container_width=True, hide_index=True, height=460)
+            st.dataframe(frame, use_container_width=True, hide_index=True, height=_PANEL_HEIGHT - 90)
             st.download_button(
                 "⬇ Download CSV", frame.to_csv(index=False).encode("utf-8"),
                 file_name=f"{table.get('title', 'table')[:40].replace(' ', '_')}.csv",
@@ -244,12 +255,15 @@ def _render_artifact_panel(table: dict, plan: dict | None,
             st.caption(f"{total:,} row(s) × {len(table.get('columns') or [])} column(s).")
 
     with tab_plan:
-        _render_plan_body(plan)
+        with st.container(height=_PANEL_HEIGHT):
+            _render_plan_body(plan)
 
     with tab_talk:
-        _render_discussion(negotiation)
+        with st.container(height=_PANEL_HEIGHT):
+            _render_discussion(negotiation)
 
     with tab_source:
+      with st.container(height=_PANEL_HEIGHT):
         provenance = table.get("provenance") or {}
         if not provenance:
             st.caption("No provenance recorded for this table.")
@@ -537,11 +551,21 @@ def main() -> None:
         chat_column, panel_column = st.container(), None
 
     with chat_column:
-        if not chat["messages"]:
-            _render_empty_state()
+        # The transcript scrolls inside its own box. Only when the panel is open,
+        # though: with nothing beside it a fixed-height chat would just add a
+        # second scrollbar to a page that reads fine with one.
+        if opened is not None:
+            history_box = st.container(height=_CHAT_HEIGHT)
         else:
-            _render_history(chat["messages"])
+            history_box = st.container()
+        with history_box:
+            if not chat["messages"]:
+                _render_empty_state()
+            else:
+                _render_history(chat["messages"])
 
+        # Elicitation and regenerate sit BELOW the scroll box, not inside it, so
+        # a question with buttons cannot be scrolled out of reach.
         chosen = _render_elicitation(chat)
         if chosen:
             chat["pending"] = None

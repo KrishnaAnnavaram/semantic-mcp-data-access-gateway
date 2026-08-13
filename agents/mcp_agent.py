@@ -297,8 +297,12 @@ class McpAgent:
         ordered = [by_date[day] for day in sorted(by_date, reverse=True)][:rows_wanted]
         for row in ordered:
             row["quote_basis"] = basis
+        # Naming fourteen tenors makes a four-line heading that swallows the
+        # panel. The full tenor list is already the table's columns.
+        label = (", ".join(tenors) if len(tenors) <= 4
+                 else f"{len(tenors)} tenors ({tenors[0]}–{tenors[-1]})")
         return self._table(ordered, ["observation_date", *tenors, "quote_basis"],
-                           f"Par yields — {', '.join(tenors)} "
+                           f"Par yields — {label} "
                            f"(most recent {len(ordered)} rows)",
                            self._provenance(curve))
 
