@@ -14,34 +14,37 @@ source is actually for, and invokes only what is needed to answer it.
 ```
             ┌─────────────────────────────────────────────┐
    user ───►│  UI LAYER          chatbot/                 │  Streamlit chat +
-            │                    chat left, trace right   │  LangSmith tracing
+            │                    POST /chat               │  LangSmith tracing
             └──────────────────────┬──────────────────────┘
                                    │  question
                                    ▼
             ┌─────────────────────────────────────────────┐
             │  REASONING LAYER   src/ + knowledge/        │  SmartAgent (Claude)
-            │                    ChromaDB vector store    │  + decision trace
+            │   ├─ knowledge ──►  Qdrant   (vector DB)     │  /chat FastAPI service
+            │   └─ data ───────►  DataProvider seam        │  + decision trace
             └──────────────────────┬──────────────────────┘
                                    │  "I need these rates"
-                                   ▼   ⚠ DataProvider is still a mock
+                                   ▼
             ┌─────────────────────────────────────────────┐
             │  DATA LAYER        .claude/ db/ data/       │  PostgreSQL 17
-            │                    Treasury → PostgreSQL    │  267,517 observations
+            │                    Treasury interest rates  │  267,517 observations
             └─────────────────────────────────────────────┘
 ```
 
 The reasoning layer decides *what data a question needs*; the data layer is *where that data
 truthfully lives*; the UI layer is *how a human sees both the answer and how it was reached*.
 
-**The layers are not wired together yet.** Each is built and runnable on its own, and the seam
-between reasoning and data — `DataProvider` — is deliberately a mock. Replacing that mock with a
-provider that reads the PostgreSQL tables below is the next piece of work, and it is a change to
-one file rather than to the agent.
+**The three layers are wired through two swap seams.** The agent talks only to interfaces, so the
+engines behind them are configuration, not code changes:
+- **`VectorStore`** — Qdrant (embedded for dev, or a Docker server via `QDRANT_URL`). Holds the
+  66 knowledge chunks the agent retrieves.
+- **`DataProvider`** — `PostgresDataProvider` reads the real Treasury rates from the `analytics.*`
+  views (`DATA_BACKEND=postgres`); `MockDataProvider` is the no-database fallback.
 
 | Layer | Owns | Status |
 |---|---|---|
-| [`chatbot/`](chatbot/) | Streamlit chat UI + LangSmith observability | In progress |
-| [`src/`](src/) + [`knowledge/`](knowledge/) | Smart agent + vector knowledge base | Built (Phases 3–4) |
+| [`chatbot/`](chatbot/) | Streamlit chat UI + LangSmith observability | Built (decision-trace panel pending) |
+| [`src/`](src/) + [`knowledge/`](knowledge/) | Smart agent, `/chat` service, Qdrant knowledge base | **Built & wired to real data** |
 | [`.claude/`](.claude/) + [`db/`](db/) + [`data/`](data/) | Treasury data foundation in PostgreSQL | **Built and verified** |
 
 Each area is runnable and testable on its own. `chatbot/` carries its own `README.md` and
@@ -66,7 +69,7 @@ Then work in whichever layer you own.
 
 ```bash
 cp .env.example .env          # set a real POSTGRES_PASSWORD
-docker compose up -d
+docker compose up -d postgres
 python .claude/loading/migrate.py
 python .claude/loading/load_us_treasury.py
 python tools/verify_load.py --self-test
@@ -80,12 +83,24 @@ Verification PASS: 58/58 checks passed
 ### Reasoning layer — knowledge base and agent
 
 ```bash
-python src/knowledge_base.py           # Phase 3 only, no API key needed
+docker compose up -d qdrant            # vector DB (or leave unset for an embedded local store)
 
-$env:ANTHROPIC_API_KEY = "sk-ant-..."  # Phases 3+4 end to end
-python demo.py
-python demo.py "What is my RWA against GLOBEX?"
+# ingest the knowledge docs into Qdrant
+$env:QDRANT_URL = "http://localhost:6333"
+python src/knowledge_base.py           # no API key needed
+
+# run the agent /chat service against real Qdrant + Postgres
+$env:ANTHROPIC_API_KEY = "sk-ant-..."
+$env:QDRANT_URL = "http://localhost:6333"
+$env:DATA_BACKEND = "postgres"
+python src/agent_service.py            # serves POST /chat on :8000
+
+# or a quick CLI run
+python demo.py "What is the current 2s10s slope?"
 ```
+
+The chatbot points at this service by setting `AGENT_BACKEND=rest` and
+`AGENT_API_URL=http://localhost:8000` in `chatbot/.env`.
 
 ### UI layer — chatbot
 

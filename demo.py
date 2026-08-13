@@ -4,8 +4,10 @@ Usage:
     python demo.py                     # runs a couple of sample queries
     python demo.py "your question"     # ask your own
 
-Requires ANTHROPIC_API_KEY in the environment (Phase 4 uses Claude).
-Phase 3 alone (the vector DB) needs no key:  python src/knowledge_base.py
+Requires ANTHROPIC_API_KEY in the environment (the agent calls Claude).
+The vector DB alone needs no key:  python src/knowledge_base.py
+
+Set DATA_BACKEND=postgres (and QDRANT_URL) to run against the real data.
 """
 
 import os
@@ -16,8 +18,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 from smart_agent import SmartAgent, render_trace  # noqa: E402
 
 SAMPLES = [
-    "What's my 1-day 99% VaR on the equity book?",
-    "Show me the CVA for counterparty ACME_BANK.",
+    "What is the current 2s10s slope of the yield curve?",
+    "What's the 10-year Treasury yield, and how has it moved over the past year?",
 ]
 
 

@@ -2,7 +2,7 @@
 
 - Target: `postgresql://gateway:***@localhost:5432/gateway`
 - Load run: **4**
-- Generated (UTC): **2026-08-12T23:19:53+00:00**
+- Generated (UTC): **2026-08-13T00:03:45+00:00**
 - Result: **PASS** (74/74 checks passed)
 
 Every expected value below is recounted from the processed CSVs, not read back from the database.
