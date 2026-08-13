@@ -11,6 +11,13 @@ because it captures tail severity that VaR ignores.
 - **Confidence level**: FRTB uses 97.5% ES (calibrated to be close to 99% VaR).
 - **Horizon**: 1-day, scaled to regulatory liquidity horizons.
 
+## Observation window — how many rows an ES calculation reads
+ES is computed from the same P&L distribution as VaR, so it reads the same
+lookback window: **250 trading days** of daily observations. ES consumes no
+additional history beyond that window — it re-reads the tail of the same sample,
+so a request for more rows than the window does not deepen the tail estimate; it
+substitutes a different sample of history.
+
 ## Formula (historical simulation, dry)
 1. Build the P&L distribution exactly as for VaR (revalue positions under
    historical return scenarios).

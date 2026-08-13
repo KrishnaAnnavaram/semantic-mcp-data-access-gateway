@@ -16,7 +16,13 @@ import re
 
 from backend.knowledge.vector_store import VectorStore, make_vector_store
 
-KNOWLEDGE_DIR = pathlib.Path(__file__).resolve().parent.parent / "knowledge"
+# Resolved by walking up for a repository marker, never by stepping relative to
+# this file. `parent.parent / "knowledge"` used to be correct and silently became
+# the *package* directory when the distributions moved under `.claude/src/`, so
+# ingest started reading an empty folder and reported success: 0 chunks, no
+# error, and retrieval quietly serving whatever stale vectors were already in
+# Qdrant. This is precisely the failure `paths.py` exists to prevent.
+from backend.paths import KNOWLEDGE_DIR  # noqa: E402
 
 
 def _chunk_markdown(text: str) -> list[dict]:

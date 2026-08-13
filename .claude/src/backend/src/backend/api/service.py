@@ -38,6 +38,28 @@ _orchestrator: Orchestrator | None = None
 _sessions: dict[str, list] = {}  # session_id -> prior conversation (in-memory)
 
 
+_pipeline = None
+
+
+def get_pipeline():
+    """The three-agent pipeline, built once.
+
+    Orchestrator -> domain expert (Qdrant) <-> MCP agent. Built lazily so the
+    service can start and report health before Qdrant or the MCP children are
+    reachable; a failure here should surface on a request, not at import.
+    """
+    global _pipeline  # noqa: PLW0603
+    if _pipeline is None:
+        from agents import AgentPipeline, log_status  # noqa: PLC0415
+
+        from backend.knowledge.knowledge_base import KnowledgeBase  # noqa: PLC0415
+        from backend.providers.base import make_data_provider  # noqa: PLC0415
+
+        log_status()
+        _pipeline = AgentPipeline(KnowledgeBase(), make_data_provider())
+    return _pipeline
+
+
 def get_orchestrator() -> Orchestrator:
     """Build the orchestrator once. It builds the quant agent lazily in turn, so
     a process that only ever sees small talk never starts the MCP servers."""
@@ -86,8 +108,16 @@ class ChatResponse(BaseModel):
     # client renders them in a real table widget, and a pre-formatted blob
     # cannot be sorted, scrolled or exported.
     tables: list[dict] = []
-    # Why those fields and that row count, and which knowledge chunks decided it.
+    # The domain expert's requirement: fields, rows, the verbatim quote it was
+    # grounded in, and the knowledge chunks behind it.
     data_plan: dict | None = None
+    # The discussion between the domain expert and the MCP agent, so the UI can
+    # show that the requirement was argued rather than assumed.
+    negotiation: dict | None = None
+    # What the MCP agent advertised it could do at the time of the request.
+    catalogue: dict | None = None
+    calculation: dict | None = None
+    langsmith_url: str | None = None
 
 
 @app.get("/health")
@@ -110,24 +140,46 @@ def summarise(req: SummaryRequest) -> SummaryResponse:
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(req: ChatRequest) -> ChatResponse:
-    orchestrator = get_orchestrator()
+    """One turn through the three-agent pipeline.
+
+    Orchestrator classifies, and for a data request the domain expert derives a
+    requirement from Qdrant, negotiates it with the MCP agent, and only then is
+    anything fetched. The negotiation transcript travels back so the UI can show
+    that the reduction was argued, not assumed.
+    """
+    pipeline = get_pipeline()
     history = _sessions.get(req.session_id) if req.session_id else None
     try:
-        result = orchestrator.handle(req.query, history=history)
+        outcome = pipeline.handle(req.query, history=history)
     except Exception as exc:  # surface a clean error to the chatbot client
         raise HTTPException(status_code=502, detail=f"agent error: {exc}") from exc
+
     if req.session_id:
-        _sessions[req.session_id] = result.messages  # persist for the next turn
+        # The pipeline is stateless; the service owns session memory. Keep the
+        # turn pair so a follow-up ("and the 30 year?") still has context.
+        turns = list(history or [])
+        turns += [{"role": "user", "content": req.query},
+                  {"role": "assistant", "content": outcome.answer}]
+        _sessions[req.session_id] = turns[-12:]
+
+    requirement = outcome.requirement
+    clarifying = outcome.route == "clarify"
     return ChatResponse(
-        answer=result.answer,
-        sources=extract_sources(result.trace),
-        trace=trace_as_dicts(result.trace),
-        awaiting_clarification=result.awaiting_clarification,
-        elicitation=(ElicitationPayload(**result.elicitation.as_dict())
-                     if result.elicitation else None),
-        route=result.route,
-        tables=result.tables,
-        data_plan=result.data_plan,
+        answer=outcome.answer,
+        sources=[c.get("label", "") for c in outcome.citations],
+        trace=outcome.trace,
+        awaiting_clarification=clarifying,
+        elicitation=(ElicitationPayload(
+            question=outcome.intent.question or outcome.answer,
+            options=outcome.intent.options)
+            if clarifying and outcome.intent else None),
+        route=outcome.route,
+        tables=outcome.tables,
+        data_plan=requirement.as_dict() if requirement else None,
+        negotiation=outcome.negotiation.as_dict() if outcome.negotiation else None,
+        catalogue=outcome.catalogue.as_dict() if outcome.catalogue else None,
+        calculation=outcome.calculation,
+        langsmith_url=outcome.langsmith_url,
     )
 
 

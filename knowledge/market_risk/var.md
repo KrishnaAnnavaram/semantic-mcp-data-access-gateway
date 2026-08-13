@@ -20,6 +20,17 @@ To compute portfolio VaR you need:
    trading days.
 3. **Asset metadata** — currency, asset class (from `assets`) for aggregation.
 
+## Observation window — how many rows a VaR calculation reads
+Historical simulation reads a fixed lookback window of **250 trading days** of
+daily observations. Industry practice spans 250–500 trading days; 250 trading
+days is the operative window for this system.
+
+Rows outside that window are never read by the calculation, so requesting more
+does not refine the number — it computes a different VaR over a different sample
+of history. Requesting fewer does not approximate it either: a short window is a
+different estimate, not a rougher one. The window is a property of the method,
+so state it whenever a VaR figure is reported.
+
 ## Historical simulation method (simplest, dry)
 1. Pull the price series for each held asset.
 2. Compute daily returns r_t = (P_t - P_{t-1}) / P_{t-1}.

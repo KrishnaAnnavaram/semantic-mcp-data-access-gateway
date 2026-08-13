@@ -6,6 +6,17 @@ single issuer on a single day — here, U.S. Treasury par yields from 1 month to
 30 years. Its **level** (how high rates are), **slope** (short vs long) and
 **changes over time** are the raw material for interest-rate market risk.
 
+## Observation window — how many rows a curve task reads
+A curve **snapshot** reads exactly **1 observation date**: one day's rates across
+every tenor. It is a cross-section, not a time series, so no history is read.
+
+A curve **slope** (e.g. 2s10s) also reads **1 observation date** — two tenors on
+that single date.
+
+Reading a curve's **level or slope over time** is a different task: it reads
+**250 trading days**, roughly one trading year of daily observations, which is
+enough to read a trend at daily frequency without changing its shape.
+
 ## Key measures
 - **Level**: the rate at a given tenor (e.g. the 10-year yield).
 - **Slope (steepness)**: long minus short, in basis points. The classic gauge is
