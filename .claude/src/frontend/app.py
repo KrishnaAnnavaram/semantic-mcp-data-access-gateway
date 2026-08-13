@@ -80,19 +80,149 @@ def _render_sidebar() -> None:
             st.rerun()
 
 
-def _render_message(role: str, content: str) -> None:
-    escaped = html.escape(content).replace("\n", "<br>")
+def split_markdown_tables(content: str) -> list[tuple[str, str]]:
+    """Split an answer into ("prose"|"table", text) segments.
+
+    The chat bubble is hand-built HTML, so its contents are escaped — which is
+    right for prose (an answer must never inject markup) and wrong for tables,
+    which arrive as markdown and were being shown to the user as literal rows of
+    `|` characters. Splitting lets prose stay escaped while a table is handed to
+    Streamlit's own renderer.
+
+    A table is a run of consecutive lines that start and end with `|`, with a
+    separator row (`|---|`) somewhere in the first two lines — the separator is
+    what distinguishes a real table from prose that happens to contain a pipe.
+    """
+    lines = (content or "").split("\n")
+    segments: list[tuple[str, str]] = []
+    buffer: list[str] = []
+    mode = "prose"
+
+    def flush() -> None:
+        if buffer:
+            segments.append((mode, "\n".join(buffer)))
+            buffer.clear()
+
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        stripped = line.strip()
+        is_row = stripped.startswith("|") and stripped.endswith("|") and len(stripped) > 2
+        separator_next = (
+            index + 1 < len(lines)
+            and set(lines[index + 1].strip()) <= set("|-: ")
+            and "-" in lines[index + 1]
+            and lines[index + 1].strip().startswith("|")
+        )
+        if mode == "prose" and is_row and separator_next:
+            flush()
+            mode = "table"
+        elif mode == "table" and not is_row:
+            flush()
+            mode = "prose"
+        buffer.append(line)
+        index += 1
+    flush()
+    return [(kind, text) for kind, text in segments if text.strip()]
+
+
+def _bubble(role: str, inner_html: str) -> str:
     if role == "user":
-        st.markdown(
-            f'<div class="chat-row user"><div class="bubble user">{escaped}</div></div>',
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown(
-            f'<div class="chat-row assistant"><div class="avatar">🤖</div>'
-            f'<div class="bubble assistant">{escaped}</div></div>',
-            unsafe_allow_html=True,
-        )
+        return f'<div class="chat-row user"><div class="bubble user">{inner_html}</div></div>'
+    return (f'<div class="chat-row assistant"><div class="avatar">🤖</div>'
+            f'<div class="bubble assistant">{inner_html}</div></div>')
+
+
+def _render_message(role: str, content: str) -> None:
+    # User turns are always plain text; only the agent emits tables.
+    if role == "user":
+        escaped = html.escape(content).replace("\n", "<br>")
+        st.markdown(_bubble(role, escaped), unsafe_allow_html=True)
+        return
+
+    for kind, text in split_markdown_tables(content) or [("prose", content)]:
+        if kind == "prose":
+            escaped = html.escape(text).replace("\n", "<br>")
+            st.markdown(_bubble(role, escaped), unsafe_allow_html=True)
+        else:
+            # Streamlit renders markdown tables properly; give it room to.
+            with st.container():
+                st.markdown(text)
+
+
+def _render_tables(tables: list[dict]) -> None:
+    """Structured results, in a real table widget rather than in the prose.
+
+    Full width and outside the chat bubble on purpose: a 250-row extract does
+    not belong in a speech balloon, and a scrollable, sortable grid is the whole
+    reason the backend sends columns and rows instead of a markdown blob.
+    """
+    for table in tables or []:
+        columns = table.get("columns") or []
+        rows = table.get("rows") or []
+        if not columns:
+            continue
+        st.markdown(f"**{table.get('title', 'Result')}**")
+        try:
+            import pandas as pd  # noqa: PLC0415
+
+            st.dataframe(pd.DataFrame(rows, columns=columns),
+                         use_container_width=True, hide_index=True)
+        except ImportError:  # pragma: no cover - pandas ships with Streamlit
+            st.table([dict(zip(columns, row)) for row in rows])
+
+        shown, total = table.get("displayed", len(rows)), table.get("row_count", len(rows))
+        if table.get("truncated"):
+            st.caption(f"Showing {shown:,} of {total:,} rows. The calculation used "
+                       f"all {total:,}.")
+        else:
+            st.caption(f"{total:,} row(s) × {len(columns)} column(s).")
+
+
+def _render_data_plan(plan: dict | None) -> None:
+    """Why these fields and this many rows — and what decided it.
+
+    A reduction the user cannot inspect is indistinguishable from a bug, so the
+    panel names the knowledge chunks the decision was grounded in rather than
+    just asserting that it was.
+    """
+    if not plan:
+        return
+
+    requested, granted = plan.get("requested_rows"), plan.get("granted_rows")
+    headline = f"Data plan — {len(plan.get('granted_fields') or [])} field(s), {granted:,} row(s)"
+    if requested and requested != granted:
+        headline += f"  (you asked for {requested:,})"
+
+    with st.expander(headline, expanded=bool(plan.get("warnings"))):
+        for warning in plan.get("warnings") or []:
+            st.info(warning)
+
+        st.markdown(f"**Basis** — {plan.get('basis', '')}")
+        st.markdown(f"**Rows** — {plan.get('row_reason', '')}")
+
+        decisions = plan.get("field_decisions") or []
+        if decisions:
+            st.markdown("**Fields**")
+            badge = {"required": "✅", "dropped": "➖", "unavailable": "⚠️"}
+            for decision in decisions:
+                st.markdown(
+                    f"- {badge.get(decision['verdict'], '•')} `{decision['name']}` "
+                    f"— *{decision['verdict']}*: {decision['reason']}"
+                )
+
+        sources = plan.get("sources") or []
+        if sources:
+            st.markdown("**Decided from these knowledge sources**")
+            for source in sources:
+                distance = source.get("distance")
+                suffix = f" (distance {distance})" if distance is not None else ""
+                st.markdown(
+                    f"- `{source.get('domain')}/{source.get('source')}` — "
+                    f"{source.get('heading')}{suffix}"
+                )
+        else:
+            st.caption("No knowledge chunks were retrieved for this plan.")
 
 
 def _render_header() -> None:
@@ -221,7 +351,10 @@ def _send(chat: dict, question: str) -> None:
             st.error(str(exc))
             return
 
-    chat["messages"].append({"role": "assistant", "content": result.answer})
+    # Tables and the plan ride on the message itself, so a rerun (every button
+    # click in Streamlit is one) redraws them instead of losing them.
+    chat["messages"].append({"role": "assistant", "content": result.answer,
+                             "tables": result.tables, "data_plan": result.data_plan})
     chat["pending"] = result.elicitation if result.awaiting_clarification else None
     if not chat["messages"][:-2] and not chat.get("titled"):
         # Provisional title from the first question, replaced by the summary later.
@@ -230,9 +363,13 @@ def _send(chat: dict, question: str) -> None:
     _maybe_title(chat, st.session_state.active_chat_id)
 
 
-def _render_history(messages: list[dict[str, str]]) -> None:
+def _render_history(messages: list[dict]) -> None:
     for message in messages:
         _render_message(message["role"], message["content"])
+        # Order matters: the answer, then the data it is about, then the
+        # justification for that data being the right shape.
+        _render_tables(message.get("tables") or [])
+        _render_data_plan(message.get("data_plan"))
 
 
 def main() -> None:

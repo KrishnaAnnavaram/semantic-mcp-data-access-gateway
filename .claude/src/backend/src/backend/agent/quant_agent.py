@@ -54,6 +54,15 @@ which metric, what horizon/confidence), ask ONE concise clarifying question.
 - Before computing a metric, call `retrieve_knowledge` to ground yourself in its \
 definition and required inputs. Pass a `domain` when you know it.
 - Fetch only the data you need. Tenors are keys like m1, m3, m6, y1, y2, y10, y30.
+- When the user asks for a TABLE, ROWS, FIELDS/COLUMNS, a dataset or an extract - \
+or names a row count - call `plan_and_fetch_dataset`. Pass what the data is FOR as \
+`task`, plus any fields and row count they named. It decides the minimal set and \
+returns the table to the UI directly.
+- After that call, DO NOT re-print the rows. They are already on screen in a real \
+table. Instead say what you returned and why: the row count and the reason it is \
+enough, any field you dropped and on what basis, and which knowledge source the \
+decision came from. If they asked for far more rows than the method uses, say so \
+plainly - that is the useful part of the answer.
 - Show the calculation at a high level and state the result plainly, with units \
 and the assumptions you used.
 - Keep the final answer focused and concise.
@@ -79,6 +88,43 @@ TOOLS = [
                 },
             },
             "required": ["query"],
+        },
+    },
+    {
+        "name": "plan_and_fetch_dataset",
+        "description": (
+            "USE THIS whenever the user asks for a table, rows, columns/fields, a "
+            "dataset, an extract, or names a row count ('give me 10,000 rows of "
+            "...'). It decides which fields and how many rows the stated task "
+            "actually needs, grounded in the knowledge base, then returns both the "
+            "plan and the data as a real table. Prefer it over get_rate_history for "
+            "any request phrased as data delivery rather than a single number. "
+            "Report the plan's reasoning to the user - the point is that the "
+            "reduction is explained, not silent."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "task": {
+                    "type": "string",
+                    "description": "What the data is FOR, in the user's own terms "
+                                   "(e.g. '10-day 99% historical VaR on the book'). "
+                                   "This drives the field and row decision.",
+                },
+                "requested_fields": {
+                    "type": "array", "items": {"type": "string"},
+                    "description": "Fields the user asked for, if they named any.",
+                },
+                "requested_rows": {
+                    "type": "integer",
+                    "description": "Row count the user asked for, if they named one.",
+                },
+                "tenors": {
+                    "type": "array", "items": {"type": "string"},
+                    "description": "Tenor keys such as y2, y10. Defaults to y2 and y10.",
+                },
+            },
+            "required": ["task"],
         },
     },
     {
@@ -293,6 +339,10 @@ class AgentResult:
     trace: list[TraceStep] = field(default_factory=list)
     awaiting_clarification: bool = False
     messages: list = field(default_factory=list)  # full conversation, to persist per session
+    # Structured tabular output, kept out of the prose on purpose: the UI needs a
+    # real table widget, and a markdown string cannot be sorted or scrolled.
+    tables: list = field(default_factory=list)
+    data_plan: dict | None = None
 
 
 # A clarification is short by nature: it is the agent saying it cannot proceed.
@@ -343,7 +393,86 @@ class QuantAgent:
         self.tools = TOOLS + (RISK_TOOLS if self.risk else [])
         self.system_prompt = SYSTEM_PROMPT + (RISK_PROMPT if self.risk else "")
 
+    def _plan_and_fetch(self, args: dict, trace: list[TraceStep]) -> object:
+        """Plan the data requirement, fetch exactly that, return plan + table.
+
+        The plan is emitted into the trace as its own step so the decision is
+        visible next to the data it produced, rather than only inside the prose.
+        """
+        from backend.agent import data_planner  # noqa: PLC0415
+
+        task = args.get("task") or "unspecified task"
+        tenors = [t for t in (args.get("tenors") or ["y2", "y10"])
+                  if t in data_planner.TENOR_MONTHS] or ["y2", "y10"]
+
+        catalogue = self.data.list_series()
+        available = sorted({k for row in catalogue for k in row} |
+                           set(data_planner.MANDATORY_FIELDS) | {"tenor"})
+
+        plan = data_planner.plan(
+            task, args.get("requested_fields"), args.get("requested_rows"),
+            available_fields=available, knowledge=self.kb,
+        )
+
+        if plan.granted_rows <= 1:
+            curve = self.data.get_yield_curve(None, "nominal")
+            if "error" in curve:
+                return curve
+            rows = [{"tenor": t, "rate_percent": v,
+                     "quote_basis": curve.get("quote_basis"),
+                     "rate_kind": "nominal",
+                     "observation_date": curve.get("curve_date")}
+                    for t, v in (curve.get("points") or {}).items()]
+            columns = [c for c in plan.granted_fields if c in
+                       {"tenor", "rate_percent", "quote_basis", "rate_kind",
+                        "observation_date"}]
+            table = data_planner.build_table(
+                rows, columns or ["tenor", "rate_percent", "quote_basis"],
+                f"Nominal par curve — {curve.get('curve_date')}")
+        else:
+            # One series per tenor, aligned on date so the table reads as a
+            # curve history rather than as several unrelated columns.
+            by_date: dict[str, dict[str, object]] = {}
+            basis = None
+            for tenor in tenors:
+                for point in self.data.get_rate_history(tenor) or []:
+                    if "error" in point:
+                        continue
+                    day = point["observation_date"]
+                    by_date.setdefault(day, {"observation_date": day})[tenor] = \
+                        point["rate_percent"]
+            curve = self.data.get_yield_curve(None, "nominal")
+            basis = curve.get("quote_basis") if isinstance(curve, dict) else None
+            ordered = [by_date[d] for d in sorted(by_date, reverse=True)]
+            ordered = ordered[:plan.granted_rows]
+            for row in ordered:
+                row["quote_basis"] = basis
+            table = data_planner.build_table(
+                ordered, ["observation_date", *tenors, "quote_basis"],
+                f"Par yields — {', '.join(tenors)} (most recent {len(ordered)} rows)")
+
+        self._tables.append(table)
+        self._data_plan = plan.as_dict()
+        trace.append(TraceStep(
+            "decision",
+            f"Data requirement plan [{plan.profile}]: "
+            f"{len(plan.granted_fields)} field(s), {plan.granted_rows} row(s)",
+            plan.as_dict(),
+        ))
+        trace.append(TraceStep("tool_call", f"Fetched dataset: {table['title']}"))
+        # The model gets the plan and a small sample. The full table goes to the
+        # UI out of band - putting 250 rows in the prompt would cost a fortune
+        # and teach the model to paste them back into the answer.
+        return {"plan": plan.as_dict(),
+                "table_preview": {"columns": table["columns"],
+                                  "rows": table["rows"][:5],
+                                  "total_rows": table["row_count"]},
+                "note": "The full table is rendered in the UI. Summarise the plan "
+                        "and the shape; do not re-print the rows."}
+
     def _dispatch(self, name: str, args: dict, trace: list[TraceStep]) -> object:
+        if name == "plan_and_fetch_dataset":
+            return self._plan_and_fetch(args, trace)
         if name == "retrieve_knowledge":
             hits = self.kb.retrieve(args["query"], domain=args.get("domain"))
             scope = f" [{args['domain']}]" if args.get("domain") else ""
@@ -376,6 +505,10 @@ class QuantAgent:
         continue a session — e.g. after the agent asked a clarifying question."""
         trace = [TraceStep("intent", "Received client request", request)]
         messages = list(history or []) + [{"role": "user", "content": request}]
+        # Per-turn, not per-agent: a table fetched two questions ago must not
+        # reappear under an answer that had nothing to do with it.
+        self._tables: list = []
+        self._data_plan: dict | None = None
 
         for _ in range(MAX_STEPS):
             resp = self.client.messages.create(
@@ -399,7 +532,8 @@ class QuantAgent:
                     text,
                 ))
                 return AgentResult(answer=text, trace=trace,
-                                   awaiting_clarification=is_question, messages=messages)
+                                   awaiting_clarification=is_question, messages=messages,
+                                   tables=self._tables, data_plan=self._data_plan)
 
             if text:
                 trace.append(TraceStep("decision", "Reasoning", text))

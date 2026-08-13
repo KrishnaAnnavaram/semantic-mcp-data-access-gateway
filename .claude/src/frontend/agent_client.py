@@ -35,6 +35,11 @@ class AnswerResult:
     # and the agent guessing.
     elicitation: dict | None = None
     route: str = "quant"
+    # Tabular results as {title, columns, rows, ...}. Kept structured rather
+    # than folded into `answer`, so the UI can put them in a real table widget.
+    tables: list[dict] = field(default_factory=list)
+    # Which fields and how many rows the task needed, and what decided that.
+    data_plan: dict | None = None
 
     @property
     def awaiting_clarification(self) -> bool:
@@ -78,6 +83,8 @@ class RestAgentClient:
             latency_ms=latency_ms,
             elicitation=payload.get("elicitation"),
             route=payload.get("route", "quant"),
+            tables=payload.get("tables") or [],
+            data_plan=payload.get("data_plan"),
         )
 
     def summarise(self, messages: list[dict]) -> str | None:

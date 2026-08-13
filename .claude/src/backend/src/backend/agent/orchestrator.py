@@ -149,6 +149,9 @@ class OrchestratorResult:
     elicitation: Elicitation | None = None
     messages: list = field(default_factory=list)
     sources: list[str] = field(default_factory=list)
+    # Structured output the UI renders in its own area rather than as prose.
+    tables: list = field(default_factory=list)
+    data_plan: dict | None = None
 
     @property
     def awaiting_clarification(self) -> bool:
@@ -280,4 +283,5 @@ class Orchestrator:
             # in the trace panel.
             elicitation = Elicitation(result.answer.strip(), [])
         return OrchestratorResult(answer=result.answer, route=route, trace=trace,
-                                  elicitation=elicitation, messages=result.messages)
+                                  elicitation=elicitation, messages=result.messages,
+                                  tables=result.tables, data_plan=result.data_plan)

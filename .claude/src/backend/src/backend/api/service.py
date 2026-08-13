@@ -82,6 +82,12 @@ class ChatResponse(BaseModel):
     awaiting_clarification: bool = False
     elicitation: ElicitationPayload | None = None
     route: str = "quant"
+    # Tabular results travel as columns + rows, never as a markdown string: the
+    # client renders them in a real table widget, and a pre-formatted blob
+    # cannot be sorted, scrolled or exported.
+    tables: list[dict] = []
+    # Why those fields and that row count, and which knowledge chunks decided it.
+    data_plan: dict | None = None
 
 
 @app.get("/health")
@@ -120,6 +126,8 @@ def chat(req: ChatRequest) -> ChatResponse:
         elicitation=(ElicitationPayload(**result.elicitation.as_dict())
                      if result.elicitation else None),
         route=result.route,
+        tables=result.tables,
+        data_plan=result.data_plan,
     )
 
 
