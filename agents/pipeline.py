@@ -95,8 +95,16 @@ class AgentPipeline:
             # Stop before the expensive path. A missing detail that would change
             # the result is worth one question; guessing it wastes a vector
             # search and two Opus calls on the wrong task.
+            #
+            # But ask it with real choices. The catalogue read happens only on
+            # this branch, so a greeting still costs nothing, and it is what
+            # turns "a named scenario" into "the 2008 replay on TREASURY_DEMO_001"
+            # - an option that actually ends the ambiguity when clicked.
+            intent = self.orchestrator.ground_options(
+                question, intent, self.mcp.choices())
             trace.append({"kind": "clarification", "label": "Asked for a missing detail",
-                          "detail": intent.question})
+                          "detail": {"question": intent.question,
+                                     "options": intent.options}})
             return AgentOutcome(answer=intent.question, route="clarify",
                                 intent=intent, trace=trace, langsmith_url=run_url())
 

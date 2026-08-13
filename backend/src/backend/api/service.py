@@ -29,12 +29,9 @@ from treasury_db.db import load_dotenv
 
 load_dotenv()
 
-from backend.agent.orchestrator import Orchestrator  # noqa: E402
-from backend.agent.quant_agent import extract_sources, trace_as_dicts  # noqa: E402
 
 app = FastAPI(title="semantic-mcp-data-access-gateway", version="0.2.0")
 
-_orchestrator: Orchestrator | None = None
 # session_id -> {"turns": [...], "clarified": bool}. In-memory, so it resets on
 # restart; `clarified` records whether the last turn asked a question, which is
 # what stops the agent asking a second one and looping the user.
@@ -61,15 +58,6 @@ def get_pipeline():
         log_status()
         _pipeline = AgentPipeline(KnowledgeBase(), make_data_provider())
     return _pipeline
-
-
-def get_orchestrator() -> Orchestrator:
-    """Build the orchestrator once. It builds the quant agent lazily in turn, so
-    a process that only ever sees small talk never starts the MCP servers."""
-    global _orchestrator
-    if _orchestrator is None:
-        _orchestrator = Orchestrator()
-    return _orchestrator
 
 
 class SummaryRequest(BaseModel):
@@ -135,7 +123,7 @@ def summarise(req: SummaryRequest) -> SummaryResponse:
     The first question is a poor title -- it is often the vaguest thing the user
     ever says, and gets replaced by a clarification a turn later."""
     try:
-        title = get_orchestrator().summarise_session(req.messages)
+        title = get_pipeline().orchestrator.summarise_session(req.messages)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=502, detail=f"summary failed: {exc}") from exc
     return SummaryResponse(title=title)

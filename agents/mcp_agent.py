@@ -150,6 +150,39 @@ class McpAgent:
             can_calculate=can_calculate, notes=notes,
         )
 
+    @traced("mcp_agent.choices", run_type="tool")
+    def choices(self) -> dict[str, Any]:
+        """The concrete things a user could actually pick, for a clarifying question.
+
+        Without this the orchestrator writes options from imagination and offers
+        "a named scenario on your portfolio" - which is not an answer, so the
+        user picks it and gets asked *which* named scenario. Real ids end that
+        loop: you cannot click "the 2008 replay on TREASURY_DEMO_001" and still
+        be ambiguous.
+
+        Fetched only on the clarify branch, so a greeting still costs nothing.
+        """
+        out: dict[str, Any] = {"portfolios": [], "scenarios": [],
+                               "curve_families": ["nominal", "real"],
+                               "tenors": list(DEFAULT_TENORS)}
+        workflows = self._workflows()
+        if workflows is None:
+            return out
+        try:
+            books = (workflows.list_portfolios() or {}).get("portfolios") or []
+            out["portfolios"] = [{"id": b.get("portfolio_id"), "name": b.get("name")}
+                                 for b in books][:8]
+        except Exception as exc:  # noqa: BLE001 - a thinner question beats none
+            LOGGER.warning("could not list portfolios for choices: %s", exc)
+        try:
+            scenarios = (workflows.list_scenarios() or {}).get("scenarios") or []
+            out["scenarios"] = [{"id": s.get("scenario_id"), "name": s.get("name"),
+                                 "type": s.get("scenario_type")}
+                                for s in scenarios][:8]
+        except Exception as exc:  # noqa: BLE001
+            LOGGER.warning("could not list scenarios for choices: %s", exc)
+        return out
+
     # -- negotiate -----------------------------------------------------------
 
     @traced("mcp_agent.assess", run_type="llm")

@@ -243,6 +243,57 @@ class OrchestratorAgent:
                      if o.get("label") and o.get("value")],
         )
 
+    @traced("orchestrator.ground_options", run_type="llm")
+    def ground_options(self, question: str, intent: Intent,
+                       choices: dict[str, Any]) -> Intent:
+        """Rewrite a clarifying question's options using things that really exist.
+
+        An option is only useful if clicking it *ends* the ambiguity. "A named
+        scenario on my portfolio" does not - it restates the question. Given the
+        actual scenario ids and book names, the model can offer choices that are
+        answers.
+        """
+        payload = structured_call(
+            model=self.model,
+            system=("You are refining a clarifying question. You are given the "
+                    "question and the REAL portfolios, scenarios and curve "
+                    "families available. Rewrite the options so each one is a "
+                    "complete, self-contained answer naming real things - after "
+                    "clicking it, nothing is left to ask. Use the human-readable "
+                    "name in `label`, and a natural sentence in `value` (what the "
+                    "user is taken to have said). Never put a raw id in `label` "
+                    "alone, and never offer an option the lists do not support. "
+                    "2-4 options."),
+            prompt=(f"User question:\n{question}\n\n"
+                    f"Clarifying question:\n{intent.question}\n\n"
+                    f"What actually exists:\n{choices}"),
+            schema={
+                "type": "object",
+                "properties": {
+                    "question": {"type": "string"},
+                    "options": {
+                        "type": "array",
+                        "items": {"type": "object",
+                                  "properties": {"label": {"type": "string"},
+                                                 "value": {"type": "string"}},
+                                  "required": ["label", "value"],
+                                  "additionalProperties": False},
+                    },
+                },
+                "required": ["question", "options"],
+                "additionalProperties": False,
+            },
+            max_tokens=1500, effort="low",
+        )
+        if not payload:
+            return intent          # keep the generic question rather than none
+        options = [o for o in payload.get("options") or []
+                   if o.get("label") and o.get("value")]
+        if options:
+            intent.options = options
+            intent.question = payload.get("question") or intent.question
+        return intent
+
     @traced("orchestrator.reflect", run_type="llm")
     def reflect(self, question: str, requirement, negotiation, result) -> str:
         """Write the user-facing reply from what the other two agents produced."""
@@ -272,6 +323,34 @@ class OrchestratorAgent:
         if payload and payload.get("reply"):
             return payload["reply"].strip()
         return self._fallback_reply(requirement, result)
+
+    @traced("orchestrator.summarise_session", run_type="llm")
+    def summarise_session(self, messages: list[dict]) -> str | None:
+        """Name a conversation, for the sidebar.
+
+        Lives here because titling is routing-grade work: a short prompt on the
+        cheap model, and no data access whatsoever. It used to run through the
+        quant agent, which built a whole `DataProvider` - and therefore a second
+        MCP bridge alongside the pipeline's - to write four words.
+        """
+        if not messages:
+            return None
+        transcript = "\n".join(
+            f"{m.get('role')}: {str(m.get('content'))[:300]}" for m in messages[-8:])
+        payload = structured_call(
+            model=self.model,
+            system=("Name this conversation in 2-5 words, like a chat history "
+                    "entry. Describe the subject, not the format: 'Treasury "
+                    "yields nominal and real', not 'Data request'. No quotes, "
+                    "no trailing punctuation."),
+            prompt=f"Conversation:\n{transcript}",
+            schema={"type": "object",
+                    "properties": {"title": {"type": "string"}},
+                    "required": ["title"], "additionalProperties": False},
+            max_tokens=300, effort="low",
+        )
+        title = (payload or {}).get("title", "").strip().strip('"')
+        return title or None
 
     @staticmethod
     def _fallback_reply(requirement, result) -> str:
