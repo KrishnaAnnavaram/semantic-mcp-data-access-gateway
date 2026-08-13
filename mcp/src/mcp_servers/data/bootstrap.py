@@ -1,7 +1,7 @@
 """One-time setup: give `mcp_reader` a password.
 
 The password is deliberately not set in a migration. Migrations are committed,
-and a credential in `.claude/src/postgres/migrations/` is a credential in git forever. So V009
+and a credential in `postgres/migrations/` is a credential in git forever. So V009
 creates the role without a password and this script sets it from the
 environment, connecting as the owner.
 

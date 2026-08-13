@@ -189,8 +189,17 @@ class OrchestratorAgent:
         self.model = model
 
     @traced("orchestrator.classify", run_type="llm")
-    def classify(self, question: str, history: list[dict] | None = None) -> Intent:
-        """Normal question, or a request for data?"""
+    def classify(self, question: str, history: list[dict] | None = None,
+                 already_clarified: bool = False) -> Intent:
+        """Normal question, or a request for data?
+
+        `already_clarified` says the previous turn was itself a clarifying
+        question. Asking a second one loops the user: they answer "a named
+        scenario on my portfolio" and are asked "which named scenario?", having
+        supplied the only detail they had. One question is a good trade; two in
+        a row means the first one failed and the answer is to proceed on a
+        default and say which was used.
+        """
         recent = ""
         if history:
             # Two turns is enough to resolve "and the 30 year?" without paying
@@ -200,9 +209,17 @@ class OrchestratorAgent:
                 f"{m.get('role')}: {str(m.get('content'))[:300]}" for m in tail)
             recent = f"\nRecent conversation:\n{recent}\n"
 
+        guard = ""
+        if already_clarified:
+            guard = ("\nIMPORTANT: the previous turn was ALREADY a clarifying "
+                     "question and this message is the user's answer to it. You "
+                     "must NOT choose 'clarify' again. Route to 'data_request' "
+                     "and let the domain expert proceed on a sensible default; "
+                     "it will state which default it used.\n")
+
         payload = structured_call(
             model=self.model, system=CLASSIFY_SYSTEM,
-            prompt=f"{recent}\nUser question:\n{question}",
+            prompt=f"{recent}{guard}\nUser question:\n{question}",
             schema=CLASSIFY_SCHEMA, max_tokens=1200, effort="low",
         )
         if payload is None:

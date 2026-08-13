@@ -67,11 +67,21 @@ class AgentPipeline:
         self.mcp = mcp_agent or McpAgent(data_provider)
 
     @traced("agent_pipeline", run_type="chain")
-    def handle(self, question: str, history: list[dict] | None = None) -> AgentOutcome:
+    def handle(self, question: str, history: list[dict] | None = None,
+               already_clarified: bool = False) -> AgentOutcome:
         trace: list[dict[str, Any]] = []
 
         # --- 1. orchestrator: is this a question, or a request for data? -----
-        intent = self.orchestrator.classify(question, history)
+        intent = self.orchestrator.classify(question, history, already_clarified)
+        if already_clarified and intent.route == "clarify":
+            # The prompt asks for this; the guarantee is here. A user who has
+            # just answered a question must never be asked another - that is
+            # a loop with no exit, and a model instruction is not a bound.
+            LOGGER.info("suppressing a second consecutive clarification")
+            intent.route = "data_request"
+            intent.reasoning = ("Answer to a prior clarification; proceeding "
+                                "rather than asking again.")
+            intent.task = intent.task or question
         trace.append({"kind": "intent", "label": f"Route: {intent.route}",
                       "detail": intent.reasoning})
 

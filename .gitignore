@@ -1,6 +1,6 @@
 # Secrets
 .env
-.claude/src/frontend/.env
+frontend/.env
 chatbot/.env
 *.key
 

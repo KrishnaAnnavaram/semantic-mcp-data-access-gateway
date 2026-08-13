@@ -228,12 +228,24 @@ class McpAgent:
             # Every risk workflow is portfolio-scoped, and the demo book is the
             # only one; resolve it rather than making the domain expert guess an id.
             kwargs: dict[str, Any] = {}
-            if "portfolio_id" in method.__code__.co_varnames:
+            names = method.__code__.co_varnames
+            if "portfolio_id" in names:
                 portfolio_id = self._first_portfolio(workflows)
                 if portfolio_id is None:
                     return {"tool": tool, "error": "no portfolio available to price"}
                 kwargs["portfolio_id"] = portfolio_id
-            return {"tool": tool, "result": method(**kwargs)}
+            if "scenario_id" in names:
+                # A stress test without a shock is not a stress test. The
+                # workflow takes either a scenario id or an explicit shock
+                # vector and refuses with neither, so resolve a real scenario
+                # rather than letting the call fail at the last step.
+                scenario_id = self._first_scenario(workflows)
+                if scenario_id is None:
+                    return {"tool": tool,
+                            "error": "no stress scenario available to apply"}
+                kwargs["scenario_id"] = scenario_id
+            return {"tool": tool, "result": method(**kwargs),
+                    "arguments": kwargs}
         except Exception as exc:  # noqa: BLE001 - surfaced, never fatal
             return {"tool": tool, "error": f"{type(exc).__name__}: {exc}"}
 
@@ -256,6 +268,15 @@ class McpAgent:
             listing = workflows.list_portfolios() or {}
             books = listing.get("portfolios") or []
             return books[0].get("portfolio_id") if books else None
+        except Exception:  # noqa: BLE001
+            return None
+
+    @staticmethod
+    def _first_scenario(workflows) -> str | None:
+        try:
+            listing = workflows.list_scenarios() or {}
+            scenarios = listing.get("scenarios") or []
+            return scenarios[0].get("scenario_id") if scenarios else None
         except Exception:  # noqa: BLE001
             return None
 

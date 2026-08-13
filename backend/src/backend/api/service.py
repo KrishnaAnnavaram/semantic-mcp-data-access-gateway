@@ -35,7 +35,10 @@ from backend.agent.quant_agent import extract_sources, trace_as_dicts  # noqa: E
 app = FastAPI(title="semantic-mcp-data-access-gateway", version="0.2.0")
 
 _orchestrator: Orchestrator | None = None
-_sessions: dict[str, list] = {}  # session_id -> prior conversation (in-memory)
+# session_id -> {"turns": [...], "clarified": bool}. In-memory, so it resets on
+# restart; `clarified` records whether the last turn asked a question, which is
+# what stops the agent asking a second one and looping the user.
+_sessions: dict[str, dict] = {}
 
 
 _pipeline = None
@@ -148,9 +151,11 @@ def chat(req: ChatRequest) -> ChatResponse:
     that the reduction was argued, not assumed.
     """
     pipeline = get_pipeline()
-    history = _sessions.get(req.session_id) if req.session_id else None
+    session = _sessions.get(req.session_id) or {} if req.session_id else {}
+    history = session.get("turns")
     try:
-        outcome = pipeline.handle(req.query, history=history)
+        outcome = pipeline.handle(req.query, history=history,
+                                  already_clarified=session.get("clarified", False))
     except Exception as exc:  # surface a clean error to the chatbot client
         raise HTTPException(status_code=502, detail=f"agent error: {exc}") from exc
 
@@ -160,7 +165,9 @@ def chat(req: ChatRequest) -> ChatResponse:
         turns = list(history or [])
         turns += [{"role": "user", "content": req.query},
                   {"role": "assistant", "content": outcome.answer}]
-        _sessions[req.session_id] = turns[-12:]
+        # Remember that this turn asked a question, so the next one cannot.
+        _sessions[req.session_id] = {"turns": turns[-12:],
+                                     "clarified": outcome.route == "clarify"}
 
     requirement = outcome.requirement
     clarifying = outcome.route == "clarify"
