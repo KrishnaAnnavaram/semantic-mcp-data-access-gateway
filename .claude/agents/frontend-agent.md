@@ -1,7 +1,7 @@
 ---
 name: frontend-agent
 description: >-
-  Owns the Streamlit application under `.claude/src/frontend/` — `app.py`, the
+  Owns the Streamlit application under `frontend/` — `app.py`, the
   REST client that calls `/chat`, config, styling, the decision-trace panel and
   LangSmith observability. Use it for anything a human sees: layout, the trace
   view, elicitation prompts in the UI, session handling, or the frontend test
@@ -33,7 +33,7 @@ into a provider or the MCP layer — the frontend is thin on purpose.
 
 ## Configuration traps that cost an afternoon each
 
-- **`AGENT_BACKEND=rest` must be set** in `.claude/src/frontend/.env`, or the UI
+- **`AGENT_BACKEND=rest` must be set** in `frontend/.env`, or the UI
   silently serves canned mock answers. It looks like a working app giving wrong
   numbers, which is worse than an error.
 - **Raise `AGENT_TIMEOUT_SECONDS`.** One turn runs several MCP round trips
@@ -58,7 +58,7 @@ into a provider or the MCP layer — the frontend is thin on purpose.
 ## Run and test
 
 ```bash
-cd .claude/src/frontend
+cd frontend
 streamlit run app.py          # :8501
 pytest                        # frontend suite runs from this directory
 ```

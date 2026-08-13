@@ -11,7 +11,7 @@ host launches each server as a child process.
 ## Topology
 
 ```
-host (.claude/src/mcp/src/mcp_servers/host) — MCP host + client, the only component that reasons
+host (mcp/src/mcp_servers/host) — MCP host + client, the only component that reasons
   ├── stdio ──► market-risk-data-mcp   12 tools · 4 resources · 3 prompts
   │                └── PostgreSQL as mcp_reader (SELECT on analytics + demo)
   └── stdio ──► risk-engine-mcp         5 tools · 2 resources

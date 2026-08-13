@@ -175,8 +175,8 @@ was built.
 | | Talks to Treasury | Talks to PostgreSQL |
 |---|---|---|
 | `data/acquisition/download_us_treasury.py` | yes | no |
-| `.claude/src/postgres/src/treasury_db/migrate.py` | no | yes |
-| `.claude/src/postgres/src/treasury_db/load_us_treasury.py` | no | yes |
+| `postgres/src/treasury_db/migrate.py` | no | yes |
+| `postgres/src/treasury_db/load_us_treasury.py` | no | yes |
 | `tools/verify_load.py` | no | yes (read-only, except its own audit rows) |
 
 That split is why a database problem can never be mistaken for a data problem.

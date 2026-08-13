@@ -10,16 +10,16 @@
 # Install all three for development:
 #
 #   pip install -r requirements.txt
-#   pip install -e ./.claude/src/postgres -e ./.claude/src/mcp -e ./.claude/src/backend
+#   pip install -e ./postgres -e ./mcp -e ./backend
 #
 # The frontend is a Streamlit app, run in place, with its own test suite.
 
 [tool.pytest.ini_options]
 # Root `pytest` runs the cross-tier integration suite only. The frontend suite
 # imports its modules flat (`from agent_client import ...`) and expects its own
-# rootdir, so it runs from there: `cd .claude/src/frontend && pytest`.
+# rootdir, so it runs from there: `cd frontend && pytest`.
 testpaths = ["tests"]
-pythonpath = [".claude/src/postgres/src", ".claude/src/mcp/src", ".claude/src/backend/src"]
+pythonpath = ["postgres/src", "mcp/src", "backend/src"]
 
 [tool.ruff]
 line-length = 100

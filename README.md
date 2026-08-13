@@ -41,11 +41,11 @@ independently verifiable.
 flowchart TD
     U([User])
 
-    subgraph UI["UI tier — .claude/src/frontend/"]
+    subgraph UI["UI tier — frontend/"]
         ST["Streamlit chat<br/>+ decision-trace panel<br/>+ LangSmith tracing"]
     end
 
-    subgraph BE["Reasoning tier — .claude/src/backend/ (gateway-backend)"]
+    subgraph BE["Reasoning tier — backend/ (gateway-backend)"]
         API["FastAPI /chat"]
         ORCH["Orchestrator<br/>Haiku 4.5 triage"]
         QA["QuantAgent<br/>claude-opus-5, adaptive thinking"]
@@ -54,13 +54,13 @@ flowchart TD
         VS{{"VectorStore seam"}}
     end
 
-    subgraph MCP["MCP tier — .claude/src/mcp/ (mcp-servers)"]
+    subgraph MCP["MCP tier — mcp/ (mcp-servers)"]
         HOST["McpHost<br/>protocol 2026-07-28"]
         DATA["market-risk-data-mcp<br/>14 tools · reads DB"]
         RISK["risk-engine-mcp<br/>5 tools · no DB, no LLM"]
     end
 
-    subgraph DL["Data tier — .claude/src/postgres/ (treasury-db) + data/"]
+    subgraph DL["Data tier — postgres/ (treasury-db) + data/"]
         PG[("PostgreSQL 17<br/>267,517 observations")]
         RAW["data/raw/<br/>140 checksummed XML files"]
     end
@@ -320,7 +320,7 @@ A clarifying question is a **first-class state**, not an error: when `awaiting_c
 set the UI renders the question with real option buttons and carries the same `session_id` into
 the next turn.
 
-> ⚠️ Set `AGENT_BACKEND=rest` in `.claude/src/frontend/.env` or the UI silently serves canned
+> ⚠️ Set `AGENT_BACKEND=rest` in `frontend/.env` or the UI silently serves canned
 > mock answers, and raise `AGENT_TIMEOUT_SECONDS` — one turn runs several MCP round trips behind
 > an Opus loop, and the 30s default expires mid-answer.
 
@@ -397,7 +397,7 @@ Or by hand:
 
 ```bash
 pip install -r requirements.txt
-pip install -e ./.claude/src/postgres -e ./.claude/src/mcp -e ./.claude/src/backend
+pip install -e ./postgres -e ./mcp -e ./backend
 cp .env.example .env             # set POSTGRES_PASSWORD and ANTHROPIC_API_KEY
 ```
 
@@ -431,7 +431,7 @@ python -m mcp_servers.host --ask "What is the current 2s10s slope?"
 docker compose up -d qdrant
 python -m backend.knowledge.knowledge_base   # ingest; no API key needed
 python -m backend.api.service                # POST /chat on :8000
-cd .claude/src/frontend && streamlit run app.py   # :8501
+cd frontend && streamlit run app.py   # :8501
 ```
 
 ---
@@ -448,7 +448,7 @@ python tools/verify_mcp.py  --self-test   # 48/48, 4 canaries
 python -m mcp_servers.host --isolation
 python -m mcp_servers.host --demo
 pytest                                    # 231 tests
-cd .claude/src/frontend && pytest          # 10 tests
+cd frontend && pytest          # 10 tests
 ```
 
 **The principle:** a suite that has only ever passed is equally consistent with a suite that
@@ -484,10 +484,10 @@ means a real defect.
 
 | Path | Distribution | Import package |
 |---|---|---|
-| `.claude/src/postgres/` | `treasury-db` | `treasury_db` — migrations, loader, DB access |
-| `.claude/src/mcp/` | `mcp-servers` | `mcp_servers` — `.data`, `.risk`, `.host` |
-| `.claude/src/backend/` | `gateway-backend` | `backend` — `.api`, `.agent`, `.knowledge`, `.providers` |
-| `.claude/src/frontend/` | — | Streamlit app, run in place |
+| `postgres/` | `treasury-db` | `treasury_db` — migrations, loader, DB access |
+| `mcp/` | `mcp-servers` | `mcp_servers` — `.data`, `.risk`, `.host` |
+| `backend/` | `gateway-backend` | `backend` — `.api`, `.agent`, `.knowledge`, `.providers` |
+| `frontend/` | — | Streamlit app, run in place |
 | `data/` | — | source of record, plus the `acquisition/` that fills it |
 | `knowledge/` | — | RAG corpus the vector store ingests |
 | `docs/` | — | contracts and methodology |
@@ -498,8 +498,8 @@ on PyPI, and shadowing it breaks every server with an import error that looks li
 install.
 
 `.claude/` holds both configuration (`agents/`, `commands/`, `rules/`, `skills/`,
-`settings.json`) and the four source distributions under `.claude/src/`. Nothing outside
-`.claude/src/` is importable code; nothing inside it is Claude Code configuration.
+`settings.json`) and the four source distributions under ``. Nothing outside
+`` is importable code; nothing inside it is Claude Code configuration.
 
 ### Development agents
 

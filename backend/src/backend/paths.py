@@ -23,5 +23,5 @@ def repo_root(start: Path | None = None) -> Path:
 REPO_ROOT = repo_root()
 DATA_DIR = REPO_ROOT / "data"
 DOCS_DIR = REPO_ROOT / "docs"
-MIGRATIONS_DIR = REPO_ROOT / ".claude" / "src" / "postgres" / "migrations"
+MIGRATIONS_DIR = REPO_ROOT / "postgres" / "migrations"
 KNOWLEDGE_DIR = REPO_ROOT / "knowledge"

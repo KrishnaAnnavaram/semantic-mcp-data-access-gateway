@@ -2,7 +2,7 @@
 name: backend-agent
 description: >-
   Owns the reasoning tier: the `gateway-backend` distribution under
-  `.claude/src/backend/` — QuantAgent and its tool-calling loop, the
+  `backend/` — QuantAgent and its tool-calling loop, the
   orchestrator and Haiku triage, the `DataProvider` and `VectorStore` seams,
   the Qdrant-backed KnowledgeBase, and the FastAPI `/chat` service. Use it to
   change how the agent reasons, add or reshape an agent tool, extend the

@@ -92,7 +92,7 @@ def check_env() -> bool:
             "AGENT_BACKEND=mock", "AGENT_BACKEND=rest").replace(
             "AGENT_TIMEOUT_SECONDS=30", "AGENT_TIMEOUT_SECONDS=180")
         frontend_env.write_text(text, encoding="utf-8")
-        ok(".claude/src/frontend/.env created (AGENT_BACKEND=rest, 180s timeout)")
+        ok("frontend/.env created (AGENT_BACKEND=rest, 180s timeout)")
     return True
 
 
@@ -113,7 +113,7 @@ def wait_for_postgres(timeout_s: int = 90) -> bool:
 def install_dependencies() -> bool:
     for args, label in (
         (["-r", "requirements.txt"], "requirements.txt"),
-        (["-e", "./.claude/src/postgres", "-e", "./.claude/src/mcp", "-e", "./.claude/src/backend"], "three packages (editable)"),
+        (["-e", "./postgres", "-e", "./mcp", "-e", "./backend"], "three packages (editable)"),
     ):
         r = run([sys.executable, "-m", "pip", "install", "-q", *args], capture=True)
         if r.returncode != 0:
@@ -174,7 +174,7 @@ def report_state() -> int:
         ok("backend, mcp_servers, treasury_db importable")
     except ImportError as exc:
         warn(f"packages not importable ({exc.name}) — run:"
-             " pip install -e ./.claude/src/postgres -e ./.claude/src/mcp -e ./.claude/src/backend")
+             " pip install -e ./postgres -e ./mcp -e ./backend")
     print()
     print("Database")
     run([sys.executable, "-m", "treasury_db.migrate", "--status"])
@@ -258,7 +258,7 @@ Verify the whole stack:
 
 Run it:
     python -m backend.api.service                API   on :8000
-    cd .claude/src/frontend && streamlit run app.py          UI    on :8501
+    cd frontend && streamlit run app.py          UI    on :8501
 
 ANTHROPIC_API_KEY must be set in .env before the agent will answer.
 """)

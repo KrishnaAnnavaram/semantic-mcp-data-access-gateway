@@ -11,7 +11,7 @@ data layer, through two swap seams.
   question
      │
      ▼
-  QuantAgent (Claude, tool-calling loop)          .claude/src/backend/src/backend/agent/quant_agent.py
+  QuantAgent (Claude, tool-calling loop)          backend/src/backend/agent/quant_agent.py
      │
      ├─►  retrieve_knowledge ─► KnowledgeBase ─► Qdrant     gateway/reasoning/knowledge_base.py
      │        "what is this metric, and what data does it need?"   gateway/reasoning/vector_store.py
@@ -61,7 +61,7 @@ compute. The knowledge base spans `market_risk`, `xva`, `regulatory_capital`,
 
 ## The `/chat` service
 
-`.claude/src/backend/src/backend/api/api.py` (FastAPI) exposes the agent over the contract the chatbot
+`backend/src/backend/api/api.py` (FastAPI) exposes the agent over the contract the chatbot
 expects:
 
 ```

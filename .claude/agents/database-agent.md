@@ -2,7 +2,7 @@
 name: database-agent
 description: >-
   Owns the PostgreSQL tier: the `treasury-db` distribution under
-  `.claude/src/postgres/` — migrations, the migration runner, the generic
+  `postgres/` — migrations, the migration runner, the generic
   loader, and the analytics views the MCP layer reads. Use it to add a
   migration, load or reload Treasury CSVs, register a new series, diagnose a row
   count that does not match source, or work on the grants that constrain

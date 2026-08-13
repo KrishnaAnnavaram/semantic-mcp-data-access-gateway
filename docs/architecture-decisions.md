@@ -185,7 +185,7 @@ cannot detect anything — the planted corruption is how you tell the difference
 
 ## ADR-010 — Pipeline code lives under `.claude/`
 
-**Decision.** `data/acquisition/` and `.claude/src/postgres/src/treasury_db/` hold product code,
+**Decision.** `data/acquisition/` and `postgres/src/treasury_db/` hold product code,
 alongside `agents/`, `skills/`, `rules/` and `commands/`.
 
 **Why.** House convention, matching `adaptive-legacy-code-complexity-harness`

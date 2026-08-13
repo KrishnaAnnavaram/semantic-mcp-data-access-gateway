@@ -36,8 +36,8 @@ def test_no_sys_path_manipulation_anywhere_in_the_source():
     run first, which is the kind of failure that only shows up in someone
     else's checkout.
     """
-    roots = [Path(".claude/src/mcp/src"), Path(".claude/src/backend/src"),
-             Path(".claude/src/postgres/src")]
+    roots = [Path("mcp/src"), Path("backend/src"),
+             Path("postgres/src")]
     offenders = []
     for root in roots:
         for path in root.rglob("*.py"):

@@ -68,7 +68,7 @@ def discover() -> list[tuple[int, str, Path]]:
         if not match:
             raise MigrationError(
                 f"{path.name} does not match V<number>__<name>.sql - rename it "
-                "or move it out of .claude/src/postgres/migrations/"
+                "or move it out of postgres/migrations/"
             )
         found.append((int(match.group(1)), match.group(2), path))
     versions = [v for v, _, _ in found]

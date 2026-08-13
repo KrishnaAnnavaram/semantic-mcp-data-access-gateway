@@ -9,7 +9,7 @@ A **server-side quantitative risk agent**. It is the reasoning tier that sits
 behind the client and does the actual reasoning.
 
 - **Model:** `claude-opus-5`, adaptive thinking.
-- **Loop:** manual tool-calling loop (`.claude/src/backend/src/backend/agent/quant_agent.py`) — chosen over the
+- **Loop:** manual tool-calling loop (`backend/src/backend/agent/quant_agent.py`) — chosen over the
   SDK tool runner so every step can be captured in a decision trace.
 - **Location in the system:** server-side, behind (eventually) an MCP boundary.
   The client is thin; the intelligence is here.
@@ -48,7 +48,7 @@ from knowledge but not computed.
   `MockDataProvider`. The agent never imports a concrete implementation.
 
 ### Serving — the `/chat` service
-`.claude/src/backend/src/backend/api/api.py` (FastAPI) exposes the agent to the UI:
+`backend/src/backend/api/api.py` (FastAPI) exposes the agent to the UI:
 `POST /chat {query, session_id} -> {answer, sources, trace, awaiting_clarification}`
 plus `GET /health`. Per-`session_id` history lets a clarifying question continue
 on the next turn.

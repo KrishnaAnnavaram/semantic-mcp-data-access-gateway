@@ -31,7 +31,7 @@ ever re-reads what an upstream stage already interpreted.
         │
         ▼
 ┌──────────────────┐
-│  2. LOAD         │   .claude/src/postgres/src/treasury_db/load_us_treasury.py
+│  2. LOAD         │   postgres/src/treasury_db/load_us_treasury.py
 └──────────────────┘   COPY to staging, generic unpivot to core
         │
         ▼  52 series, 267,517 observations

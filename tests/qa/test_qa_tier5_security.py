@@ -137,7 +137,7 @@ def imported_modules(path: Path) -> set[str]:
 
 @pytest.mark.parametrize("module", ["curves", "pricing", "risk", "server", "manifest"])
 def test_the_risk_engine_never_imports_a_database_driver(module):
-    imported = imported_modules(Path(f".claude/src/mcp/src/mcp_servers/risk/{module}.py"))
+    imported = imported_modules(Path(f"mcp/src/mcp_servers/risk/{module}.py"))
     forbidden = imported & {"psycopg2", "psycopg", "sqlalchemy", "treasury_db", "asyncpg"}
     assert forbidden == set(), f"risk/{module}.py imports {forbidden}"
 
@@ -145,7 +145,7 @@ def test_the_risk_engine_never_imports_a_database_driver(module):
 @pytest.mark.parametrize("package", ["data", "risk"])
 def test_neither_server_imports_an_llm_client(package):
     """Only the host reasons. A model inside a server moves reasoning across the boundary."""
-    root = Path(f".claude/src/mcp/src/mcp_servers/{package}")
+    root = Path(f"mcp/src/mcp_servers/{package}")
     offenders = [str(path) for path in root.rglob("*.py")
                  if imported_modules(path) & {"anthropic", "openai"}]
     assert offenders == []
@@ -153,7 +153,7 @@ def test_neither_server_imports_an_llm_client(package):
 
 def test_the_host_is_the_only_component_that_holds_a_model():
     """The mirror image: if nothing imports anthropic, sampling has no answerer."""
-    host = Path(".claude/src/mcp/src/mcp_servers/host")
+    host = Path("mcp/src/mcp_servers/host")
     sources = " ".join(p.read_text(encoding="utf-8", errors="replace")
                        for p in host.rglob("*.py"))
     assert "import anthropic" in sources
@@ -161,7 +161,7 @@ def test_the_host_is_the_only_component_that_holds_a_model():
 
 def test_the_data_server_holds_no_pricing_code():
     """It retrieves facts; anything derived belongs to the risk engine."""
-    root = Path(".claude/src/mcp/src/mcp_servers/data")
+    root = Path("mcp/src/mcp_servers/data")
     offenders = [str(p) for p in root.rglob("*.py")
                  if "def price_" in p.read_text(encoding="utf-8", errors="replace")]
     assert offenders == []

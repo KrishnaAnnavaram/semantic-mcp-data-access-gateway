@@ -54,21 +54,9 @@ which metric, what horizon/confidence), ask ONE concise clarifying question.
 - Before computing a metric, call `retrieve_knowledge` to ground yourself in its \
 definition and required inputs. Pass a `domain` when you know it.
 - Fetch only the data you need. Tenors are keys like m1, m3, m6, y1, y2, y10, y30.
-- When the user asks for a TABLE, ROWS, FIELDS/COLUMNS, a dataset or an extract - \
-or names a row count - call `plan_and_fetch_dataset`. Pass what the data is FOR as \
-`task`, plus any fields and row count they named. It decides the minimal set and \
-returns the table to the UI directly.
-- After that call your reply must be SHORT: at most three sentences, no headings, \
-no bullet lists, no tables. The table and the full reasoning are already on screen \
-in a panel the user can open. Lead with the single most useful fact - usually the \
-row count against what they asked for - and stop. Do not restate the field list, \
-do not re-print rows, do not enumerate the sources; the panel shows all of that. \
-Example of the right length: "250 rows, not 10,000 - that's the window historical \
-simulation actually revalues over. Three of your six fields aren't published by \
-this dataset; the panel shows which and why."
-- For every other kind of answer: show the calculation at a high level and state \
-the result plainly, with units and the assumptions you used. Keep it focused and \
-concise, and prefer short prose over long bulleted breakdowns.
+- Show the calculation at a high level and state the result plainly, with units \
+and the assumptions you used. Keep it focused and concise, and prefer short prose \
+over long bulleted breakdowns.
 """
 
 TOOLS = [
@@ -91,43 +79,6 @@ TOOLS = [
                 },
             },
             "required": ["query"],
-        },
-    },
-    {
-        "name": "plan_and_fetch_dataset",
-        "description": (
-            "USE THIS whenever the user asks for a table, rows, columns/fields, a "
-            "dataset, an extract, or names a row count ('give me 10,000 rows of "
-            "...'). It decides which fields and how many rows the stated task "
-            "actually needs, grounded in the knowledge base, then returns both the "
-            "plan and the data as a real table. Prefer it over get_rate_history for "
-            "any request phrased as data delivery rather than a single number. "
-            "Report the plan's reasoning to the user - the point is that the "
-            "reduction is explained, not silent."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "task": {
-                    "type": "string",
-                    "description": "What the data is FOR, in the user's own terms "
-                                   "(e.g. '10-day 99% historical VaR on the book'). "
-                                   "This drives the field and row decision.",
-                },
-                "requested_fields": {
-                    "type": "array", "items": {"type": "string"},
-                    "description": "Fields the user asked for, if they named any.",
-                },
-                "requested_rows": {
-                    "type": "integer",
-                    "description": "Row count the user asked for, if they named one.",
-                },
-                "tenors": {
-                    "type": "array", "items": {"type": "string"},
-                    "description": "Tenor keys such as y2, y10. Defaults to y2 and y10.",
-                },
-            },
-            "required": ["task"],
         },
     },
     {
@@ -396,104 +347,7 @@ class QuantAgent:
         self.tools = TOOLS + (RISK_TOOLS if self.risk else [])
         self.system_prompt = SYSTEM_PROMPT + (RISK_PROMPT if self.risk else "")
 
-    @staticmethod
-    def _provenance_of(curve: dict) -> dict:
-        """Where a table's numbers came from, for the panel's Source tab.
-
-        Carried on the table rather than left in the prose: a reviewer checking
-        a figure should not have to scroll a conversation to find the file and
-        snapshot it came from.
-        """
-        return {
-            "dataset_snapshot_id": curve.get("dataset_snapshot_id"),
-            "source_file": curve.get("source_file"),
-            "curve_date": curve.get("curve_date"),
-            "quote_basis": curve.get("quote_basis"),
-            "classification": "REAL_MARKET_DATA",
-        }
-
-    def _plan_and_fetch(self, args: dict, trace: list[TraceStep]) -> object:
-        """Plan the data requirement, fetch exactly that, return plan + table.
-
-        The plan is emitted into the trace as its own step so the decision is
-        visible next to the data it produced, rather than only inside the prose.
-        """
-        from backend.agent import data_planner  # noqa: PLC0415
-
-        task = args.get("task") or "unspecified task"
-        tenors = [t for t in (args.get("tenors") or ["y2", "y10"])
-                  if t in data_planner.TENOR_MONTHS] or ["y2", "y10"]
-
-        catalogue = self.data.list_series()
-        available = sorted({k for row in catalogue for k in row} |
-                           set(data_planner.MANDATORY_FIELDS) | {"tenor"})
-
-        plan = data_planner.plan(
-            task, args.get("requested_fields"), args.get("requested_rows"),
-            available_fields=available, knowledge=self.kb,
-        )
-
-        if plan.granted_rows <= 1:
-            curve = self.data.get_yield_curve(None, "nominal")
-            if "error" in curve:
-                return curve
-            rows = [{"tenor": t, "rate_percent": v,
-                     "quote_basis": curve.get("quote_basis"),
-                     "rate_kind": "nominal",
-                     "observation_date": curve.get("curve_date")}
-                    for t, v in (curve.get("points") or {}).items()]
-            columns = [c for c in plan.granted_fields if c in
-                       {"tenor", "rate_percent", "quote_basis", "rate_kind",
-                        "observation_date"}]
-            table = data_planner.build_table(
-                rows, columns or ["tenor", "rate_percent", "quote_basis"],
-                f"Nominal par curve — {curve.get('curve_date')}")
-            table["provenance"] = self._provenance_of(curve)
-        else:
-            # One series per tenor, aligned on date so the table reads as a
-            # curve history rather than as several unrelated columns.
-            by_date: dict[str, dict[str, object]] = {}
-            basis = None
-            for tenor in tenors:
-                for point in self.data.get_rate_history(tenor) or []:
-                    if "error" in point:
-                        continue
-                    day = point["observation_date"]
-                    by_date.setdefault(day, {"observation_date": day})[tenor] = \
-                        point["rate_percent"]
-            curve = self.data.get_yield_curve(None, "nominal")
-            basis = curve.get("quote_basis") if isinstance(curve, dict) else None
-            ordered = [by_date[d] for d in sorted(by_date, reverse=True)]
-            ordered = ordered[:plan.granted_rows]
-            for row in ordered:
-                row["quote_basis"] = basis
-            table = data_planner.build_table(
-                ordered, ["observation_date", *tenors, "quote_basis"],
-                f"Par yields — {', '.join(tenors)} (most recent {len(ordered)} rows)")
-            table["provenance"] = self._provenance_of(curve)
-
-        self._tables.append(table)
-        self._data_plan = plan.as_dict()
-        trace.append(TraceStep(
-            "decision",
-            f"Data requirement plan [{plan.profile}]: "
-            f"{len(plan.granted_fields)} field(s), {plan.granted_rows} row(s)",
-            plan.as_dict(),
-        ))
-        trace.append(TraceStep("tool_call", f"Fetched dataset: {table['title']}"))
-        # The model gets the plan and a small sample. The full table goes to the
-        # UI out of band - putting 250 rows in the prompt would cost a fortune
-        # and teach the model to paste them back into the answer.
-        return {"plan": plan.as_dict(),
-                "table_preview": {"columns": table["columns"],
-                                  "rows": table["rows"][:5],
-                                  "total_rows": table["row_count"]},
-                "note": "The full table is rendered in the UI. Summarise the plan "
-                        "and the shape; do not re-print the rows."}
-
     def _dispatch(self, name: str, args: dict, trace: list[TraceStep]) -> object:
-        if name == "plan_and_fetch_dataset":
-            return self._plan_and_fetch(args, trace)
         if name == "retrieve_knowledge":
             hits = self.kb.retrieve(args["query"], domain=args.get("domain"))
             scope = f" [{args['domain']}]" if args.get("domain") else ""

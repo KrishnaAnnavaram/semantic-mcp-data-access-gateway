@@ -63,8 +63,8 @@ def sanitised_env(extra_keys: tuple[str, ...] = ()) -> dict[str, str]:
     # and — for the data server — treasury_db. Both are normally pip-installed,
     # but seeding their src roots keeps the children working in a bare checkout.
     # Prepend rather than replace, so an existing PYTHONPATH still works.
-    roots = [str(REPO_ROOT / ".claude" / "src" / "mcp" / "src"),
-             str(REPO_ROOT / ".claude" / "src" / "postgres" / "src")]
+    roots = [str(REPO_ROOT / "mcp" / "src"),
+             str(REPO_ROOT / "postgres" / "src")]
     existing = env.get("PYTHONPATH")
     if existing:
         roots.append(existing)

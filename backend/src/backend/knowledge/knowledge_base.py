@@ -18,7 +18,7 @@ from backend.knowledge.vector_store import VectorStore, make_vector_store
 
 # Resolved by walking up for a repository marker, never by stepping relative to
 # this file. `parent.parent / "knowledge"` used to be correct and silently became
-# the *package* directory when the distributions moved under `.claude/src/`, so
+# the *package* directory when the distributions moved under ``, so
 # ingest started reading an empty folder and reported success: 0 chunks, no
 # error, and retrieval quietly serving whatever stale vectors were already in
 # Qdrant. This is precisely the failure `paths.py` exists to prevent.

@@ -21,7 +21,7 @@ docker-compose.yml ──► smdag-postgres (postgres:17-alpine, :5432)
                               │
                               ▼
 db/init/01_bootstrap.sql   once, on an empty volume: UTC, ISO dates, readonly role
-.claude/src/postgres/migrations/V001..V007   every run: schemas, tables, series registry, views, grants
+postgres/migrations/V001..V007   every run: schemas, tables, series registry, views, grants
 ```
 
 ## Run it
@@ -61,7 +61,7 @@ python -m treasury_db.migrate --dry-run  # list pending, change nothing
 
 ```bash
 # next free number, descriptive name
-$EDITOR .claude/src/postgres/migrations/V008__add_bc_2_5month.sql
+$EDITOR postgres/migrations/V008__add_bc_2_5month.sql
 python -m treasury_db.migrate
 ```
 

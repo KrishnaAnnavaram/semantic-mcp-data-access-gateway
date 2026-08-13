@@ -1,8 +1,8 @@
 ---
 paths:
-  - ".claude/src/backend/src/backend/agent/**/*.py"
-  - ".claude/src/backend/src/backend/providers/**/*.py"
-  - ".claude/src/backend/src/backend/api/**/*.py"
+  - "backend/src/backend/agent/**/*.py"
+  - "backend/src/backend/providers/**/*.py"
+  - "backend/src/backend/api/**/*.py"
   - "knowledge/**/*.md"
   - "src/frontend/**/*.py"
 ---
