@@ -71,6 +71,38 @@ header[data-testid="stHeader"] { background: transparent; }
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: #2A2E3A; border-radius: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
+
+/* Artifact card. Deliberately reads as an object rather than a message: the
+   table is a thing the answer produced, not something the agent said. The
+   button beneath it is styled to look like the card's footer so the two read
+   as one control. */
+.artifact-card-head {
+    margin: 0.35rem 0 0 3.1rem;
+    padding: 0.75rem 0.9rem 0.55rem;
+    background: #14161C;
+    border: 1px solid #2A2E3A;
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+    font-size: 0.94rem;
+    line-height: 1.45;
+}
+.artifact-card-sub { color: #8B93A7; font-size: 0.82rem; }
+.artifact-card-head + div .stButton > button {
+    margin: 0 0 0.6rem 3.1rem;
+    border-radius: 0 0 12px 12px !important;
+    border: 1px solid #2A2E3A !important;
+    border-top: none !important;
+    background: #14161C !important;
+    color: #A9B1C6 !important;
+    text-align: left;
+    justify-content: flex-start;
+    font-size: 0.85rem;
+}
+.artifact-card-head + div .stButton > button:hover {
+    background: #1B1E27 !important;
+    color: #E6E9F0 !important;
+    border-color: #3A4052 !important;
+}
 </style>
 """
 

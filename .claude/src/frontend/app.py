@@ -50,6 +50,9 @@ def _init_session_state() -> None:
         st.session_state.chats = {}
     if "active_chat_id" not in st.session_state or st.session_state.active_chat_id not in st.session_state.chats:
         st.session_state.active_chat_id = _new_chat_session()
+    # Which artifact the side panel is showing, as {message, artifact} indices.
+    if "open_artifact" not in st.session_state:
+        st.session_state.open_artifact = None
 
 
 def _render_sidebar() -> None:
@@ -57,6 +60,8 @@ def _render_sidebar() -> None:
         st.markdown("#### Chats")
         if st.button("➕ New chat", use_container_width=True):
             st.session_state.active_chat_id = _new_chat_session()
+            # An artifact belongs to the conversation that produced it.
+            st.session_state.open_artifact = None
             st.rerun()
 
         # Most recently created chat first, like a typical chat history panel.
@@ -69,6 +74,7 @@ def _render_sidebar() -> None:
                 type="primary" if is_active else "secondary",
             ):
                 st.session_state.active_chat_id = chat_id
+                st.session_state.open_artifact = None
                 st.rerun()
 
         st.divider()
@@ -77,6 +83,7 @@ def _render_sidebar() -> None:
                 "title": "New chat", "messages": [], "pending": None,
                 "started_at": time.time(), "titled": False,
             }
+            st.session_state.open_artifact = None
             st.rerun()
 
 
@@ -150,79 +157,150 @@ def _render_message(role: str, content: str) -> None:
                 st.markdown(text)
 
 
-def _render_tables(tables: list[dict]) -> None:
-    """Structured results, in a real table widget rather than in the prose.
+def artifact_summary(table: dict, plan: dict | None) -> str:
+    """The one line on the card. Enough to decide whether to open it.
 
-    Full width and outside the chat bubble on purpose: a 250-row extract does
-    not belong in a speech balloon, and a scrollable, sortable grid is the whole
-    reason the backend sends columns and rows instead of a markdown blob.
+    A card that only says "Table" makes the user click to find out what they
+    already asked for; one that carries the shape and the surprise (fields that
+    do not exist) answers the question without a click.
     """
-    for table in tables or []:
-        columns = table.get("columns") or []
-        rows = table.get("rows") or []
-        if not columns:
-            continue
-        st.markdown(f"**{table.get('title', 'Result')}**")
+    parts = [f"{table.get('row_count', 0):,} rows × {len(table.get('columns') or [])} cols"]
+    if plan:
+        requested = plan.get("requested_rows")
+        granted = plan.get("granted_rows")
+        if requested and granted and requested != granted:
+            parts.append(f"you asked for {requested:,}")
+        missing = sum(1 for d in plan.get("field_decisions") or []
+                      if d.get("verdict") == "unavailable")
+        if missing:
+            parts.append(f"{missing} field(s) unavailable")
+    return " · ".join(parts)
+
+
+def _render_artifact_card(message_index: int, artifact_index: int,
+                          table: dict, plan: dict | None) -> None:
+    """A clickable card standing in for the data, Claude-artifact style.
+
+    The table does not belong in the transcript: a 250-row grid squeezed into a
+    speech bubble is unreadable, and it pushes the answer off screen. The card
+    keeps the conversation scannable and moves the data one click away.
+    """
+    key = f"artifact-{message_index}-{artifact_index}"
+    st.markdown(
+        f'<div class="artifact-card-head">▦ <strong>{html.escape(table.get("title", "Result"))}</strong>'
+        f'<br><span class="artifact-card-sub">{html.escape(artifact_summary(table, plan))}</span></div>',
+        unsafe_allow_html=True,
+    )
+    if st.button("Open table  ›", key=key, use_container_width=True):
+        st.session_state.open_artifact = {"message": message_index,
+                                          "artifact": artifact_index}
+        st.rerun()
+
+
+def _artifact_dataframe(table: dict):
+    import pandas as pd  # noqa: PLC0415
+
+    return pd.DataFrame(table.get("rows") or [], columns=table.get("columns") or [])
+
+
+def _render_artifact_panel(table: dict, plan: dict | None) -> None:
+    """The open artifact: data, the reasoning behind it, and where it came from.
+
+    Three tabs because they answer three different questions, and a reviewer
+    usually wants exactly one of them. Flattening them into a single scroll
+    pushes the reasoning below a 250-row grid, where nobody reads it.
+    """
+    header, close = st.columns([9, 1])
+    with header:
+        st.markdown(f"### ▦ {table.get('title', 'Result')}")
+    with close:
+        if st.button("✕", key="artifact-close", help="Close panel"):
+            st.session_state.open_artifact = None
+            st.rerun()
+
+    tab_table, tab_plan, tab_source = st.tabs(["Table", "Data plan", "Source"])
+
+    with tab_table:
         try:
-            import pandas as pd  # noqa: PLC0415
-
-            st.dataframe(pd.DataFrame(rows, columns=columns),
-                         use_container_width=True, hide_index=True)
+            frame = _artifact_dataframe(table)
+            st.dataframe(frame, use_container_width=True, hide_index=True, height=460)
+            st.download_button(
+                "⬇ Download CSV", frame.to_csv(index=False).encode("utf-8"),
+                file_name=f"{table.get('title', 'table')[:40].replace(' ', '_')}.csv",
+                mime="text/csv", use_container_width=True,
+            )
         except ImportError:  # pragma: no cover - pandas ships with Streamlit
-            st.table([dict(zip(columns, row)) for row in rows])
+            st.table([dict(zip(table["columns"], row)) for row in table["rows"]])
 
-        shown, total = table.get("displayed", len(rows)), table.get("row_count", len(rows))
+        total = table.get("row_count", 0)
         if table.get("truncated"):
-            st.caption(f"Showing {shown:,} of {total:,} rows. The calculation used "
-                       f"all {total:,}.")
+            st.caption(f"Showing {table.get('displayed', 0):,} of {total:,} rows. "
+                       f"The calculation used all {total:,}.")
         else:
-            st.caption(f"{total:,} row(s) × {len(columns)} column(s).")
+            st.caption(f"{total:,} row(s) × {len(table.get('columns') or [])} column(s).")
+
+    with tab_plan:
+        _render_plan_body(plan)
+
+    with tab_source:
+        provenance = table.get("provenance") or {}
+        if not provenance:
+            st.caption("No provenance recorded for this table.")
+        else:
+            label = {"dataset_snapshot_id": "Snapshot id", "source_file": "Source file",
+                     "curve_date": "Observation date", "quote_basis": "Quoting basis",
+                     "classification": "Classification"}
+            for field_name, value in provenance.items():
+                if value:
+                    st.markdown(f"**{label.get(field_name, field_name)}**  \n`{value}`")
+            st.caption("Ask `explain_number` for the exact source URL and SHA-256 "
+                       "behind any single value.")
 
 
-def _render_data_plan(plan: dict | None) -> None:
+def _render_plan_body(plan: dict | None) -> None:
     """Why these fields and this many rows — and what decided it.
 
-    A reduction the user cannot inspect is indistinguishable from a bug, so the
-    panel names the knowledge chunks the decision was grounded in rather than
-    just asserting that it was.
+    A reduction the user cannot inspect is indistinguishable from a bug, so this
+    names the knowledge chunks the decision was grounded in rather than just
+    asserting that it was grounded.
     """
     if not plan:
+        st.caption("No data plan was recorded for this table.")
         return
 
+    for warning in plan.get("warnings") or []:
+        st.warning(warning)
+
     requested, granted = plan.get("requested_rows"), plan.get("granted_rows")
-    headline = f"Data plan — {len(plan.get('granted_fields') or [])} field(s), {granted:,} row(s)"
-    if requested and requested != granted:
-        headline += f"  (you asked for {requested:,})"
+    left, right = st.columns(2)
+    left.metric("Rows returned", f"{granted:,}",
+                delta=(f"{granted - requested:+,} vs asked" if requested else None),
+                delta_color="off")
+    right.metric("Fields granted", len(plan.get("granted_fields") or []))
 
-    with st.expander(headline, expanded=bool(plan.get("warnings"))):
-        for warning in plan.get("warnings") or []:
-            st.info(warning)
+    st.markdown(f"**Basis** — {plan.get('basis', '')}")
+    st.markdown(f"**Why this many rows** — {plan.get('row_reason', '')}")
 
-        st.markdown(f"**Basis** — {plan.get('basis', '')}")
-        st.markdown(f"**Rows** — {plan.get('row_reason', '')}")
+    decisions = plan.get("field_decisions") or []
+    if decisions:
+        st.markdown("**Field decisions**")
+        badge = {"required": "✅", "dropped": "➖", "unavailable": "⚠️"}
+        for decision in decisions:
+            st.markdown(
+                f"- {badge.get(decision['verdict'], '•')} `{decision['name']}` "
+                f"— *{decision['verdict']}*: {decision['reason']}"
+            )
 
-        decisions = plan.get("field_decisions") or []
-        if decisions:
-            st.markdown("**Fields**")
-            badge = {"required": "✅", "dropped": "➖", "unavailable": "⚠️"}
-            for decision in decisions:
-                st.markdown(
-                    f"- {badge.get(decision['verdict'], '•')} `{decision['name']}` "
-                    f"— *{decision['verdict']}*: {decision['reason']}"
-                )
-
-        sources = plan.get("sources") or []
-        if sources:
-            st.markdown("**Decided from these knowledge sources**")
-            for source in sources:
-                distance = source.get("distance")
-                suffix = f" (distance {distance})" if distance is not None else ""
-                st.markdown(
-                    f"- `{source.get('domain')}/{source.get('source')}` — "
-                    f"{source.get('heading')}{suffix}"
-                )
-        else:
-            st.caption("No knowledge chunks were retrieved for this plan.")
+    sources = plan.get("sources") or []
+    if sources:
+        st.markdown("**Decided from these knowledge sources**")
+        for source in sources:
+            distance = source.get("distance")
+            suffix = f" · distance {distance}" if distance is not None else ""
+            st.markdown(f"- `{source.get('domain')}/{source.get('source')}` — "
+                        f"{source.get('heading')}{suffix}")
+    else:
+        st.caption("No knowledge chunks were retrieved for this plan.")
 
 
 def _render_header() -> None:
@@ -364,12 +442,30 @@ def _send(chat: dict, question: str) -> None:
 
 
 def _render_history(messages: list[dict]) -> None:
-    for message in messages:
+    for index, message in enumerate(messages):
         _render_message(message["role"], message["content"])
-        # Order matters: the answer, then the data it is about, then the
-        # justification for that data being the right shape.
-        _render_tables(message.get("tables") or [])
-        _render_data_plan(message.get("data_plan"))
+        # The data itself never goes in the transcript - only a card standing
+        # for it, so the conversation stays readable at a glance.
+        for artifact_index, table in enumerate(message.get("tables") or []):
+            _render_artifact_card(index, artifact_index, table,
+                                  message.get("data_plan"))
+
+
+def _open_artifact(chat: dict) -> tuple[dict, dict | None] | None:
+    """The artifact the user has open, if it still exists.
+
+    Switching chats or clearing one can strand a reference, so this resolves it
+    defensively rather than letting a stale index raise mid-render.
+    """
+    reference = st.session_state.get("open_artifact")
+    if not reference:
+        return None
+    try:
+        message = chat["messages"][reference["message"]]
+        return message["tables"][reference["artifact"]], message.get("data_plan")
+    except (KeyError, IndexError, TypeError):
+        st.session_state.open_artifact = None
+        return None
 
 
 def main() -> None:
@@ -378,20 +474,35 @@ def main() -> None:
     _render_sidebar()
 
     chat = st.session_state.chats[st.session_state.active_chat_id]
+    opened = _open_artifact(chat)
 
-    if not chat["messages"]:
-        _render_empty_state()
+    # Split view when an artifact is open: the chat narrows but stays live, so
+    # the user can keep asking while the table is on screen. `st.chat_input`
+    # cannot live inside a column, so it stays below at full width.
+    if opened is not None:
+        chat_column, panel_column = st.columns([45, 55], gap="large")
     else:
-        _render_history(chat["messages"])
+        chat_column, panel_column = st.container(), None
 
-    chosen = _render_elicitation(chat)
-    if chosen:
-        chat["pending"] = None
-        _send(chat, chosen)
-        st.rerun()
+    with chat_column:
+        if not chat["messages"]:
+            _render_empty_state()
+        else:
+            _render_history(chat["messages"])
 
-    if chat["messages"] and chat["messages"][-1]["role"] == "assistant"             and not chat.get("pending"):
-        _render_regenerate_button(chat)
+        chosen = _render_elicitation(chat)
+        if chosen:
+            chat["pending"] = None
+            _send(chat, chosen)
+            st.rerun()
+
+        if chat["messages"] and chat["messages"][-1]["role"] == "assistant" \
+                and not chat.get("pending"):
+            _render_regenerate_button(chat)
+
+    if opened is not None and panel_column is not None:
+        with panel_column:
+            _render_artifact_panel(*opened)
 
     question = st.chat_input("Ask something...")
     if not question:

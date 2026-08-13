@@ -58,14 +58,17 @@ definition and required inputs. Pass a `domain` when you know it.
 or names a row count - call `plan_and_fetch_dataset`. Pass what the data is FOR as \
 `task`, plus any fields and row count they named. It decides the minimal set and \
 returns the table to the UI directly.
-- After that call, DO NOT re-print the rows. They are already on screen in a real \
-table. Instead say what you returned and why: the row count and the reason it is \
-enough, any field you dropped and on what basis, and which knowledge source the \
-decision came from. If they asked for far more rows than the method uses, say so \
-plainly - that is the useful part of the answer.
-- Show the calculation at a high level and state the result plainly, with units \
-and the assumptions you used.
-- Keep the final answer focused and concise.
+- After that call your reply must be SHORT: at most three sentences, no headings, \
+no bullet lists, no tables. The table and the full reasoning are already on screen \
+in a panel the user can open. Lead with the single most useful fact - usually the \
+row count against what they asked for - and stop. Do not restate the field list, \
+do not re-print rows, do not enumerate the sources; the panel shows all of that. \
+Example of the right length: "250 rows, not 10,000 - that's the window historical \
+simulation actually revalues over. Three of your six fields aren't published by \
+this dataset; the panel shows which and why."
+- For every other kind of answer: show the calculation at a high level and state \
+the result plainly, with units and the assumptions you used. Keep it focused and \
+concise, and prefer short prose over long bulleted breakdowns.
 """
 
 TOOLS = [
@@ -393,6 +396,22 @@ class QuantAgent:
         self.tools = TOOLS + (RISK_TOOLS if self.risk else [])
         self.system_prompt = SYSTEM_PROMPT + (RISK_PROMPT if self.risk else "")
 
+    @staticmethod
+    def _provenance_of(curve: dict) -> dict:
+        """Where a table's numbers came from, for the panel's Source tab.
+
+        Carried on the table rather than left in the prose: a reviewer checking
+        a figure should not have to scroll a conversation to find the file and
+        snapshot it came from.
+        """
+        return {
+            "dataset_snapshot_id": curve.get("dataset_snapshot_id"),
+            "source_file": curve.get("source_file"),
+            "curve_date": curve.get("curve_date"),
+            "quote_basis": curve.get("quote_basis"),
+            "classification": "REAL_MARKET_DATA",
+        }
+
     def _plan_and_fetch(self, args: dict, trace: list[TraceStep]) -> object:
         """Plan the data requirement, fetch exactly that, return plan + table.
 
@@ -429,6 +448,7 @@ class QuantAgent:
             table = data_planner.build_table(
                 rows, columns or ["tenor", "rate_percent", "quote_basis"],
                 f"Nominal par curve — {curve.get('curve_date')}")
+            table["provenance"] = self._provenance_of(curve)
         else:
             # One series per tenor, aligned on date so the table reads as a
             # curve history rather than as several unrelated columns.
@@ -450,6 +470,7 @@ class QuantAgent:
             table = data_planner.build_table(
                 ordered, ["observation_date", *tenors, "quote_basis"],
                 f"Par yields — {', '.join(tenors)} (most recent {len(ordered)} rows)")
+            table["provenance"] = self._provenance_of(curve)
 
         self._tables.append(table)
         self._data_plan = plan.as_dict()
