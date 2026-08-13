@@ -1,23 +1,25 @@
 ---
 paths:
-  - "backend/src/backend/agent/**/*.py"
+  - "agents/**/*.py"
+  - "backend/src/backend/workflows/**/*.py"
   - "backend/src/backend/providers/**/*.py"
   - "backend/src/backend/api/**/*.py"
   - "knowledge/**/*.md"
-  - "src/frontend/**/*.py"
+  - "frontend/**/*.py"
 ---
 
 # Rules for the reasoning, provider and service layers
 
-The agent that answers questions, the seam it gets facts through, and the HTTP
-service the chatbot calls. Background: `docs/reasoning-layer.md`.
+The three agents that answer questions, the seams they get facts through, and the
+HTTP service the chatbot calls. Background: `docs/reasoning-layer.md`, and
+`AGENTS.md` for the agent architecture itself.
 
 ## Keep the seams
 
-`QuantAgent` talks only to two interfaces — `KnowledgeBase` and `DataProvider`.
-Do not let it import a concrete engine, a database driver, or an MCP client
+The agents talk only to two interfaces — `KnowledgeBase` and `DataProvider`.
+None of them may import a concrete engine, a database driver, or an MCP client
 directly. Swapping the vector store or the data backend must require no change
-in the agent.
+in any agent.
 
 That is why there are three providers behind one Protocol:
 
@@ -49,7 +51,7 @@ concurrency.
 ## Orchestration belongs here, not in the model
 
 Marshalling a portfolio into the risk engine's input shape, and differencing two
-observed curves into a replay shock, live in `service/risk_workflows.py`. This
+observed curves into a replay shock, live in `backend/workflows/risk_workflows.py`. This
 is mechanical work with exactly one right answer; a model asked to improvise it
 will eventually improvise it differently. The model chooses *which* workflow to
 call, not how to reshape a payload.
@@ -70,7 +72,7 @@ call, not how to reshape a payload.
 
 - **Subfolder name under `knowledge/` is the domain tag.** Adding a domain means
   a new subfolder plus its docs, then adding it to `DOMAINS` in
-  `reasoning/quant_agent.py`. Ingest discovers the rest.
+  `backend/knowledge/knowledge_base.py`. Ingest discovers the rest.
 - Docs follow the house style in the `risk-analysis` skill: Definition → Formula
   (dry) → Data required (naming the risk tables) → Notes.
 - **Don't bloat it.** Only risk-analysis-essential docs. Retrieval quality falls
@@ -79,6 +81,6 @@ call, not how to reshape a payload.
 
 ## Service
 
-`service/api.py` loads `.env` at import, before the Anthropic client resolves its
+`backend/api/service.py` loads `.env` at import, before the Anthropic client resolves its
 key. Without that the service starts healthy and dies on the first `/chat`,
 which is a confusing way to discover a missing key.

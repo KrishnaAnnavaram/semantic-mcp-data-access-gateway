@@ -39,7 +39,7 @@ def provider():
 
 @pytest.fixture(scope="module")
 def risk(provider):
-    from backend.agent.risk_workflows import RiskWorkflows
+    from backend.workflows.risk_workflows import RiskWorkflows
     return RiskWorkflows(provider)
 
 
@@ -176,7 +176,7 @@ def test_bulk_history_travels_out_of_band(provider):
     summary, meta = provider.call_tool_with_meta("get_curve_history_matrix", {
         "curve_family": "nominal", "as_of_date": "2026-08-11",
         "trading_days": 250, "tenors_months": [24, 60, 120, 240, 360]})
-    from backend.agent.risk_workflows import MATRIX_META_KEY
+    from backend.workflows.risk_workflows import MATRIX_META_KEY
 
     assert MATRIX_META_KEY in meta
     assert "rates_percent" not in summary, "bulk rates must not be in the model's view"

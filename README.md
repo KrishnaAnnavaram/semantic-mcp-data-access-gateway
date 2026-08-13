@@ -218,6 +218,25 @@ round 1  mcp_agent     → "I can serve the full daily par-curve history for all
 Bounded at **3 rounds**. Two agents that can always reply will always reply; if they never
 converge, that is recorded and reported rather than hidden behind a last-ditch answer.
 
+### A fourth agent, deliberately outside the pipeline
+
+[`mcp_servers/host/agent.py`](mcp/src/mcp_servers/host/agent.py) is a separate, smaller loop
+that drives both MCP servers directly:
+
+```bash
+python -m mcp_servers.host --ask "What is the DV01 of the demo book?"
+```
+
+It shares the model (`claude-opus-5`) and the honesty rules, but has **no knowledge base, no
+discussion and no decision trace** — and it is not in the `/chat` path. It exists so the MCP
+layer can be demonstrated on its own, without the backend, Qdrant or the UI running. If you
+are showing the MCP work specifically, this is the entry point; if you are showing the
+product, it is [§3](#3-detailed-workflow-one-request-end-to-end).
+
+**There is no other agent.** `/chat` has exactly one implementation — `AgentPipeline` — and no
+CLI shortcut around it. A second path into the reasoning layer is a second thing to keep in
+step, and the first one to drift.
+
 ---
 
 ## 5. No hardcoded thresholds
@@ -522,7 +541,7 @@ python tools/verify_load.py --self-test   # 74/74
 python tools/verify_mcp.py  --self-test   # 48/48, 4 canaries
 python -m mcp_servers.host --isolation    # risk engine cannot reach the DB
 python -m evaluation.run                  # 73/73
-pytest                                    # 231
+pytest                                    # 218
 cd frontend && pytest                     # 29
 ```
 
@@ -535,17 +554,17 @@ cannot detect anything. Every verifier plants a failure and requires the checks 
 - `verify_mcp` plants four canaries that must be **rejected**: a rate missing `quote_basis`, a
   leaked `BC_30YEARDISPLAY` placeholder, an unlabelled demo position, a filename escaping a root.
 
-### Test suite — 260 tests
+### Test suite — 249 tests
 
 | Tier | Focus | Tests |
 |---|---|---:|
-| T1 | Foundations — packaging, contracts, cursor, errors | 28 |
+| T1 | Foundations — packaging, contracts, cursor, errors | 30 |
 | T2 | Advertised surface — schemas, annotations, SQL boundary | 19 |
 | T3 | Data integrity — NULL rule, placeholders, grants | 17 |
 | T4 | MCP tools — every tool, happy path + edge | 28 |
 | T5 | Security — injection, traversal, separation of duties | 39 |
 | T6 | Live service — contract, routing, sessions | 18 |
-| — | Risk maths, provider seam, primitives, SDK contract | 82 |
+| — | Risk maths, provider seam, primitives, SDK contract, service | 69 |
 | — | Frontend | 29 |
 
 Tiers 3–6 skip cleanly when PostgreSQL or the service is down, so red always means a real defect.
@@ -557,7 +576,7 @@ Tiers 3–6 skip cleanly when PostgreSQL or the service is down, so red always m
 | Path | Distribution | Import package |
 |---|---|---|
 | `agents/` | `gateway-agents` | `agents` — orchestrator, domain expert, MCP agent |
-| `backend/` | `gateway-backend` | `backend` — `.api`, `.knowledge`, `.providers` |
+| `backend/` | `gateway-backend` | `backend` — `.api`, `.knowledge`, `.providers`, `.workflows` |
 | `mcp/` | `mcp-servers` | `mcp_servers` — `.data`, `.risk`, `.host` |
 | `postgres/` | `treasury-db` | `treasury_db` — migrations, loader, DB access |
 | `frontend/` | — | Streamlit app, run in place |

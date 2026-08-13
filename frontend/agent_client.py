@@ -136,7 +136,7 @@ def _build_client(settings: Settings) -> AgentClient:
     )
 
 
-@traceable(name="ask_quant_agent", run_type="chain")
+@traceable(name="frontend_chat_request", run_type="chain")
 def ask_agent(query: str, session_id: str) -> AnswerResult:
     settings = get_settings()
     client = _build_client(settings)

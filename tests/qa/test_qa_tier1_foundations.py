@@ -19,13 +19,14 @@ import pytest
 
 
 @pytest.mark.parametrize("module", [
-    "treasury_db", "mcp_servers", "backend",
+    "treasury_db", "mcp_servers", "backend", "agents",
     "mcp_servers.data.server", "mcp_servers.risk.server",
     "mcp_servers.host.mcp_clients", "mcp_servers.host.interaction",
-    "mcp_servers.data.interactive", "backend.agent.quant_agent",
+    "mcp_servers.data.interactive", "backend.workflows.risk_workflows",
+    "agents.pipeline",
 ])
 def test_every_distribution_imports(module):
-    """All three distributions must be installed; they import each other."""
+    """All four distributions must be installed; they import each other."""
     assert importlib.import_module(module) is not None
 
 

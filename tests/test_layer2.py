@@ -1,13 +1,10 @@
-"""Layer 2 tests — data provider, trace helpers, and the /chat service.
+"""Layer 2 tests — data provider and the /chat service.
 
 Fast and offline: no ANTHROPIC_API_KEY, no network, no vector download. The live
 LLM loop is intentionally not exercised here.
 """
 
-import json
-
 from backend.providers.base import MockDataProvider
-from backend.agent.quant_agent import TraceStep, extract_sources, trace_as_dicts
 
 
 # --- Treasury-shaped mock data provider ---------------------------------------
@@ -47,24 +44,42 @@ def test_unknown_tenor_is_handled():
     assert "error" in d.get_curve_slope(short="zz9", long="y10")
 
 
-# --- decision-trace helpers ---------------------------------------------------
+# --- clarification is structural, never inferred from the prose ---------------
+#
+# The old single-agent loop had to guess: it read the final character of the
+# answer, so a complete 2,302-character DV01 write-up ending "Want me to run
+# DV01?" was reported as a pending question, while the same answer ending "Say
+# which and I'll run it." was not. Identical intent, opposite classification.
+#
+# The three-agent pipeline cannot make that mistake, because the orchestrator
+# *decides* the route before anything is composed. These tests pin that: the
+# flag follows the route, and nothing else.
 
-def test_extract_sources_dedupes_domain_source():
-    trace = [
-        TraceStep("knowledge", "q", [
-            "market_risk/yield_curve/Definition (dist=0.2)",
-            "market_risk/yield_curve/Key measures (dist=0.3)",
-            "credit_risk/pd_lgd_ead/Definition (dist=0.4)",
-        ]),
-    ]
-    assert extract_sources(trace) == ["market_risk/yield_curve", "credit_risk/pd_lgd_ead"]
+def _outcome(route: str, answer: str):
+    from agents.contracts import AgentOutcome, Intent
+
+    return AgentOutcome(answer=answer, route=route,
+                        intent=Intent(route=route, reasoning="fixture",
+                                      question=answer))
 
 
-def test_trace_as_dicts_is_json_serializable():
-    trace = [TraceStep("intent", "got it", "hello"), TraceStep("answer", "done", None)]
-    dicts = trace_as_dicts(trace)
-    json.dumps(dicts)  # must not raise
-    assert dicts[0] == {"kind": "intent", "label": "got it", "detail": "hello"}
+def test_awaiting_clarification_follows_the_route_not_the_punctuation():
+    """An answer that ends by offering a next step is still an answer."""
+    from backend.api.service import _response_for  # noqa: PLC0415
+
+    offer = "DV01 is the change in value for a 1bp move.\n\nWant me to run it?"
+    assert _response_for(_outcome("data_request", offer)).awaiting_clarification is False
+    assert _response_for(_outcome("direct", offer)).awaiting_clarification is False
+
+
+def test_a_clarify_route_is_reported_as_a_pending_question():
+    from backend.api.service import _response_for  # noqa: PLC0415
+
+    ask = "Historical replay or hypothetical scenario?"
+    response = _response_for(_outcome("clarify", ask))
+    assert response.awaiting_clarification is True
+    assert response.elicitation is not None
+    assert response.elicitation.question == ask
 
 
 # --- /chat service (no LLM call) ----------------------------------------------

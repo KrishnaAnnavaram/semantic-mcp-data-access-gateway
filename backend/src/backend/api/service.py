@@ -1,16 +1,16 @@
-"""Agent HTTP service (Layer 2 keystone).
+"""The HTTP service in front of the three-agent pipeline.
 
-Exposes the QuantAgent over the REST contract the chatbot (Layer 1) already
-expects:
+This is the only thing the UI talks to, and the only caller of `agents/`:
 
     POST /chat  { "query": "...", "session_id": "..." }
-      -> { "answer": "...", "sources": [...], "trace": [...],
-           "awaiting_clarification": false }
+      -> { "answer", "sources", "trace", "awaiting_clarification",
+           "tables", "data_plan", "negotiation", "catalogue", "calculation" }
+    POST /summarise { "messages": [...] } -> { "title": "..." }
     GET  /health -> { "status": "ok" }
 
-Run it:
-    ANTHROPIC_API_KEY=...  uvicorn agent_service:app --port 8000   # from src/
-or  python src/agent_service.py                                    # convenience
+The service owns session memory; the pipeline is stateless. Run it:
+
+    ANTHROPIC_API_KEY=...  python -m backend.api.service      # :8000
 """
 
 from __future__ import annotations
@@ -129,6 +129,36 @@ def summarise(req: SummaryRequest) -> SummaryResponse:
     return SummaryResponse(title=title)
 
 
+def _response_for(outcome) -> ChatResponse:
+    """Shape an `AgentOutcome` into the `/chat` contract.
+
+    `awaiting_clarification` follows the **route**, never the prose. The old
+    single-agent loop had to infer it from the text and got it wrong in both
+    directions - a finished answer ending "Want me to run DV01?" was reported as
+    a pending question, and the UI drew a "pick one" prompt underneath it. Here
+    the orchestrator has already decided, so there is nothing left to infer.
+    """
+    requirement = outcome.requirement
+    clarifying = outcome.route == "clarify"
+    return ChatResponse(
+        answer=outcome.answer,
+        sources=[c.get("label", "") for c in outcome.citations],
+        trace=outcome.trace,
+        awaiting_clarification=clarifying,
+        elicitation=(ElicitationPayload(
+            question=outcome.intent.question or outcome.answer,
+            options=outcome.intent.options)
+            if clarifying and outcome.intent else None),
+        route=outcome.route,
+        tables=outcome.tables,
+        data_plan=requirement.as_dict() if requirement else None,
+        negotiation=outcome.negotiation.as_dict() if outcome.negotiation else None,
+        catalogue=outcome.catalogue.as_dict() if outcome.catalogue else None,
+        calculation=outcome.calculation,
+        langsmith_url=outcome.langsmith_url,
+    )
+
+
 @app.post("/chat", response_model=ChatResponse)
 def chat(req: ChatRequest) -> ChatResponse:
     """One turn through the three-agent pipeline.
@@ -157,25 +187,7 @@ def chat(req: ChatRequest) -> ChatResponse:
         _sessions[req.session_id] = {"turns": turns[-12:],
                                      "clarified": outcome.route == "clarify"}
 
-    requirement = outcome.requirement
-    clarifying = outcome.route == "clarify"
-    return ChatResponse(
-        answer=outcome.answer,
-        sources=[c.get("label", "") for c in outcome.citations],
-        trace=outcome.trace,
-        awaiting_clarification=clarifying,
-        elicitation=(ElicitationPayload(
-            question=outcome.intent.question or outcome.answer,
-            options=outcome.intent.options)
-            if clarifying and outcome.intent else None),
-        route=outcome.route,
-        tables=outcome.tables,
-        data_plan=requirement.as_dict() if requirement else None,
-        negotiation=outcome.negotiation.as_dict() if outcome.negotiation else None,
-        catalogue=outcome.catalogue.as_dict() if outcome.catalogue else None,
-        calculation=outcome.calculation,
-        langsmith_url=outcome.langsmith_url,
-    )
+    return _response_for(outcome)
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@ description: >-
   Conventions for this quant-risk repo — how to author knowledge docs in the
   house format, how the vector retrieval + domain tagging works, and how to
   extend the knowledge base or the agent. Use when adding/editing anything under
-  knowledge/, or when working on the KnowledgeBase, VectorStore, or QuantAgent.
+  knowledge/, or when working on the KnowledgeBase, VectorStore, or the agents.
 ---
 
 # Risk-Analysis Repo Conventions
@@ -43,7 +43,7 @@ Rules:
 Subfolder name IS the domain tag. Current desks:
 `market_risk`, `xva`, `regulatory_capital`, `credit_risk`.
 Adding a new desk = new subfolder + docs, then add it to `DOMAINS` in
-`backend/src/backend/agent/quant_agent.py` (and the `retrieve_knowledge` enum).
+`DOMAINS` in `backend/src/backend/knowledge/knowledge_base.py`.
 
 ## Retrieval
 - `KnowledgeBase.retrieve(query, n_results=3, domain=None)` — semantic search,
@@ -58,7 +58,7 @@ Re-ingest so the vector store reflects the change:
 python -c "import sys; sys.path.insert(0,'src'); from knowledge_base import KnowledgeBase; KnowledgeBase(rebuild=True)"
 ```
 Then sanity-check with a couple of `retrieve()` calls (see the `__main__` block
-in `backend/src/backend/agent/knowledge_base.py`).
+in `backend/src/backend/knowledge/knowledge_base.py`).
 
 ## Swap seams — do not break them
 - `KnowledgeBase` uses a **`VectorStore`** interface (`QdrantVectorStore` — embedded for dev, or a Docker Qdrant server via `QDRANT_URL`).

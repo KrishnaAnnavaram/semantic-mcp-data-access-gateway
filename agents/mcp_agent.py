@@ -287,7 +287,7 @@ class McpAgent:
             return None
         if not hasattr(self, "_risk_workflows"):
             try:
-                from backend.agent.risk_workflows import RiskWorkflows  # noqa: PLC0415
+                from backend.workflows.risk_workflows import RiskWorkflows  # noqa: PLC0415
 
                 self._risk_workflows = RiskWorkflows(self.data)
             except Exception as exc:  # noqa: BLE001

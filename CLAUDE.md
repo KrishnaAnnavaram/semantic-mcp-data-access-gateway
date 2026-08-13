@@ -16,10 +16,12 @@ boundaries between tiers are the part worth protecting.
 ## Four layers, one road between them
 
 ```
-  user ─► src/frontend/          Streamlit + LangSmith          AGENT_BACKEND=rest
+  user ─► frontend/          Streamlit + LangSmith            AGENT_BACKEND=rest
             │ POST /chat
             ▼
-          backend/           QuantAgent (Claude) + Qdrant knowledge
+          agents/            orchestrator → domain expert ⇄ mcp agent
+            │                              (Qdrant knowledge)
+          backend/           /chat service, seams, workflows
             │ DataProvider seam                             DATA_BACKEND=mcp
             ▼
           mcp/               market-risk-data-mcp ──┐   as mcp_reader
@@ -146,8 +148,12 @@ docker compose up -d qdrant
 python -m backend.knowledge.knowledge_base   # ingest; no API key needed
 python -m backend.api.service                # POST /chat on :8000
 cd frontend && streamlit run app.py                               # :8501
-python tools/ask_agent.py "What is the current 2s10s slope?"     # CLI instead of the UI
+python -m evaluation.run                     # 13 cases x 11 scorers, offline table
 ```
+
+There is no CLI for the agents. `/chat` is the only entry point, deliberately —
+a second path is a second thing to keep in step, and the first one to drift.
+Use `python -m mcp_servers.host --ask "..."` to exercise the MCP layer alone.
 
 Re-ingest after editing any knowledge doc:
 
