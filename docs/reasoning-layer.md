@@ -1,9 +1,12 @@
-# Reasoning layer — the quant agent
+# Reasoning layer — the three agents
 
 How the middle layer works: it turns a natural-language risk question into a
 grounded, data-backed answer with a visible decision trace. It owns no data of
 its own — it *retrieves knowledge* from a vector DB and *fetches facts* from the
 data layer, through two swap seams.
+
+Full agent architecture: [`AGENTS.md`](../AGENTS.md). This document covers the
+seams, the service and the knowledge base underneath them.
 
 ## The flow
 
@@ -11,18 +14,32 @@ data layer, through two swap seams.
   question
      │
      ▼
-  QuantAgent (Claude, tool-calling loop)          .claude/src/backend/src/backend/agent/quant_agent.py
-     │
-     ├─►  retrieve_knowledge ─► KnowledgeBase ─► Qdrant     gateway/reasoning/knowledge_base.py
-     │        "what is this metric, and what data does it need?"   gateway/reasoning/vector_store.py
-     │
-     ├─►  decide which rate data is actually required
-     │
-     └─►  data tools ─────────► DataProvider ─► PostgreSQL  gateway/providers/base.py
-              get_yield_curve / get_rate_history / ...      gateway/providers/postgres.py
+  ORCHESTRATOR (Haiku)  classify                agents/orchestrator_agent.py
+     ├─ direct ──────────────────────────────► reply, stop
+     └─ data_request
+          │
+          ▼
+  DOMAIN EXPERT (Opus)                          agents/domain_expert_agent.py
+     └─► KnowledgeBase ─► Qdrant                backend/knowledge/knowledge_base.py
+          "what does this metric mean, and how many rows does it read?"
+          │                                     backend/knowledge/vector_store.py
+          ▼  Requirement — fields, rows, citations, verified quote
+          │
+          │  ⇄  MCP AGENT: what can you serve?  agents/mcp_agent.py
+          │     (bounded discussion, 3 rounds)
+          ▼
+  MCP AGENT (Opus)  execute
+     └─► DataProvider ─► MCP servers ─► PostgreSQL   backend/providers/base.py
+          get_yield_curve / get_rate_history / ...   backend/providers/mcp.py
+          risk workflows                             backend/workflows/risk_workflows.py
+          │
+          ▼
+  ORCHESTRATOR (Haiku)  reflect → reply
      │
      ▼
-  answer  +  decision trace  (intent → knowledge → decision → tool_call → answer)
+  answer + trace (intent → tool_call → knowledge → decision → answer)
+        + data_plan (the requirement and its citations)
+        + negotiation (what the two agents said to each other)
 ```
 
 ## The two seams (why the engines are swappable)
@@ -61,7 +78,7 @@ compute. The knowledge base spans `market_risk`, `xva`, `regulatory_capital`,
 
 ## The `/chat` service
 
-`.claude/src/backend/src/backend/api/api.py` (FastAPI) exposes the agent over the contract the chatbot
+`backend/src/backend/api/api.py` (FastAPI) exposes the agent over the contract the chatbot
 expects:
 
 ```

@@ -15,6 +15,13 @@ desks watch to know their directional exposure and to hedge it.
 - **Gamma**: change in delta per unit move in the underlying (convexity).
 - **Theta**: change in value per day of time decay (options).
 
+## Observation window — how many rows a sensitivity calculation reads
+DV01 and the other Greeks are bump-and-revalue measures on a **single curve**, so
+they read exactly **1 observation date**. No time series is consumed: the
+sensitivity is a property of the position against today's curve, not of how that
+curve has moved. Requesting history for a DV01 returns data the calculation never
+reads.
+
 ## Method (dry)
 Sensitivity to factor f ≈ ( V(f + Δf) − V(f − Δf) ) / (2 · Δf)
 

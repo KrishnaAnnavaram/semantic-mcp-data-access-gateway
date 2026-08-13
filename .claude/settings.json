@@ -33,7 +33,7 @@
       "Edit(./data/raw/**)",
       "Write(./data/raw/**)",
       "Read(./.env)",
-      "Read(./.claude/src/frontend/.env)"
+      "Read(./frontend/.env)"
     ]
   }
 }

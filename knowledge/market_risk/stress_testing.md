@@ -7,6 +7,13 @@ tails, stress tests apply specific shocks — historical (e.g. 2008, COVID March
 2020) or hypothetical (e.g. "rates +200bp, equities -30%") — to see what the book
 loses if that scenario recurs.
 
+## Observation window — how many rows a stress test reads
+A historical replay reads exactly **2 observation dates**: the start and end of
+the episode being replayed. The shock is the difference between those two
+observed curves, so the dates between them are never read. A hypothetical
+scenario reads **1 observation date** — the base curve the hand-specified shock
+is applied to. Neither form consumes a time series.
+
 ## Types
 - **Historical scenarios**: replay a real crisis's market moves.
 - **Hypothetical scenarios**: hand-specified shocks to risk factors.

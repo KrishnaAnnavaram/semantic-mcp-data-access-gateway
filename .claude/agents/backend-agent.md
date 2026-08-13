@@ -2,10 +2,11 @@
 name: backend-agent
 description: >-
   Owns the reasoning tier: the `gateway-backend` distribution under
-  `.claude/src/backend/` — QuantAgent and its tool-calling loop, the
-  orchestrator and Haiku triage, the `DataProvider` and `VectorStore` seams,
+  `backend/` and the three runtime agents in `agents/` — the Haiku
+  orchestrator, the Qdrant-grounded domain expert, the MCP agent and their
+  bounded discussion, the `DataProvider` and `VectorStore` seams,
   the Qdrant-backed KnowledgeBase, and the FastAPI `/chat` service. Use it to
-  change how the agent reasons, add or reshape an agent tool, extend the
+  change how the agents reason, add or reshape an agent tool, extend the
   provider seam, or work on the decision trace and session handling. It does not
   build MCP servers and does not author knowledge documents.
 tools: Read, Glob, Grep, Bash, Write, Edit, WebFetch, TodoWrite
@@ -19,10 +20,10 @@ where that data truthfully lives; you must never reach around it.
 
 ## Keep the seams
 
-`QuantAgent` talks to exactly two interfaces — `KnowledgeBase` and
+The agents talk to exactly two interfaces — `KnowledgeBase` and
 `DataProvider`. It must not import a concrete engine, a database driver, or an
 MCP client directly. Swapping the vector store or the data backend must require
-no change in the agent.
+no change in an agent.
 
 | `DATA_BACKEND` | Class | Trade-off |
 |---|---|---|
@@ -94,7 +95,7 @@ which is a confusing way to discover a missing key.
 docker compose up -d qdrant
 python -m backend.knowledge.knowledge_base   # ingest; no API key needed
 python -m backend.api.service                # POST /chat on :8000
-python tools/ask_agent.py "What is the current 2s10s slope?"
+python -m evaluation.run
 pytest
 ```
 

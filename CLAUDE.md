@@ -16,10 +16,12 @@ boundaries between tiers are the part worth protecting.
 ## Four layers, one road between them
 
 ```
-  user ─► src/frontend/          Streamlit + LangSmith          AGENT_BACKEND=rest
+  user ─► frontend/          Streamlit + LangSmith            AGENT_BACKEND=rest
             │ POST /chat
             ▼
-          backend/           QuantAgent (Claude) + Qdrant knowledge
+          agents/            orchestrator → domain expert ⇄ mcp agent
+            │                              (Qdrant knowledge)
+          backend/           /chat service, seams, workflows
             │ DataProvider seam                             DATA_BACKEND=mcp
             ▼
           mcp/               market-risk-data-mcp ──┐   as mcp_reader
@@ -33,10 +35,10 @@ distributions; the frontend is a Streamlit app run in place.
 
 | Directory | Distribution | Import package |
 |---|---|---|
-| `.claude/src/postgres/` | `treasury-db` | `treasury_db` — migrations, loader, DB access |
-| `.claude/src/mcp/` | `mcp-servers` | `mcp_servers` — `.data`, `.risk`, `.host` |
-| `.claude/src/backend/` | `gateway-backend` | `backend` — `.api`, `.agent`, `.knowledge`, `.providers` |
-| `.claude/src/frontend/` | — | Streamlit app |
+| `postgres/` | `treasury-db` | `treasury_db` — migrations, loader, DB access |
+| `mcp/` | `mcp-servers` | `mcp_servers` — `.data`, `.risk`, `.host` |
+| `backend/` | `gateway-backend` | `backend` — `.api`, `.agent`, `.knowledge`, `.providers` |
+| `frontend/` | — | Streamlit app |
 | `data/` | — | source of record, plus the `acquisition/` that fills it |
 | `knowledge/` | — | RAG corpus the vector store ingests |
 
@@ -67,7 +69,7 @@ Or by hand:
 
 ```bash
 pip install -r requirements.txt
-pip install -e ./.claude/src/postgres -e ./.claude/src/mcp -e ./.claude/src/backend
+pip install -e ./postgres -e ./mcp -e ./backend
 ```
 
 All three must be installed — they import each other (`backend` uses `mcp_servers`, the
@@ -78,8 +80,8 @@ file moves.
 
 **`.claude/` holds both configuration and the four source distributions.** Configuration
 lives in `agents/`, `commands/`, `rules/`, `skills/` and `settings.json`; product code lives
-under `.claude/src/`. This is unusual — most tooling assumes `.claude/` is configuration only
-— so the split is a rule rather than a convention: nothing outside `.claude/src/` is
+under ``. This is unusual — most tooling assumes `.claude/` is configuration only
+— so the split is a rule rather than a convention: nothing outside `` is
 importable code, and nothing inside it is Claude Code configuration.
 
 ## Commands
@@ -106,7 +108,7 @@ python -m mcp_servers.host --isolation   # prove the risk engine cannot reach th
 python -m mcp_servers.host --primitives  # exercise all six MCP primitives
 python -m mcp_servers.host --ask "..."   # the host's own agent, driving both servers
 python tools/verify_mcp.py --self-test   # 48 checks; 4 canaries must be caught
-pytest                                   # 68 tests (frontend: cd .claude/src/frontend && pytest)
+pytest                                   # 68 tests (frontend: cd frontend && pytest)
 ```
 
 ## All six MCP primitives are live
@@ -145,9 +147,13 @@ mysterious client disconnect. Diagnostics go to stderr.
 docker compose up -d qdrant
 python -m backend.knowledge.knowledge_base   # ingest; no API key needed
 python -m backend.api.service                # POST /chat on :8000
-cd .claude/src/frontend && streamlit run app.py                               # :8501
-python tools/ask_agent.py "What is the current 2s10s slope?"     # CLI instead of the UI
+cd frontend && streamlit run app.py                               # :8501
+python -m evaluation.run                     # 13 cases x 11 scorers, offline table
 ```
+
+There is no CLI for the agents. `/chat` is the only entry point, deliberately —
+a second path is a second thing to keep in step, and the first one to drift.
+Use `python -m mcp_servers.host --ask "..."` to exercise the MCP layer alone.
 
 Re-ingest after editing any knowledge doc:
 
@@ -155,7 +161,7 @@ Re-ingest after editing any knowledge doc:
 python -c "from backend.knowledge.knowledge_base import KnowledgeBase; KnowledgeBase(rebuild=True)"
 ```
 
-Set `AGENT_BACKEND=rest` in `.claude/src/frontend/.env` or the UI silently serves canned mock answers, and
+Set `AGENT_BACKEND=rest` in `frontend/.env` or the UI silently serves canned mock answers, and
 raise `AGENT_TIMEOUT_SECONDS` — one turn runs several MCP round trips behind an Opus loop, and
 the 30s default expires mid-answer.
 
@@ -210,7 +216,7 @@ its history — neither is cleanly recoverable once pushed.
 2. `python -m treasury_db.load`
 3. `python tools/verify_load.py --self-test` — 74/74
 4. `python tools/verify_mcp.py --self-test` — 48/48 (spawns real child processes)
-5. `pytest` — 68 passed (plus `cd .claude/src/frontend && pytest` — 4 passed)
+5. `pytest` — 68 passed (plus `cd frontend && pytest` — 4 passed)
 6. `git status` shows no `adaptive-legacy-code-complexity-harness/`, no `.env`
 7. **`git grep -nE '^(<<<<<<<|=======|>>>>>>>)' -- ':!data/'` returns nothing.** Conflict markers
    have reached `main` once already, in four files, breaking `pip install` for everyone.

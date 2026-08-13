@@ -36,7 +36,7 @@ python tools/verify_mcp.py --self-test    # 35/35; 3 canaries MUST be caught
 python -m mcp_servers.host --isolation    # risk engine cannot reach the database
 python -m mcp_servers.host --demo         # curve -> price -> DV01 -> VaR -> stress
 pytest                                    # backend + MCP suites
-cd .claude/src/frontend && pytest         # frontend suite
+cd frontend && pytest         # frontend suite
 ```
 
 Then the two checks that have actually bitten this repository:

@@ -1,8 +1,8 @@
 ---
 paths:
-  - ".claude/src/mcp/src/mcp_servers/data/**/*.py"
-  - ".claude/src/mcp/src/mcp_servers/risk/**/*.py"
-  - ".claude/src/mcp/src/mcp_servers/host/**/*.py"
+  - "mcp/src/mcp_servers/data/**/*.py"
+  - "mcp/src/mcp_servers/risk/**/*.py"
+  - "mcp/src/mcp_servers/host/**/*.py"
   - "tools/verify_mcp.py"
   - "tests/test_sdk_contract.py"
   - "tests/test_risk_engine.py"
@@ -90,7 +90,7 @@ deny-list silently leaks the next credential someone adds to `.env`.
   2002–2006; silently dropping it changes any number computed from that window.
 - **Bulk arrays go through `_meta`.** It is a context-efficiency channel, not a
   security boundary — nothing secret in it.
-- **Numerical conventions are versioned** in `.claude/src/mcp/src/mcp_servers/risk/manifest.py`.
+- **Numerical conventions are versioned** in `mcp/src/mcp_servers/risk/manifest.py`.
   Changing the quantile rule changes the run fingerprint, by design.
 - **Limits are refusals, not truncations.** Exceeding one is `ROW_LIMIT_EXCEEDED`.
   A caller who asked for 5,000 rows and silently got 2,000 has a wrong answer,

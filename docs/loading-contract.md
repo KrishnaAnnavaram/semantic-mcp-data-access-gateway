@@ -66,7 +66,7 @@ the loader stops. Three edits:
 **1. Staging column** — a **new** migration, never an edit to an applied one:
 
 ```sql
--- .claude/src/postgres/migrations/V008__add_bc_2_5month.sql
+-- postgres/migrations/V008__add_bc_2_5month.sql
 ALTER TABLE staging.par_yield_curve
     ADD COLUMN IF NOT EXISTS bc_2_5month numeric(9,4);
 ```

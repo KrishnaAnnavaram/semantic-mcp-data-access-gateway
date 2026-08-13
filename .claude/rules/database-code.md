@@ -1,8 +1,8 @@
 ---
 paths:
   - "db/**/*.sql"
-  - ".claude/src/postgres/src/treasury_db/**/*.py"
-  - ".claude/src/postgres/src/treasury_db/db.py"
+  - "postgres/src/treasury_db/**/*.py"
+  - "postgres/src/treasury_db/db.py"
   - "tools/verify_load.py"
 ---
 

@@ -73,7 +73,7 @@ Then confirm the document is actually retrievable for the question it was
 written to answer — ask it, don't assume:
 
 ```bash
-python tools/ask_agent.py "<the question this document should ground>"
+python -m evaluation.run   # then ask via the UI or POST /chat
 ```
 
 Report what you actually ran and what came back.

@@ -1,348 +1,647 @@
-# semantic-mcp-data-access-gateway
+<h1>semantic-mcp-data-access-gateway</h1>
 
-A semantic **Model Context Protocol** gateway for intent-aware request understanding,
-data-requirement planning, and optimised retrieval over enterprise data. Today's domain is
-**U.S. Treasury interest rates** — 267,517 verified observations spanning 1990-01-02 to
-2026-08-11.
+**Ask a market-risk question in plain English. Three specialist AI agents work out what data the
+task actually needs — grounded in a vector database, never in a hardcoded constant — negotiate
+what the data layer can honestly serve, fetch exactly that, and show their working.**
 
-Instead of a client blindly calling every tool an MCP server exposes, this project adds a
-reasoning layer that reads the incoming question, consults a knowledge base of what each tool
-and data source is actually *for*, and invokes only what is needed to answer it — then shows
-its working.
-
-> **The rule everything rests on:** a missing observation is **NULL**. Never zero, never the
-> previous day's rate, never an interpolation. Absence of a rate and a rate of zero are
-> different facts; collapse them and you get a curve that looks complete and is wrong, with
-> nothing downstream able to tell.
+Today's domain is U.S. Treasury interest rates: **267,517 verified observations, 1990-01-02 to
+2026-08-11**, straight from `home.treasury.gov`.
 
 ---
 
-## Table of contents
+# Table of contents
 
-- [The whole system](#the-whole-system)
-- [Stage 1 — Acquisition](#stage-1--acquisition-treasury--disk)
-- [Stage 2 — The data layer](#stage-2--the-data-layer-csv--postgresql)
-- [Stage 3 — The MCP layer](#stage-3--the-mcp-layer-the-only-road-between-tiers)
-- [Stage 4 — The reasoning layer](#stage-4--the-reasoning-layer-what-data-does-this-question-need)
-- [Stage 5 — The UI](#stage-5--the-ui-the-answer-and-how-it-was-reached)
-- [All six MCP primitives](#all-six-mcp-primitives)
-- [Quick start](#quick-start)
-- [Verification](#verification)
-- [Repository layout](#repository-layout)
+| § | Section | What you'll find |
+|---|---|---|
+| **1** | [What this is](#1-what-this-is) | The problem, and the four failures this design answers |
+| **2** | [Architecture overview](#2-architecture-overview) | The whole system in one diagram |
+| **3** | [End-to-end workflow](#3-end-to-end-workflow) | One question traced through every component |
+| **4** | [Stage 1 — Acquisition](#4-stage-1--acquisition) | Treasury → immutable files on disk |
+| **5** | [Stage 2 — PostgreSQL](#5-stage-2--postgresql) | **Every schema, table and row count** |
+| **6** | [Stage 3 — Qdrant](#6-stage-3--qdrant) | **Every domain, document and chunk** |
+| **7** | [Stage 4 — MCP layer](#7-stage-4--mcp-layer) | Both servers, all 19 tools, **all 6 primitives with demo questions** |
+| **8** | [Stage 5 — The three agents](#8-stage-5--the-three-agents) | Orchestrator, Domain Expert, MCP Agent |
+| **9** | [Stage 6 — The UI](#9-stage-6--the-ui) | Chat, artifact panel, decision trace |
+| **10** | [LangSmith](#10-langsmith--tracing-and-how-to-read-it) | **How to turn it on and read the outcomes** |
+| **11** | [Evaluation](#11-evaluation) | 13 cases × 11 scorers |
+| **12** | [Quick start](#12-quick-start) | From empty machine to running system |
+| **13** | [Verification](#13-verification) | The gates between a defect and `main` |
+| **14** | [Demo script](#14-demo-script) | What to type, in order, for a 10-minute demo |
+| **15** | [Repository layout](#15-repository-layout) | Where everything lives |
+| **16** | [Known issues](#16-known-issues) | Recorded, not hidden |
 
 ---
 
-## The whole system
+# 1. What this is
 
-Four runtime tiers, dependencies strictly downward. Each is independently runnable and
-independently verifiable.
+The obvious way to build this is to point an LLM at a database and let it write SQL. That fails
+in four specific ways. **Every major design decision here is an answer to one of them.**
+
+| # | The failure | The answer in this system |
+|---|---|---|
+| 1 | **The model invents numbers.** Ask for the 10-year yield and it recalls one from training. | The model has no numbers. Every figure comes from a tool call against the real database, and the trace shows exactly which. |
+| 2 | **Things that look alike get silently mixed.** A Treasury bill quotes 3.64% bank-discount *and* 3.70% coupon-equivalent. Both correct. Not interchangeable. | `quote_basis` travels with **every single rate**, from the database column through to the sentence in the answer. |
+| 3 | **Nobody can check the answer.** | Any value traces back to the exact Treasury file and its SHA-256 hash. |
+| 4 | **"Give me 10,000 rows" is taken at face value.** | A domain expert agent reads the knowledge base and replies that the method consumes 250 — quoting the sentence that says so. |
+
+### The one rule everything rests on
+
+> **A missing observation is NULL. Never zero, never the previous day's rate, never an
+> interpolation.**
+
+Absence of a rate and a rate of zero are *different facts*. Collapse them and you get a curve
+that looks complete and is wrong, with nothing downstream able to tell. This is enforced at
+every layer: the downloader emits NULL, the loader writes no row, the schema has no default
+that could invent one.
+
+The harder half: **an exact 0 is not automatically a missing value.** Short tenors genuinely
+printed 0.00% in 2008-12, 2011, 2015 and 2020-21. Exactly one column is a placeholder —
+`BC_30YEARDISPLAY`, a literal `0` on all 5,256 dates before 2011-01-03 — and that judgement
+lives in the database as data (`treasury.series.placeholder_zero_before`), not in code.
+
+---
+
+# 2. Architecture overview
+
+Six components. Dependencies run strictly downward — nothing ever reaches back up.
 
 ```mermaid
-flowchart TD
-    U([User])
+flowchart TB
+    U(["👤 User"])
+    F["<b>Streamlit UI</b><br/>frontend/"]
+    B["<b>FastAPI service</b><br/>backend/ · POST /chat"]
+    A["<b>Three AI agents</b><br/>agents/"]
+    M["<b>MCP host + 2 servers</b><br/>mcp/ · protocol 2026-07-28"]
+    P[("<b>PostgreSQL 17</b><br/>267,517 observations")]
+    Q[("<b>Qdrant</b><br/>71 knowledge chunks")]
+    L["<b>LangSmith</b><br/>every step traced"]
 
-    subgraph UI["UI tier — .claude/src/frontend/"]
-        ST["Streamlit chat<br/>+ decision-trace panel<br/>+ LangSmith tracing"]
-    end
+    U --> F
+    F --> B
+    B --> A
+    A --> M
+    M --> P
+    A --> Q
+    A -.-> L
 
-    subgraph BE["Reasoning tier — .claude/src/backend/ (gateway-backend)"]
-        API["FastAPI /chat"]
-        ORCH["Orchestrator<br/>Haiku 4.5 triage"]
-        QA["QuantAgent<br/>claude-opus-5, adaptive thinking"]
-        KB["KnowledgeBase"]
-        DP{{"DataProvider seam"}}
-        VS{{"VectorStore seam"}}
-    end
-
-    subgraph MCP["MCP tier — .claude/src/mcp/ (mcp-servers)"]
-        HOST["McpHost<br/>protocol 2026-07-28"]
-        DATA["market-risk-data-mcp<br/>14 tools · reads DB"]
-        RISK["risk-engine-mcp<br/>5 tools · no DB, no LLM"]
-    end
-
-    subgraph DL["Data tier — .claude/src/postgres/ (treasury-db) + data/"]
-        PG[("PostgreSQL 17<br/>267,517 observations")]
-        RAW["data/raw/<br/>140 checksummed XML files"]
-    end
-
-    QD[("Qdrant<br/>knowledge vectors")]
-
-    U -->|question| ST
-    ST -->|"POST /chat"| API
-    API --> ORCH
-    ORCH -->|"route: quant"| QA
-    ORCH -->|"route: clarify"| API
-    QA --> KB --> VS --> QD
-    QA --> DP
-    DP -->|"DATA_BACKEND=mcp"| HOST
-    HOST -->|stdio| DATA
-    HOST -->|stdio| RISK
-    DATA -->|"as mcp_reader"| PG
-    RAW -.->|loader| PG
-    ST -->|answer + trace| U
-
-    classDef seam fill:#fff3cd,stroke:#d39e00,color:#000
-    class DP,VS seam
+    classDef ui fill:#e7f5ff,stroke:#1971c2,stroke-width:2px,color:#000
+    classDef agent fill:#fff9db,stroke:#f08c00,stroke-width:2px,color:#000
+    classDef store fill:#f3f0ff,stroke:#7048e8,stroke-width:2px,color:#000
+    classDef obs fill:#f1f3f5,stroke:#868e96,color:#000
+    class F,B ui
+    class A,M agent
+    class P,Q store
+    class L obs
 ```
 
-**Reading the diagram.** The reasoning tier decides *what data a question needs*; the data tier
-is *where that truthfully lives*; the MCP tier is *the only road between them*; the UI is *how a
-human sees the answer and how it was reached*.
+### Reading it in one line each
 
-The two yellow boxes are **swap seams**. The agent talks only to interfaces, so the engines
-behind them are configuration rather than code changes:
+| Layer | Its job |
+|---|---|
+| **UI** | How a human sees the answer *and how it was reached* |
+| **Service** | The only entry point; owns session memory |
+| **Agents** | Decide **what data a question needs** |
+| **MCP** | **The only road** between reasoning and data |
+| **PostgreSQL** | **Where truth lives** |
+| **Qdrant** | **What the domain means** — the system's brain |
 
-| Seam | Implementations | Selected by |
+### Two swap seams
+
+The agents talk only to interfaces, so engines are configurable rather than welded in.
+
+| Seam | Implementations | Chosen by |
 |---|---|---|
-| `DataProvider` | `McpDataProvider`, `PostgresDataProvider`, `MockDataProvider` | `DATA_BACKEND` |
-| `VectorStore` | `QdrantVectorStore` (embedded or Docker server) | `QDRANT_URL` |
-
-| `DATA_BACKEND` | Route | Trade-off |
-|---|---|---|
-| `mcp` | Both MCP servers as `mcp_reader` | Privilege boundary holds; risk engine included. **Default for the full stack.** |
-| `postgres` | Direct psycopg2 as the **owner** role | Fewer moving parts; the agent can write to the source of record |
-| `mock` | Synthetic, Treasury-shaped | No database needed |
+| `DataProvider` | `McpDataProvider` · `PostgresDataProvider` · `MockDataProvider` | `DATA_BACKEND` |
+| `VectorStore` | `QdrantVectorStore` (embedded, or Docker via `QDRANT_URL`) | `QDRANT_URL` |
 
 ---
 
-## Stage 1 — Acquisition (Treasury → disk)
+# 3. End-to-end workflow
+
+The complete path of one real question:
+
+> *"Give me 10,000 rows of Treasury yield data with observation_date, rate_percent,
+> quote_basis, cusip, issuer_name and settlement_date. I need it to compute 10-day 99%
+> historical VaR on the book."*
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant UI as Streamlit
+    participant API as FastAPI<br/>/chat
+    participant ORC as 1️⃣ Orchestrator<br/>Haiku 4.5
+    participant DOM as 2️⃣ Domain Expert<br/>Opus 5
+    participant QD as Qdrant
+    participant MCP as 3️⃣ MCP Agent<br/>Opus 5
+    participant SRV as MCP servers
+    participant PG as PostgreSQL
+
+    User->>UI: question
+    UI->>API: POST {query, session_id}
+    API->>ORC: classify()
+
+    Note over ORC: route = direct | clarify | data_request
+
+    ORC->>MCP: catalogue()
+    MCP-->>ORC: 19 tools, fields, tenors
+
+    ORC->>DOM: derive(question, catalogue)
+    DOM->>QD: search "historical VaR"
+    DOM->>QD: search "observation window how many rows"
+    QD-->>DOM: knowledge chunks
+    DOM->>DOM: quote_is_grounded(quote, text)?
+    Note over DOM: ungrounded number → DISCARDED
+    DOM-->>ORC: rows=250 ✓grounded<br/>3 fields refused
+
+    rect rgb(255, 249, 219)
+    Note over DOM,MCP: DISCUSSION — bounded at 3 rounds
+    DOM->>MCP: assess(requirement)
+    MCP-->>DOM: feasible · cusip/issuer/settlement<br/>do not exist here
+    Note over DOM,MCP: ✓ converged, round 1
+    end
+
+    MCP->>SRV: get_curve_history_matrix
+    SRV->>PG: SELECT as mcp_reader
+    PG-->>SRV: 250 × 14 matrix
+    SRV-->>MCP: rows + provenance
+    MCP-->>ORC: table · calculation
+
+    ORC->>API: reflect() → ≤3 sentences
+    API-->>UI: answer + tables + data_plan<br/>+ negotiation + citations
+    UI-->>User: reply + artifact card
+```
+
+### Six things worth pointing at during a demo
+
+| # | What happens | Why it matters |
+|---|---|---|
+| 1 | **The cheap path stays cheap.** "hi" returns at step 3. | A greeting never costs an Opus turn or a vector search. |
+| 2 | **The catalogue comes before the requirement.** | The expert plans against what is *actually connected*, not what it imagines exists. |
+| 3 | **Two vector searches, not one.** | "What is historical VaR" and "how many rows does it read" are different questions; one embedding cannot be near both. |
+| 4 | **The grounding check is a gate.** | A number whose citation is not in the retrieved text is *thrown away*, not reported. |
+| 5 | **Three fields are refused, not filled.** | A par yield curve holds no CUSIPs. Inventing one is worse than saying no. |
+| 6 | **Nothing is fetched until both agents agree.** | 250 rows instead of 10,000 — argued on the record, not assumed. |
+
+---
+
+# 4. Stage 1 — Acquisition
 
 ```mermaid
 flowchart LR
     T(["home.treasury.gov<br/>XML feed"])
-    RAW["data/raw/**.xml<br/>immutable, SHA-256 recorded"]
-    MAN["download_manifest.json<br/>140 entries"]
-    CSV["validated CSV"]
-    REP["schema_report.json"]
+    RAW["<b>data/raw/</b><br/>140 files · immutable"]
+    MAN["<b>download_manifest.json</b><br/>SHA-256 per file"]
+    CSV["<b>validated CSV</b><br/>+ schema_report.json"]
 
-    T -->|"~140 requests, ~60 MB"| RAW
+    T -->|"~140 requests<br/>~60 MB · ~4 min"| RAW
     RAW --> MAN
     RAW --> CSV
-    CSV --> REP
 
-    style RAW fill:#e7f5ff,stroke:#1971c2,color:#000
+    classDef immutable fill:#e7f5ff,stroke:#1971c2,stroke-width:2px,color:#000
+    class RAW,MAN immutable
 ```
 
-Five Treasury datasets are downloaded year by year. Every file's SHA-256 is recorded at
-download time, and **`data/raw/` is byte-immutable from that moment on** — every downstream
-artifact is reproducible from those bytes.
+Five datasets, downloaded year by year. Every file's SHA-256 is recorded at download, and
+`data/raw/` is **byte-immutable** from that moment on.
 
-**Why it matters:** the loader refuses to run if any file's hash no longer matches the
-manifest. That guard is not theoretical — it fired during development when git's line-ending
-normalisation silently rewrote every XML file (`data/raw/** -text` in `.gitattributes` is the
-fix).
-
-**Rules enforced here**
-
-- Never hardcode the field list — Treasury has added six par maturities since 1990. Parse what
-  the feed returns.
-- Preserve Treasury's terminology exactly. `BC_1MONTH` stays `BC_1MONTH`; renaming is how a
-  discount rate ends up labelled a yield.
-- Never substitute a source. No FRED, no Kaggle, no mirror. If Treasury is down, the run fails.
-- Flag, don't clean. Nothing is clipped, smoothed or dropped as an outlier — negative real
-  yields are legitimate.
-
----
-
-## Stage 2 — The data layer (CSV → PostgreSQL)
-
-```mermaid
-flowchart TD
-    CSV["validated CSV"]
-    STG["staging.*<br/>mirrors each CSV exactly"]
-    GUARD{"staging columns − ignored<br/>⊆ registered series?"}
-    CORE["treasury.*<br/>normalised core, placeholder-aware"]
-    ANA["analytics.*<br/>curated read surface"]
-    META["meta.*<br/>lineage + load runs"]
-    ABORT["ABORT — name the column"]
-
-    CSV -->|COPY| STG
-    STG --> GUARD
-    GUARD -->|no| ABORT
-    GUARD -->|yes| CORE
-    CORE --> ANA
-    CORE --> META
-
-    style ABORT fill:#ffe3e3,stroke:#c92a2a,color:#000
-    style ANA fill:#d3f9d8,stroke:#2f9e44,color:#000
+```bash
+python data/acquisition/download_us_treasury.py
 ```
 
-Four schemas, one direction. Only `analytics.*` is visible to the MCP layer.
+### Rules
 
-**The generic unpivot and the guard that makes it safe.** Wide datasets are unpivoted with
-`jsonb_each_text`, and a join to `treasury.series` decides which columns are rates. That join is
-also the hazard: an unregistered column would simply vanish, and every number that remained
-would still look correct. So before any insert runs, the loader asserts that every staging
-column is a registered series — and aborts naming the column if not.
-
-**That failure is the feature.** Silence would be the defect. The fix is always a migration
-registering the series, never widening the ignore list.
-
-| What is loaded | Count |
-|---|---:|
-| Observations | 267,517 |
-| Series registered | 52 |
-| Source files tracked | 140 |
-| Placeholder rows (NULL rate, kept for audit) | 5,256 |
-| Database size | 65 MB |
-
-**The privilege boundary.** `mcp_reader` has `REVOKE` on `treasury` and `staging`, sees only
-`analytics.*` through owner-privileged views, and carries `CONNECTION LIMIT 5`. That grant — not
-a convention — is what the whole MCP layer rests on.
-
----
-
-## Stage 3 — The MCP layer (the only road between tiers)
-
-```mermaid
-flowchart TD
-    HOST["McpHost<br/>owns both child processes<br/>+ the InteractionPolicy"]
-
-    subgraph D["market-risk-data-mcp"]
-        DT["14 tools"]
-        DR["5 resources"]
-        DP["3 prompts"]
-    end
-
-    subgraph R["risk-engine-mcp"]
-        RT["5 tools"]
-        RR["2 resources"]
-        RP["3 prompts"]
-    end
-
-    PG[("PostgreSQL")]
-    ENV["sanitised_env()<br/>allow-list, not deny-list"]
-
-    HOST -->|"stdio · DATA_ENV_KEYS"| D
-    HOST -->|"stdio · no DB keys"| R
-    D -->|"mcp_reader"| PG
-    R -.->|"cannot reach"| PG
-    ENV --> D
-    ENV --> R
-
-    style R fill:#fff9db,stroke:#f08c00,color:#000
-```
-
-Two stdio servers plus the host that drives them. **Neither server imports an LLM client, and
-the risk engine holds no database credential** — its child environment is built by allow-list,
-so "was the input wrong, or the maths?" has a mechanical answer.
-
-| Boundary | What enforces it |
+| Rule | Why |
 |---|---|
-| Only the host reasons | Neither server imports `anthropic` |
-| Only the data server reads PostgreSQL | The risk child's env has no `POSTGRES_*`, no `MCP_READER_*` |
-| `mcp_reader` cannot see raw tables | `REVOKE` on `treasury`/`staging` |
-| Only the risk engine calculates | The data server contains no pricing code |
-| Bulk arrays bypass model context | Routed through the result's `_meta` |
-| Real vs synthetic is unambiguous | `CHECK` constraints + classification on every payload |
+| **Never hardcode the field list** | Treasury has added six par maturities since 1990. Parse what the feed returns. |
+| **Preserve Treasury's terminology exactly** | `BC_1MONTH` stays `BC_1MONTH`. Renaming is how a discount rate ends up labelled a yield. |
+| **Never substitute a source** | No FRED, no mirror. If Treasury is down, the run fails. |
+| **Flag, don't clean** | Negative real yields are legitimate. |
 
-**Non-negotiables**
-
-- **stdout is the protocol channel.** A stray `print()` corrupts the JSON-RPC stream and
-  presents as a mysterious client disconnect. Diagnostics go to stderr.
-- **No `run_sql`, ever** — and no `columns`/`table`/`schema`/`order_by`/`where` parameter. SQL
-  templates live in `repository.py`; callers supply values only.
-- **Par yields are not zero rates.** The risk engine bootstraps discount factors before pricing.
-  Using a 10-year CMT as a discount rate fails silently and the error grows with maturity.
-- **Limits are refusals, not truncations.** A caller who asked for 5,000 rows and silently got
-  2,000 has a wrong answer, not a partial one.
+> **The immutability guard is not theoretical.** It fired when git's line-ending normalisation
+> silently rewrote all 140 XML files, breaking every manifest hash and blocking the loader.
+> The fix was `data/raw/** -text` in `.gitattributes` — and *restoring the files from committed
+> blobs*, **not** regenerating the manifest from disk. Regenerating would have "verified" the
+> mutated bytes.
 
 ---
 
-## Stage 4 — The reasoning layer (what data does this question need?)
+# 5. Stage 2 — PostgreSQL
 
-```mermaid
-flowchart TD
-    Q(["question + session_id"])
-    TRIAGE["Haiku 4.5 triage<br/>cheap, fast routing"]
-    CLAR["Clarify<br/>ask ONE question"]
-    AGENT["QuantAgent loop<br/>claude-opus-5"]
-    KB["retrieve_knowledge<br/>→ Qdrant"]
-    TOOLS["data + risk tools<br/>via DataProvider"]
-    ANS(["answer + sources + trace"])
+## 5.1 Schema design
 
-    Q --> TRIAGE
-    TRIAGE -->|"route: clarify"| CLAR --> ANS
-    TRIAGE -->|"route: quant"| AGENT
-    AGENT -->|"ground first"| KB
-    KB --> AGENT
-    AGENT -->|"only what is needed"| TOOLS
-    TOOLS --> AGENT
-    AGENT --> ANS
-```
-
-The agent's responsibilities, in order: **understand intent → clarify if ambiguous → ground in
-knowledge → decide required data → fetch → compose → emit a decision trace.**
-
-Grounding before fetching is deliberate: the knowledge document for a metric names the exact
-data inputs it needs, which turns retrieval into a correct tool plan rather than a guess.
-
-**Capability is detected, never assumed.** Portfolio and risk tools are offered only when the
-provider can actually reach them. Under `mock` or `postgres` the agent never sees those tools
-and says plainly that it has no positions — an agent that advertises a capability it cannot
-honour will confabulate one.
-
-**Honesty rules that must survive into the answer**
-
-- The demo book is `SYNTHETIC_DEMO`; the curve is `REAL_MARKET_DATA`. Both labels reach the user.
-- Bond values are **model-implied** from the par curve, not executable prices.
-- Reported VaR is an **analytical demonstration**, not a regulatory figure.
-- CVA, RWA and PD/LGD/EAD are explained from knowledge but **not computed** — there is no
-  counterparty data. The agent says so rather than improvising a number.
-
-**Orchestration belongs in code, not in the model.** Marshalling a portfolio into the risk
-engine's input shape, and differencing two observed curves into a replay shock, live in
-`risk_workflows.py`. That is mechanical work with one right answer; a model asked to improvise
-it will eventually improvise it differently. The model chooses *which* workflow, not how to
-reshape a payload.
-
----
-
-## Stage 5 — The UI (the answer, and how it was reached)
+Four working schemas plus a demo schema. Data flows one way.
 
 ```mermaid
 flowchart LR
-    ST["Streamlit"]
-    API["POST /chat"]
-    PANEL["decision-trace panel<br/>intent · knowledge · decision<br/>tool_call · answer · clarification"]
-    BTN["elicitation buttons"]
+    CSV["validated<br/>CSV"] -->|COPY| STG["<b>staging</b><br/>mirrors each CSV<br/>exactly"]
+    STG --> G{"every staging column<br/>a registered series?"}
+    G -->|"NO"| STOP["🛑 ABORT<br/>naming the column"]
+    G -->|"YES"| CORE["<b>treasury</b><br/>normalised<br/>placeholder-aware"]
+    CORE --> ANA["<b>analytics</b><br/>curated read surface<br/>15 views"]
+    CORE --> META["<b>meta</b><br/>lineage +<br/>load runs"]
 
-    ST -->|"{query, session_id}"| API
-    API -->|"{answer, sources, trace,<br/>awaiting_clarification, elicitation}"| ST
-    ST --> PANEL
-    ST --> BTN
+    classDef bad fill:#ffe3e3,stroke:#c92a2a,stroke-width:2px,color:#000
+    classDef good fill:#d3f9d8,stroke:#2f9e44,stroke-width:2px,color:#000
+    class STOP bad
+    class ANA good
 ```
 
-The trace panel is not decoration — it is the project's claim to being auditable. Every step
-carries its kind, and knowledge steps carry the domain and source of each retrieved chunk.
+## 5.2 What is actually inside — every table
 
-A clarifying question is a **first-class state**, not an error: when `awaiting_clarification` is
-set the UI renders the question with real option buttons and carries the same `session_id` into
-the next turn.
+**Live counts, read from the running database.**
 
-> ⚠️ Set `AGENT_BACKEND=rest` in `.claude/src/frontend/.env` or the UI silently serves canned
-> mock answers, and raise `AGENT_TIMEOUT_SECONDS` — one turn runs several MCP round trips behind
-> an Opus loop, and the 30s default expires mid-answer.
+### `treasury` — the normalised source of record
+
+| Table | Rows | What it holds |
+|---|---:|---|
+| `observation` | **267,517** | One rate, one date, one series. **The core table.** |
+| `bill_security` | 26,300 | CUSIPs and maturity dates for bills — *not* rates |
+| `long_term_extrapolation` | 994 | Extrapolation factors |
+| `series` | **52** | Every rate series, with its quoting basis and placeholder rule |
+| `dataset` | 5 | The five Treasury datasets, each with its market-risk caveat |
+| `market_note` | 1 | Market-closure notes |
+
+### `staging` — one table per CSV, mirroring it exactly
+
+| Table | Rows |
+|---|---:|
+| `long_term_rates` | 19,965 |
+| `par_yield_curve` | 9,159 |
+| `real_long_term_rates` | 6,655 |
+| `bill_rates` | 6,157 |
+| `real_yield_curve` | 5,906 |
+
+### `meta` — lineage, so any number can be traced back
+
+| Table | Rows | What it holds |
+|---|---:|---|
+| `reconciliation` | 1,696 | Recount of every load, from source |
+| `source_file` | **140** | Every downloaded file + its SHA-256 |
+| `load_step` | 70 | Each step of each load |
+| `schema_migration` | 13 | Applied migrations |
+| `load_run` | 7 | Load history |
+
+### `demo` — synthetic, and labelled as such everywhere
+
+| Table | Rows | What it holds |
+|---|---:|---|
+| `scenario` | **7** | Stress scenarios |
+| `instrument` | 5 | Demo bond economics |
+| `position` | 5 | Positions in the demo book |
+| `portfolio` | 1 | `TREASURY_DEMO_001` |
+
+### `analytics` — 15 views, the only surface `mcp_reader` can see
+
+`v_observation` · `v_series` · `v_series_coverage` · `v_latest_rates` · `v_par_yield_curve` ·
+`v_real_yield_curve` · `v_bill_rates_quoted` · `v_long_term_rates` · `v_dataset_summary` ·
+`v_source_file_current` · `v_mcp_curve` · `v_mcp_observation` · `v_mcp_series_catalogue` ·
+`v_mcp_dataset` · `v_mcp_portfolio_position`
+
+## 5.3 The five datasets
+
+| Dataset | From | Shape | Series | Observations |
+|---|---:|---|---:|---:|
+| Daily Treasury Par Yield Curve Rates | 1990 | wide | 15 | **108,339** |
+| Daily Treasury Bill Rates | 2002 | wide | 28 | **105,204** |
+| Daily Treasury Par Real Yield Curve Rates | 2003 | wide | 5 | 27,354 |
+| Daily Treasury Long-Term Rates | 2000 | long | 3 | 19,965 |
+| Daily Treasury Real Long-Term Rates | 2000 | wide | 1 | 6,655 |
+
+## 5.4 Quoting basis — the distinction that must never be lost
+
+**This is the single most important column in the database.** The same instrument quoted two
+ways gives two different numbers, both correct, and mixing them silently corrupts a curve.
+
+| `rate_kind` | `quote_basis` | Series | Meaning |
+|---|---|---:|---|
+| nominal | `par_coupon_semiannual` | 17 | Par yields — the classic Treasury curve |
+| nominal | `bank_discount_act360` | 14 | Bill discount rates, ACT/360 |
+| nominal | `coupon_equivalent` | 14 | The *same bills*, bond-equivalent |
+| real | `par_coupon_semiannual` | 5 | TIPS par real yields |
+| real | `average_real_yield` | 2 | Long-term average real |
+
+> Getting `rate_kind` wrong is visible — a real yield among nominals looks odd immediately.
+> **Getting `quote_basis` wrong is not.** A discount rate registered as `coupon_equivalent`
+> sits quietly in a curve until someone prices off it.
+
+## 5.5 The guard that makes the loader safe
+
+Wide datasets are unpivoted generically — there is **no list of maturities anywhere in the
+loader**:
+
+```sql
+FROM staging.<table> st
+CROSS JOIN LATERAL jsonb_each_text(to_jsonb(st) - <ignored>) AS kv(key, value)
+JOIN treasury.series s ON s.data_key = :key AND lower(s.series_code) = kv.key
+WHERE kv.value IS NOT NULL
+```
+
+That join is also the hazard: **an unregistered column would simply vanish**, and every number
+that remained would still look correct. Nobody notices a maturity missing from a curve they have
+never seen complete. So before any insert runs, the loader asserts:
+
+```
+staging columns − ignored  ⊆  registered series codes
+```
+
+and aborts naming the column:
+
+```
+daily_treasury_yield_curve: staging column(s) with no registered series:
+['bc_2_5month']. Treasury has published a series this database does not know
+about. Add it in a migration - do not let the load drop it.
+```
+
+**This failure is the feature. Silence would be the defect.**
+
+## 5.6 The privilege boundary
+
+| Constraint | How it's enforced |
+|---|---|
+| MCP cannot read raw tables | `REVOKE` on `treasury` and `staging` |
+| MCP sees only curated views | `analytics.*`, owner-privileged |
+| MCP cannot exhaust the pool | `CONNECTION LIMIT 5` on `mcp_reader` |
+| MCP cannot write | No `INSERT`/`UPDATE`/`DELETE` grant anywhere |
 
 ---
 
-## All six MCP primitives
+# 6. Stage 3 — Qdrant
 
-Protocol revision **2026-07-28**, SDK `mcp>=2.0.0`. Three primitives flow client→server; three
-flow the other way, mid-call.
+## 6.1 What it is for
 
-| Primitive | Direction | Where it lives here |
+**Qdrant is the brain.** It is not a cache and not a document store — it is where the system
+learns *what a metric means and what data it consumes*, and it is the reason no threshold is
+hardcoded.
+
+```mermaid
+flowchart LR
+    MD["knowledge/<domain>/*.md<br/>11 documents"]
+    CH["chunk on<br/>markdown headings"]
+    TAG["tag<br/>domain · source · heading"]
+    EMB["embed<br/>BAAI/bge-small-en-v1.5"]
+    QD[("<b>quant_knowledge</b><br/>71 points · 384-dim · Cosine")]
+
+    MD --> CH --> TAG --> EMB --> QD
+
+    classDef store fill:#f3f0ff,stroke:#7048e8,stroke-width:2px,color:#000
+    class QD store
+```
+
+| Property | Value |
+|---|---|
+| Collection | `quant_knowledge` |
+| Points | **71** |
+| Vector size | **384** |
+| Distance | **Cosine** |
+| Embedding model | `BAAI/bge-small-en-v1.5` — **runs locally, no API key** |
+| Mode | Docker server when `QDRANT_URL` is set; otherwise embedded at `./data/qdrant` |
+
+## 6.2 What is actually inside — every document
+
+**Live counts, read from the running collection.**
+
+| Domain | Chunks | Documents |
+|---|---:|---|
+| **market_risk** | **35** | `var` (7) · `expected_shortfall` (7) · `yield_curve` (7) · `sensitivities_greeks` (7) · `stress_testing` (7) |
+| **credit_risk** | 13 | `credit_ratings_pd` (7) · `pd_lgd_ead` (6) |
+| **regulatory_capital** | 12 | `basel_capital_ratios` (6) · `rwa` (6) |
+| **xva** | 11 | `exposure_metrics` (6) · `cva` (5) |
+
+Each point carries `domain`, `source`, `heading` and the chunk text — so a citation can be
+verified rather than trusted.
+
+**The subfolder name under `knowledge/` is the domain tag.** Adding a domain means a new
+subfolder plus its docs, then adding it to `DOMAINS`.
+
+## 6.3 Why nothing is hardcoded — and how to prove it
+
+The domain expert holds **no numbers of its own**. Every figure must be quoted verbatim from a
+chunk it actually retrieved, and the quote is checked against the retrieved text:
+
+```python
+if rows is not None and not quote_is_grounded(quote, context):
+    rows, quote = None, None      # discarded — and the user is told why
+```
+
+A window recalled from training is rejected exactly like a constant in the source code:
+**both are unfalsifiable.** You cannot change them by editing a document, and you cannot audit
+them by reading one.
+
+The live quote comes from `knowledge/market_risk/var.md`:
+
+> *"Historical simulation reads a fixed lookback window of **250 trading days** of daily
+> observations."*
+
+### 🔬 Prove it in 60 seconds — the best moment of the demo
+
+```bash
+# 1. edit knowledge/market_risk/var.md — change 250 to 500
+# 2. re-ingest
+python -c "from backend.knowledge.knowledge_base import KnowledgeBase; KnowledgeBase(rebuild=True)"
+# 3. ask the same question again
+```
+
+You get **500**, quoting your edited sentence. **No code change. No release. No engineer.**
+A domain expert can change the system's behaviour by editing a document.
+
+When the corpus is silent on a window, `rows` comes back `None` and the answer says the corpus
+states none — rather than quietly supplying a plausible default.
+
+---
+
+# 7. Stage 4 — MCP layer
+
+## 7.1 Two servers, one host, one boundary
+
+```mermaid
+flowchart TB
+    H["<b>McpHost</b><br/>owns both children · holds the model<br/>protocol 2026-07-28"]
+    D["<b>market-risk-data-mcp</b><br/>14 tools · 4 resources · 3 prompts<br/>reads the database"]
+    R["<b>risk-engine-mcp</b><br/>5 tools · 2 resources · 3 prompts<br/>no DB · no LLM · no network"]
+    PG[("PostgreSQL<br/>as mcp_reader")]
+
+    H -->|"stdio<br/>✅ DB credentials"| D
+    H -->|"stdio<br/>🚫 NO DB credentials"| R
+    D --> PG
+    R -.->|"cannot reach"| PG
+
+    classDef isolated fill:#fff9db,stroke:#f08c00,stroke-width:2px,color:#000
+    classDef store fill:#f3f0ff,stroke:#7048e8,stroke-width:2px,color:#000
+    class R isolated
+    class PG store
+```
+
+**Why the risk engine has no database access.** Not because it would misuse it — because a
+calculation service that *cannot* reach the database makes *"was the input wrong, or the
+maths?"* a question with a mechanical answer. That guarantee is worth nothing if it rests on the
+engine choosing not to connect, so the credentials are **simply absent from its environment**.
+
+`sanitised_env()` builds each child's environment by **allow-list, not deletion** — a deny-list
+silently leaks the next credential someone adds to `.env`.
+
+```bash
+python -m mcp_servers.host --isolation   # proves the risk engine cannot reach the DB
+```
+
+## 7.2 All 19 tools
+
+### `market-risk-data-mcp` — 14 tools
+
+| Tool | What it does | 💬 Demo question |
 |---|---|---|
-| **Tools** | client → server | 14 data + 5 risk |
-| **Resources** | client → server | catalogues, caveats, provenance, risk methodology |
-| **Prompts** | client → server | 3 + 3 recommended tool orderings |
-| **Elicitation** | server → client | `search_series` — `'30 year'` matches BC_30YEAR *and* TC_30YEAR |
-| **Roots** | server → client | `export_curve_csv` — writes only inside a client-granted directory |
-| **Sampling** | server → client | `brief_dataset_caveat` — the data server has no model, so it borrows the host's |
+| `list_datasets` | The five datasets with coverage **and caveats** | *"What Treasury datasets do you have?"* |
+| `list_series` | Rate series, filterable by kind/basis | *"What tenors are available?"* |
+| `search_series` | Resolve `'10 year'` → a series code | *"Find me the thirty year series"* |
+| `get_series_coverage` | First/last observation + count | *"How far back does the 10-year go?"* |
+| `get_curve` | One day's complete par curve | *"Show me today's Treasury yield curve"* |
+| `get_rate_history` | Up to 16 series over a date range | *"How has the 10-year moved this year?"* |
+| `get_curve_history_matrix` | N trading days × tenors, aligned | *"Give me 250 days of curve history for VaR"* |
+| `explain_number` | **Where a number came from** — file, hash, row | *"Where did that 4.70% come from?"* |
+| `list_portfolios` | Demo books, all labelled `SYNTHETIC_DEMO` | *"What portfolios can I analyse?"* |
+| `get_portfolio` | Positions + full instrument economics | *"Show me the demo book"* |
+| `list_scenarios` | The 7 stress scenarios | *"What stress scenarios exist?"* |
+| `get_scenario` | One scenario's full shock vector | *"What exactly is the 2020 COVID scenario?"* |
+| `export_curve_csv` | Write a curve to a client-granted directory | *"Export today's curve to CSV"* |
+| `brief_dataset_caveat` | Terse caveat → desk-ready guidance | *"Explain the caveats on the par curve"* |
 
-The last three share **one mechanism**: a tool parameter annotated `Annotated[T, Resolve(fn)]`
-is filled by running `fn` *before* the tool body, and `fn` may return a request marker instead
-of a value.
+### `risk-engine-mcp` — 5 tools
+
+| Tool | What it does | 💬 Demo question |
+|---|---|---|
+| `price_portfolio_tool` | PV of fixed-rate bonds under a par curve | *"What is the demo book worth today?"* |
+| `compute_dv01_tool` | DV01 by **full revaluation** | *"What is the DV01 of the demo book?"* |
+| `compute_key_rate_dv01_tool` | Sensitivity to each par node individually | *"Break the DV01 down by tenor"* |
+| `run_stress_tool` | Revalue under an explicit bp shock vector | *"Run the 1994 bond massacre on the demo book"* |
+| `compute_historical_risk_tool` | VaR + Expected Shortfall by full revaluation | *"Compute 10-day 99% historical VaR"* |
+
+### Hard boundaries
+
+| Never | Why |
+|---|---|
+| No `run_sql` tool, ever | A tool that accepts SQL is a database with extra steps |
+| No `columns` / `table` / `schema` / `order_by` / `where` parameters | Same reason, wearing a disguise |
+| Par yields are **not** zero rates | The engine bootstraps discount factors before pricing |
+| Limits are **refusals**, not truncations | A silently truncated result is a wrong answer |
+| `stdout` is the protocol channel | A stray `print()` corrupts JSON-RPC and looks like a client disconnect. Diagnostics → stderr. |
+
+## 7.3 All six MCP primitives — with demo questions
+
+Protocol revision **2026-07-28**, SDK `mcp>=2.0.0`. Three flow client→server; three flow back
+mid-call.
+
+```mermaid
+flowchart LR
+    subgraph C2S["client ──► server"]
+        T["<b>Tools</b><br/>19 total"]
+        RS["<b>Resources</b><br/>6 total"]
+        P["<b>Prompts</b><br/>6 total"]
+    end
+    subgraph S2C["server ──► client (mid-call)"]
+        E["<b>Elicitation</b><br/>ask the user"]
+        RO["<b>Roots</b><br/>ask for a directory"]
+        SA["<b>Sampling</b><br/>borrow a model"]
+    end
+    C2S ==> S2C
+
+    classDef a fill:#e7f5ff,stroke:#1971c2,stroke-width:2px,color:#000
+    classDef b fill:#fff9db,stroke:#f08c00,stroke-width:2px,color:#000
+    class T,RS,P a
+    class E,RO,SA b
+```
+
+### 1️⃣ Tools — *client → server*
+
+19 callable operations across both servers (table above).
+
+💬 **Demo question:** *"Show me the nominal Treasury yield curve as a table."*
+→ calls `get_curve`; every point comes back carrying its `quote_basis`.
+
+### 2️⃣ Resources — *client → server*
+
+Context, not data. Six of them:
+
+| URI | Server |
+|---|---|
+| `market-risk://catalog/datasets` | data |
+| `market-risk://catalog/series` | data |
+| `market-risk://docs/data-contract` | data |
+| `market-risk://docs/provenance` | data |
+| `risk://model/manifest` | risk |
+| `risk://methodology/curve-construction` | risk |
+
+💬 **Demo question:** *"What are the caveats on the par yield curve dataset?"*
+→ reads the catalogue resource rather than calling a tool. **Context, not a query.**
+
+### 3️⃣ Prompts — *client → server*
+
+Recommended tool orderings, exposed as slash-commands.
+
+| Server | Prompts |
+|---|---|
+| data | `curve_snapshot` · `explain_series` · `coverage_report` |
+| risk | `risk_summary` · `stress_review` · `var_methodology` |
+
+💬 **Demo:** in MCP Inspector, open **Prompts → `curve_snapshot`**. It returns the *plan*:
+retrieve the curve with `get_curve`, then describe its shape. **The server tells the client how
+to use it.**
+
+### 4️⃣ Elicitation — *server → client, mid-call* ⭐
+
+The server asks the **user** a question instead of guessing.
+
+💬 **Demo question:** *"Find me the 30 year series."*
+
+```
+'30 year' matches BC_30YEAR (nominal par yield)
+       and TC_30YEAR (real / TIPS yield)
+
+→ server does NOT pick. It asks:
+  "A nominal par yield and a real yield are different quantities. Which?"
+→ user answers "real"
+→ resolved: TC_30YEAR
+```
+
+**Why it matters:** a nominal and a real yield are different quantities. Guessing produces a
+confidently wrong answer with no signal that anything went wrong.
+
+### 5️⃣ Roots — *server → client, mid-call* ⭐
+
+The **client grants a directory**; the server may write only inside it.
+
+💬 **Demo question:** *"Export today's curve to CSV."*
+
+```
+roots offered   : exports → data/exports
+written         : data/exports/latest_nominal_curve.csv  (14 rows, 1257 bytes)
+containment test: '../escaped.csv'  →  REFUSED
+```
+
+**Why it matters:** the server never chooses where to write. A path escaping the granted root is
+**refused, never sanitised** — sanitising hides the attempt.
+
+### 6️⃣ Sampling — *server → client, mid-call* ⭐
+
+The server has **no model**, so it borrows the host's.
+
+💬 **Demo question:** *"Explain the caveats on the par yield curve in desk-ready language."*
+
+```
+drafted_by_model : claude-opus-5      ← the HOST's model, not the server's
+verbatim caveat  : PAR yields - not zero-coupon/spot rates, not forwards…
+```
+
+**Why it matters:** this makes the division of labour explicit. Neither server may hold a model.
+When the data server needs prose, it asks the *host*. **The model stays on one side of the
+boundary; the database credential stays on the other.**
+
+### How the last three actually work
+
+All three share one mechanism. A tool parameter annotated `Annotated[T, Resolve(fn)]` is filled
+by running `fn` *before* the tool body, and `fn` may return `Elicit[T]`, `ListRoots` or `Sample`
+instead of a value. The framework returns an `InputRequiredResult`, and the client answers by
+**retrying the original call** with `input_responses` + `request_state` — the **MRTR** pattern.
+`McpHost.call` runs that retry loop, so the agents never see it.
 
 ```mermaid
 sequenceDiagram
@@ -350,184 +649,472 @@ sequenceDiagram
     participant H as McpHost
     participant S as data server
     participant U as User
-
     M->>H: search_series("30 year")
     H->>S: tools/call
-    Note over S: resolver finds BC_30YEAR (nominal)<br/>and TC_30YEAR (real) — cannot choose
-    S-->>H: InputRequiredResult<br/>input_requests{elicitation/create}
+    Note over S: matches BC_30YEAR and TC_30YEAR<br/>cannot choose
+    S-->>H: InputRequiredResult
     H->>U: "nominal or real?"
     U-->>H: "real"
-    H->>S: RETRY same call<br/>+ input_responses + request_state
+    H->>S: RETRY + input_responses + request_state
     S-->>H: CallToolResult → TC_30YEAR
-    H-->>M: filtered matches
 ```
 
-That retry loop is **MRTR** (multi-round-trip tool response). There is no server-initiated
-`elicitation/create` any more and no `elicitationId` — correlation is by resolver key across
-retries. `McpHost.call` drives the loop, so the provider seam and the reasoning agent never see
-it.
+> ⚠️ **The host must connect with `session.discover()`, not `session.initialize()`.**
+> `initialize` is the pre-2026 handshake and negotiates at most 2025-11-25, on which those
+> three primitives fall back to deprecated standalone requests. `verify_mcp.py` asserts the
+> negotiated revision so this cannot regress silently.
 
-**Two things that are easy to get wrong**
-
-1. **Connect with `session.discover()`, not `session.initialize()`.** `initialize` is the
-   pre-2026 handshake and negotiates at most 2025-11-25, where these three fall back to
-   deprecated standalone requests. `verify_mcp.py` asserts the negotiated revision.
-2. **Never combine a `Resolve(...)` parameter with a hand-rolled `InputRequiredResult` return
-   on one tool.** A call has a single `input_responses`/`request_state` channel; the two flows
-   overwrite each other and the call can never converge. The SDK rejects it at registration.
-
-Resolver bodies **re-run on every round**, so they must be cheap and side-effect-free. A
-resolver that returns a plain value asks nothing and costs no round trip — which is what keeps
-elicitation affordable to leave switched on.
+### See it yourself
 
 ```bash
-python -m mcp_servers.host --primitives   # exercise all six, end to end
+python -m mcp_servers.host --tools        # discover both servers' tools
+python -m mcp_servers.host --primitives   # exercise ALL SIX, end to end
+python -m mcp_servers.host --demo         # curve → price → DV01 → VaR → stress
+python -m mcp_servers.host --isolation    # prove the risk engine has no DB
+python -m mcp_servers.host --ask "..."    # the host's own agent
 ```
+
+### Browsing the servers in MCP Inspector
+
+```bash
+CLIENT_PORT=6280 SERVER_PORT=6281 npx @modelcontextprotocol/inspector python -m mcp_servers.data.server
+CLIENT_PORT=6282 SERVER_PORT=6283 npx @modelcontextprotocol/inspector python -m mcp_servers.risk.server
+```
+
+Inspector shows **Tools, Resources and Prompts** beautifully. It will **not** show elicitation,
+roots or sampling — Inspector v1 connects with `initialize` and so negotiates ≤2025-11-25. Use
+`--primitives` for those three.
 
 ---
 
-## Quick start
+# 8. Stage 5 — The three agents
+
+```mermaid
+flowchart TB
+    Q(["question"])
+    O["<b>1️⃣ ORCHESTRATOR</b><br/>claude-haiku-4-5<br/><i>routes</i>"]
+    D["<b>2️⃣ DOMAIN EXPERT</b><br/>claude-opus-5<br/><i>what data is needed?</i>"]
+    M["<b>3️⃣ MCP AGENT</b><br/>claude-opus-5<br/><i>what can be served?</i>"]
+    R(["answer + trace"])
+    QD[("Qdrant")]
+
+    Q --> O
+    O -->|"direct — reply and stop"| R
+    O -->|"clarify — ask ONE question"| R
+    O -->|"data_request"| D
+    D <--> QD
+    D <==>|"<b>DISCUSSION</b><br/>max 3 rounds"| M
+    M -->|"fetch + calculate"| O
+    O --> R
+
+    classDef cheap fill:#d3f9d8,stroke:#2f9e44,stroke-width:2px,color:#000
+    classDef deep fill:#fff9db,stroke:#f08c00,stroke-width:2px,color:#000
+    classDef store fill:#f3f0ff,stroke:#7048e8,stroke-width:2px,color:#000
+    class O cheap
+    class D,M deep
+    class QD store
+```
+
+| Agent | Model | Why that model | Responsibility |
+|---|---|---|---|
+| **Orchestrator** | `claude-haiku-4-5` | Runs on **every** turn including "hi". Routing needs speed, not depth. | Classify → reply / clarify / delegate. Then write the final answer. |
+| **Domain Expert** | `claude-opus-5` | This is where the thinking is. | Vector-search Qdrant, decide the requirement, defend it. |
+| **MCP Agent** | `claude-opus-5` | Judging what a source can serve needs reading, not a set lookup. | Advertise tools, negotiate, fetch, calculate. |
+
+## 8.1 Why a discussion, not a handoff — the heart of the design
+
+**Neither agent knows enough alone.**
+
+- The **domain expert** knows what the *method* requires — historical VaR reads 250 trading
+  days, because it read that in the knowledge base.
+- The **MCP agent** knows what the *source* holds — a par yield curve has no CUSIPs, no issuer
+  names, no settlement dates.
+
+A one-way handoff produces requirements nobody can serve. So they talk, and every round is a
+real model call and a real trace span:
+
+```
+round 0  domain_expert → "Proposing 4 fields and a 250-row window for
+                          10-day 99% historical VaR"
+
+round 1  mcp_agent     → "I can serve the full daily par-curve history for all
+                          14 tenors over the 250-trading-day lookback. I cannot
+                          serve cusip, issuer_name or settlement_date — this is
+                          a par yield curve, it holds no instrument records."
+
+         ✓ converged
+```
+
+**Bounded at 3 rounds.** Two agents that can always reply will always reply. If they never
+converge, that fact is *recorded and reported* rather than hidden behind a last-ditch answer.
+
+## 8.2 Two guarantees that live in code, not in a prompt
+
+| Guarantee | Why a prompt isn't enough |
+|---|---|
+| A user who just answered a clarification is **never** asked another | A model instruction is not a bound. A loop with no exit is worse than a wrong guess. |
+| Clarifying questions carry **real** choices | The orchestrator reads the MCP catalogue first, so options are actual portfolios and scenarios. Clicking one *ends* the ambiguity. |
+
+## 8.3 Honesty rules that reach the user
+
+- The demo book is `SYNTHETIC_DEMO`; the curve is `REAL_MARKET_DATA`. **Both labels survive.**
+- Bond values are **model-implied**, not executable prices.
+- VaR is an **analytical demonstration**, not a regulatory figure.
+- **CVA, RWA, PD/LGD/EAD are explained from knowledge but not computed** — there is no
+  counterparty data. The system says so and offers what it *can* compute.
+- Every quoted rate carries its observation date.
+
+## 8.4 A fourth agent, deliberately outside the pipeline
+
+`mcp_servers/host/agent.py` drives both MCP servers directly:
+
+```bash
+python -m mcp_servers.host --ask "What is the DV01 of the demo book?"
+```
+
+Same model, same honesty rules, but **no knowledge base, no discussion, no trace** — and not in
+the `/chat` path. It exists so the MCP layer can be demonstrated with the backend, Qdrant and
+the UI all switched off.
+
+**There is no other agent.** `/chat` has exactly one implementation and no CLI shortcut around
+it — a second path is a second thing to keep in step, and the first to drift.
+
+---
+
+# 9. Stage 6 — The UI
+
+```mermaid
+flowchart LR
+    C["<b>Chat pane</b><br/>own scrollbar"]
+    K["<b>Artifact card</b><br/>'250 rows · window cited<br/>· 3 fields unavailable'"]
+    P["<b>Side panel</b> — own scrollbar<br/>Table │ Data plan │ Discussion │ Source"]
+
+    C --> K -->|click| P
+
+    classDef ui fill:#e7f5ff,stroke:#1971c2,stroke-width:2px,color:#000
+    class C,K,P ui
+```
+
+The table never enters the transcript — **a card stands for it**. Clicking opens a side panel
+while the chat stays live, and the two panes scroll independently.
+
+| Panel tab | Shows |
+|---|---|
+| **Table** | The actual rows and columns, sortable |
+| **Data plan** | Fields granted/refused, row count, **the verbatim quote it was grounded in** |
+| **Discussion** | The full transcript between the domain expert and the MCP agent |
+| **Source** | The knowledge chunks behind the plan |
+
+> ⚠️ Set `AGENT_BACKEND=rest` in `frontend/.env` or the UI silently serves canned mock answers.
+> Raise `AGENT_TIMEOUT_SECONDS` too — one turn runs several MCP round trips behind an Opus loop,
+> and the 30s default expires mid-answer.
+
+---
+
+# 10. LangSmith — tracing and how to read it
+
+## 10.1 What is traced
+
+**Every agent boundary is a LangSmith run**, so one trace shows the shape of the whole system:
+
+```
+agent_pipeline                          (chain)
+├── orchestrator.classify               (llm)       ← Haiku
+├── mcp_agent.catalogue                 (tool)
+├── knowledge_retrieval                 (retriever) ← Qdrant
+├── domain_expert.derive                (llm)       ← Opus
+├── discussion                          (chain)
+│   ├── mcp_agent.assess                (llm)       ← Opus
+│   └── domain_expert.revise            (llm)       ← Opus
+├── mcp_agent.execute                   (tool)
+└── orchestrator.reflect                (llm)       ← Haiku
+```
+
+## 10.2 How to turn it on
+
+Add to `.env` (or export):
+
+```bash
+LANGSMITH_TRACING=true
+LANGSMITH_API_KEY=lsv2_pt_...
+LANGSMITH_PROJECT=semantic-mcp-data-access-gateway   # optional; this is the default
+```
+
+`LANGCHAIN_TRACING_V2` / `LANGCHAIN_API_KEY` / `LANGCHAIN_PROJECT` are accepted as aliases.
+
+**Tracing never changes behaviour.** With no key, `traced()` degrades to simply running the
+function — it does not warn on every call and it does not fail.
+
+## 10.3 How to check it is on
+
+The service prints its status at startup:
+
+```bash
+python -m backend.api.service
+# LangSmith tracing enabled for project 'semantic-mcp-data-access-gateway'
+```
+
+If it is off, it tells you exactly why — one of:
+
+| Message | Fix |
+|---|---|
+| `LANGSMITH_TRACING is true but no API key is set` | Set `LANGSMITH_API_KEY` |
+| `an API key is set but LANGSMITH_TRACING is not 'true'` | Set `LANGSMITH_TRACING=true` |
+| `set LANGSMITH_TRACING=true and LANGSMITH_API_KEY to enable` | Set both |
+
+## 10.4 How to read the outcomes
+
+1. Go to **https://smith.langchain.com**
+2. Open the project **`semantic-mcp-data-access-gateway`**
+3. Click any **`agent_pipeline`** run — it expands into the tree above
+
+**What to look for, and what it proves:**
+
+| In the trace | What it demonstrates |
+|---|---|
+| `orchestrator.classify` **alone** on a greeting | The cheap path really is cheap — no Qdrant, no Opus |
+| `knowledge_retrieval` showing **two** queries | The two-query retrieval fix, visible |
+| `domain_expert.derive` output containing `grounded: true` + the quote | The number came from the corpus, not the model |
+| `discussion` with **1 round** and `converged` | The agents agreed rather than looping |
+| Token counts per span | Where the cost actually goes — Opus on reasoning, Haiku on routing |
+
+**Per-request link.** `POST /chat` returns a `langsmith_url` field pointing at that turn's run,
+so you can jump straight to the trace for a specific answer. *(It is returned by the API but
+not yet rendered in the Streamlit UI — see [known issues](#16-known-issues).)*
+
+## 10.5 Running the evaluation against LangSmith
+
+```bash
+python -m evaluation.run --langsmith
+```
+
+This uploads the 13-case dataset and records an **experiment**, so you get scorer-by-scorer
+results in the LangSmith UI and can compare runs over time. Without the flag it prints a local
+table and touches nothing remote.
+
+---
+
+# 11. Evaluation
+
+```bash
+python -m evaluation.run              # local table
+python -m evaluation.run --langsmith  # dataset + experiment
+python -m evaluation.run --case var_10k_rows
+```
+
+**13 cases × 11 scorers = 73 checks.** It scores **behaviour, not answers** — market data moves,
+so pinning *"the slope is 48 bp"* would fail on every publication day. Not-applicable checks are
+**excluded** rather than counted as passes, so the suite cannot look green by dilution.
+
+### The 13 cases
+
+| Case | Question | Expected route |
+|---|---|---|
+| `greeting` | *"hi"* | direct |
+| `capability` | *"what can you do?"* | direct |
+| `concept_only` | *"what does an inverted yield curve mean?"* | direct |
+| `vague_stress` | *"i want to run a stress test"* | clarify |
+| `vague_var` | *"calculate VaR"* | clarify |
+| `vague_table` | *"show me a table"* | clarify |
+| **`var_10k_rows`** | *"Give me 10,000 rows … for 10-day 99% historical VaR"* | data_request |
+| `es_window` | *"I need data for a 97.5% expected shortfall calculation."* | data_request |
+| `dv01_single_curve` | *"Give me the data to compute DV01 on the demo book."* | data_request |
+| `curve_snapshot` | *"Show me the nominal Treasury yield curve as a table."* | data_request |
+| `counterparty_out_of_scope` | *"Compute CVA on our counterparty exposures."* | data_request |
+| `instrument_detail` | *"Give me the CUSIP and issuer for every bond in the 10-year sector."* | data_request |
+| `slope_specific` | *"What is the 2s10s slope today?"* | data_request |
+
+### The 11 scorers
+
+| Scorer | Checks |
+|---|---|
+| `routing_correct` | The right path was taken |
+| `cheap_path_stays_cheap` | A greeting never touches the vector store |
+| `rows_are_grounded` | The window is cited wherever the corpus states one |
+| `no_ungrounded_numbers` | **Any** stated row count has a citation |
+| `expected_row_count` | 250 for VaR/ES, 1 for a snapshot or DV01 |
+| `impossible_fields_refused` | Non-existent fields are flagged, never filled |
+| `citations_present` | Sources travel with the answer |
+| `no_tool_names_leaked` | The user never sees `get_curve_history_matrix` |
+| `answer_is_brief` | ≤ the case's sentence budget |
+| `discussion_converged` | The agents agreed within the round limit |
+| `clarification_offers_choices` | A clarifying question carries real options |
+
+**Current result: 73/73 (100%).** The suite found four real defects on its first run.
+
+---
+
+# 12. Quick start
 
 ```bash
 python tools/setup.py            # fresh system, end to end
 python tools/setup.py --check    # report state, change nothing
 ```
 
-Or by hand:
+### By hand
 
 ```bash
 pip install -r requirements.txt
-pip install -e ./.claude/src/postgres -e ./.claude/src/mcp -e ./.claude/src/backend
+pip install -e ./postgres -e ./mcp -e ./backend -e ./agents
 cp .env.example .env             # set POSTGRES_PASSWORD and ANTHROPIC_API_KEY
 ```
 
-All three distributions must be installed — they import each other. There are **no `sys.path`
+All four distributions must be installed — they import each other. There are **no `sys.path`
 hacks anywhere**; modules find the repo root by walking up for a marker, never by counting
-`parents[N]` (three packages sit at three depths, so a count is wrong the moment a file moves).
+`parents[N]` (four packages sit at four depths, and a count is wrong the moment a file moves).
 
-**Data layer**
+### Bring it up
 
 ```bash
+# 1 — data layer
 docker compose up -d postgres
 python -m treasury_db.migrate                     # --status to inspect
 python -m treasury_db.load
-python tools/verify_load.py --self-test
-```
 
-**MCP layer**
+# 2 — MCP layer
+python -m mcp_servers.data.bootstrap              # once: set the mcp_reader password
+python -m mcp_servers.host --primitives           # all six primitives
 
-```bash
-python -m mcp_servers.data.bootstrap     # once: set the mcp_reader password
-python -m mcp_servers.host --tools       # discover both servers' tools
-python -m mcp_servers.host --demo        # curve → price → DV01 → VaR → stress
-python -m mcp_servers.host --isolation   # prove the risk engine cannot reach the DB
-python -m mcp_servers.host --primitives  # all six primitives
-python -m mcp_servers.host --ask "What is the current 2s10s slope?"
-```
-
-**Reasoning + UI**
-
-```bash
+# 3 — knowledge
 docker compose up -d qdrant
-python -m backend.knowledge.knowledge_base   # ingest; no API key needed
-python -m backend.api.service                # POST /chat on :8000
-cd .claude/src/frontend && streamlit run app.py   # :8501
+python -c "from backend.knowledge.knowledge_base import KnowledgeBase; KnowledgeBase(rebuild=True)"
+
+# 4 — service + UI
+python -m backend.api.service                     # :8000
+cd frontend && streamlit run app.py               # :8501
 ```
+
+### Environment variables that matter
+
+| Variable | Values | Effect |
+|---|---|---|
+| `DATA_BACKEND` | `mcp` · `postgres` · `mock` | Which `DataProvider` is used |
+| `QDRANT_URL` | a URL, or unset | Docker server vs embedded |
+| `AGENT_BACKEND` | `rest` | **Required**, or the UI serves mock answers |
+| `AGENT_TIMEOUT_SECONDS` | raise from 30 | One turn runs several MCP round trips |
+| `LANGSMITH_TRACING` | `true` | Turn tracing on |
+| `ANTHROPIC_API_KEY` | your key | Required for all three agents |
 
 ---
 
-## Verification
+# 13. Verification
 
-There is no CI. These checks are manual and are the only thing between a defect and `main`.
+**There is no CI.** These checks are manual and are the only thing between a defect and `main`.
 
 ```bash
 python -m treasury_db.migrate --status    # no unexpected pending
 python -m treasury_db.load
 python tools/verify_load.py --self-test   # 74/74
 python tools/verify_mcp.py  --self-test   # 48/48, 4 canaries
-python -m mcp_servers.host --isolation
-python -m mcp_servers.host --demo
-pytest                                    # 231 tests
-cd .claude/src/frontend && pytest          # 10 tests
+python -m mcp_servers.host --isolation    # risk engine cannot reach the DB
+python -m evaluation.run                  # 73/73
+pytest                                    # 218
+cd frontend && pytest                     # 29
 ```
 
-**The principle:** a suite that has only ever passed is equally consistent with a suite that
-cannot detect anything. Every verifier here plants a failure and requires the checks to catch
-it.
+### The principle
 
-- `verify_load` plants a corruption in the loaded data and requires reconciliation to detect it,
-  then rolls back. **Expectations are recounted from the CSVs** — a check that asks the database
-  what it should contain proves nothing.
-- `verify_mcp` plants four canaries that must be **rejected**: a rate missing `quote_basis`, a
-  leaked `BC_30YEARDISPLAY` placeholder, an unlabelled demo position, and a filename that would
-  escape a granted root.
+> A suite that has only ever passed is equally consistent with a suite that **cannot detect
+> anything.**
 
-**Test suite — 241 tests across six tiers**
+So every verifier **plants a failure and requires the checks to catch it**:
+
+- `verify_load` plants a corruption, requires reconciliation to detect it, then rolls back.
+  **Expectations are recounted from the CSVs** — asking the database what it should contain
+  proves nothing.
+- `verify_mcp` plants **four canaries that must be rejected**: a rate missing `quote_basis`, a
+  leaked `BC_30YEARDISPLAY` placeholder, an unlabelled demo position, and a filename escaping a
+  granted root.
+
+### Test suite — 249 tests
 
 | Tier | Focus | Tests |
 |---|---|---:|
-| T1 | Foundations — packaging, contracts, cursor, errors | 28 |
+| T1 | Foundations — packaging, contracts, cursor, errors | 30 |
 | T2 | Advertised surface — schemas, annotations, SQL boundary | 19 |
-| T3 | Data integrity — NULL rule, placeholders, grants | 17 |
+| T3 | Data integrity — the NULL rule, placeholders, grants | 17 |
 | T4 | MCP tools — every tool, happy path + edge | 28 |
 | T5 | Security — injection, traversal, separation of duties | 39 |
 | T6 | Live service — contract, routing, sessions | 18 |
-| — | Risk maths, provider seam, primitives, SDK contract | 82 |
-| — | Frontend | 10 |
+| — | Risk maths, provider seam, primitives, SDK contract, service | 69 |
+| — | Frontend | 29 |
 
-Tiers 3–6 skip cleanly when PostgreSQL or the service is not running, so a red result always
-means a real defect.
-
----
-
-## Repository layout
-
-| Path | Distribution | Import package |
-|---|---|---|
-| `.claude/src/postgres/` | `treasury-db` | `treasury_db` — migrations, loader, DB access |
-| `.claude/src/mcp/` | `mcp-servers` | `mcp_servers` — `.data`, `.risk`, `.host` |
-| `.claude/src/backend/` | `gateway-backend` | `backend` — `.api`, `.agent`, `.knowledge`, `.providers` |
-| `.claude/src/frontend/` | — | Streamlit app, run in place |
-| `data/` | — | source of record, plus the `acquisition/` that fills it |
-| `knowledge/` | — | RAG corpus the vector store ingests |
-| `docs/` | — | contracts and methodology |
-| `tools/` | — | setup and the two verifiers |
-
-The MCP package is `mcp_servers`, deliberately **not** `mcp` — that name belongs to the MCP SDK
-on PyPI, and shadowing it breaks every server with an import error that looks like a corrupted
-install.
-
-`.claude/` holds both configuration (`agents/`, `commands/`, `rules/`, `skills/`,
-`settings.json`) and the four source distributions under `.claude/src/`. Nothing outside
-`.claude/src/` is importable code; nothing inside it is Claude Code configuration.
-
-### Development agents
-
-Seven subagents in `.claude/agents/` mirror the tiers — one per concern, each stating what it
-must **not** do, because the boundaries between tiers are the part worth protecting.
-
-| Agent | Owns | Explicitly does not |
-|---|---|---|
-| `acquisition-agent` | Treasury feeds, raw XML, manifests | load PostgreSQL |
-| `database-agent` | migrations, loader, views, grants | download source data |
-| `mcp-agent` | both servers, host, risk maths | provision DBs, author knowledge |
-| `backend-agent` | QuantAgent, seams, `/chat` | build MCP servers |
-| `frontend-agent` | Streamlit, trace panel | change the `/chat` contract |
-| `knowledge-author` | the `knowledge/` corpus | change retrieval code |
-| `verification-agent` | the pre-PR gates | quietly fix the code under test |
+Tiers 3–6 **skip cleanly** when PostgreSQL or the service is down, so red always means a real
+defect.
 
 ---
 
-## Documentation
+# 14. Demo script
+
+Ten minutes, in this order.
+
+| # | Do this | Point at |
+|---|---|---|
+| 1 | Type **"hi"** | Instant. Trace shows *one* Haiku call — no Qdrant, no Opus. |
+| 2 | Type **"i want to run a stress test"** | It asks **one** question, with the **real 7 scenarios** as options. |
+| 3 | Click **"1994 bond massacre"** | It proceeds. It does **not** ask again. |
+| 4 | Type the **10,000-row VaR question** | The headline. It returns **250**, quoting `var.md`, and **refuses cusip / issuer_name / settlement_date**. |
+| 5 | Open the artifact card → **Data plan** | The verbatim quote, and each field marked required / not needed / unavailable. |
+| 6 | Open → **Discussion** | The two agents arguing. *This is the part nobody expects.* |
+| 7 | Edit `var.md` 250→500, re-ingest, re-ask | **Different answer, no code change.** The proof there is no hardcoding. |
+| 8 | Run `--primitives` in a terminal | All six MCP primitives, protocol 2026-07-28. |
+| 9 | Run `--isolation` | The risk engine **cannot** reach the database. |
+| 10 | Open LangSmith | The full run tree, with token counts per agent. |
+
+---
+
+# 15. Repository layout
+
+| Path | Distribution | Import package | Holds |
+|---|---|---|---|
+| `agents/` | `gateway-agents` | `agents` | The three runtime agents + the pipeline |
+| `backend/` | `gateway-backend` | `backend` | `/chat` service, seams, KnowledgeBase, workflows |
+| `mcp/` | `mcp-servers` | `mcp_servers` | Both servers, the host, risk maths |
+| `postgres/` | `treasury-db` | `treasury_db` | Migrations, loader, DB access |
+| `frontend/` | — | — | Streamlit app, run in place |
+| `evaluation/` | — | — | Dataset, evaluators, runner |
+| `knowledge/` | — | — | The RAG corpus — 4 domains, 11 docs |
+| `data/` | — | — | Source of record + `acquisition/` |
+| `tools/` | — | — | `setup.py`, `verify_load.py`, `verify_mcp.py` |
+| `docs/` | — | — | Contracts and methodology |
+| `.claude/` | — | — | **Configuration only** — no product code |
+
+> **The MCP package is `mcp_servers`, deliberately not `mcp`** — that name belongs to the MCP SDK
+> on PyPI, and shadowing it breaks every server with an import error that looks like a corrupted
+> install. (A *directory* named `mcp/` is safe: a regular package beats a namespace portion, so
+> `import mcp` still resolves to the SDK.)
+
+`.claude/` holds seven **development** subagents that configure Claude Code. They never run in
+the product.
+
+---
+
+# 16. Known issues
+
+Recorded rather than hidden.
+
+| # | Issue | Severity |
+|---|---|---|
+| 1 | **The user's scenario choice is ignored.** Clicking "Parallel +100" still runs `FLATTENER_50BP` — the MCP agent resolves a scenario with `_first_scenario()` instead of carrying the pick through. Needs a field threaded from intent → `Requirement` → `execute()`. | 🔴 |
+| 2 | **Repeated market questions may answer from session memory** rather than re-fetching. Intermittent; recorded as an `xfail`. | 🟠 |
+| 3 | **LangSmith is instrumented but unproven.** Every boundary is traced and it degrades cleanly without a key, but no real trace has been observed against a live account. | 🟡 |
+| 4 | **`langsmith_url` is returned by `/chat` but not rendered in the UI.** | 🟡 |
+| 5 | Routing runs on a small model and shows run-to-run variance on borderline phrasing. | 🟡 |
+
+---
+
+# Further reading
 
 | Document | Covers |
 |---|---|
-| [`CLAUDE.md`](CLAUDE.md) | Shared project memory; the rules that apply to every session |
-| [`AGENTS.md`](AGENTS.md) | The runtime agent's architecture, tools and decision trace |
-| [`docs/loading-contract.md`](docs/loading-contract.md) | How to extend the pipeline |
+| [`AGENTS.md`](AGENTS.md) | The runtime agent architecture in full |
+| [`CLAUDE.md`](CLAUDE.md) | Shared project memory; rules for every session |
+| [`agents/README.md`](agents/README.md) | The three agents in depth |
+| [`docs/loading-contract.md`](docs/loading-contract.md) | How to extend the data pipeline |
 | [`docs/mcp-contract.md`](docs/mcp-contract.md) | The MCP tool/resource/prompt contract |
 | [`docs/risk-methodology.md`](docs/risk-methodology.md) | Curve construction and risk maths |
 | [`docs/postgres-setup.md`](docs/postgres-setup.md) | Database provisioning, narrated |
+| [`docs/data-guide.md`](docs/data-guide.md) | The datasets, in detail |
 
 ## Licence
 
