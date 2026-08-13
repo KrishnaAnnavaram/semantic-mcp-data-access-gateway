@@ -40,6 +40,8 @@ class AnswerResult:
     tables: list[dict] = field(default_factory=list)
     # Which fields and how many rows the task needed, and what decided that.
     data_plan: dict | None = None
+    # The domain expert <-> MCP agent exchange that settled the plan.
+    negotiation: dict | None = None
 
     @property
     def awaiting_clarification(self) -> bool:
@@ -85,6 +87,7 @@ class RestAgentClient:
             route=payload.get("route", "quant"),
             tables=payload.get("tables") or [],
             data_plan=payload.get("data_plan"),
+            negotiation=payload.get("negotiation"),
         )
 
     def summarise(self, messages: list[dict]) -> str | None:

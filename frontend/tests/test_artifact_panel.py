@@ -18,16 +18,23 @@ TABLE = {
     "truncated": False,
 }
 
+# The domain expert's Requirement, as `/chat` serialises it. Key names matter:
+# the panel once read the *old* planner's names (granted_rows, field_decisions,
+# sources) and silently rendered an empty tab against this payload.
 PLAN = {
-    "requested_rows": 10_000,
-    "granted_rows": 250,
-    "granted_fields": ["observation_date", "rate_percent", "quote_basis", "tenor"],
-    "field_decisions": [
+    "rows": 250,
+    "grounded": True,
+    "row_quote": "Historical simulation reads a fixed lookback window of 250 trading days.",
+    "fields": ["observation_date", "rate_percent", "quote_basis", "tenor"],
+    "field_notes": [
         {"name": "observation_date", "verdict": "required", "reason": "..."},
         {"name": "cusip", "verdict": "unavailable", "reason": "..."},
         {"name": "issuer_name", "verdict": "unavailable", "reason": "..."},
         {"name": "settlement_date", "verdict": "unavailable", "reason": "..."},
     ],
+    "citations": [{"domain": "market_risk", "source": "var",
+                   "heading": "Observation window", "distance": 0.12}],
+    "warnings": ["Requested 10,000 rows; the method consumes 250."],
 }
 
 
@@ -36,9 +43,15 @@ def test_the_card_states_the_shape_of_the_data():
     assert "4 cols" in artifact_summary(TABLE, PLAN)
 
 
-def test_the_card_surfaces_the_gap_between_asked_and_returned():
-    """The reduction is the headline; hiding it behind a click wastes it."""
-    assert "you asked for 10,000" in artifact_summary(TABLE, PLAN)
+def test_the_card_says_whether_the_window_is_cited():
+    """The most useful thing on the card: is this number auditable?"""
+    assert "window cited" in artifact_summary(TABLE, PLAN)
+
+
+def test_an_ungrounded_window_is_called_out_on_the_card():
+    """A row count nobody can trace must not look like one that is traced."""
+    summary = artifact_summary(TABLE, dict(PLAN, grounded=False))
+    assert "window NOT cited" in summary
 
 
 def test_the_card_counts_fields_that_do_not_exist():
@@ -46,13 +59,13 @@ def test_the_card_counts_fields_that_do_not_exist():
     assert "3 field(s) unavailable" in artifact_summary(TABLE, PLAN)
 
 
-def test_no_gap_is_claimed_when_the_request_was_already_right_sized():
-    plan = dict(PLAN, requested_rows=250)
-    assert "you asked for" not in artifact_summary(TABLE, plan)
+def test_no_window_is_claimed_when_the_corpus_stated_none():
+    plan = dict(PLAN, rows=None)
+    assert "window" not in artifact_summary(TABLE, plan)
 
 
 def test_no_missing_fields_are_claimed_when_all_were_available():
-    plan = dict(PLAN, field_decisions=[
+    plan = dict(PLAN, field_notes=[
         {"name": "observation_date", "verdict": "required", "reason": "..."}])
     assert "unavailable" not in artifact_summary(TABLE, plan)
 
@@ -61,7 +74,7 @@ def test_a_table_without_a_plan_still_summarises():
     """Not every table comes from the planner; the card must not depend on one."""
     summary = artifact_summary(TABLE, None)
     assert "250 rows" in summary
-    assert "asked for" not in summary
+    assert "window" not in summary
 
 
 def test_an_empty_table_does_not_crash_the_card():

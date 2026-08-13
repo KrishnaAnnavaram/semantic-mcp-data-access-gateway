@@ -166,19 +166,21 @@ def artifact_summary(table: dict, plan: dict | None) -> str:
     """
     parts = [f"{table.get('row_count', 0):,} rows × {len(table.get('columns') or [])} cols"]
     if plan:
-        requested = plan.get("requested_rows")
-        granted = plan.get("granted_rows")
-        if requested and granted and requested != granted:
-            parts.append(f"you asked for {requested:,}")
-        missing = sum(1 for d in plan.get("field_decisions") or []
-                      if d.get("verdict") == "unavailable")
+        # Whether the window is backed by a citation is the single most useful
+        # thing on the card: an ungrounded row count is a number nobody can
+        # audit, and the user should see that before opening anything.
+        if plan.get("rows") is not None:
+            parts.append("window cited" if plan.get("grounded") else "window NOT cited")
+        missing = sum(1 for note in plan.get("field_notes") or []
+                      if note.get("verdict") == "unavailable")
         if missing:
             parts.append(f"{missing} field(s) unavailable")
     return " · ".join(parts)
 
 
 def _render_artifact_card(message_index: int, artifact_index: int,
-                          table: dict, plan: dict | None) -> None:
+                          table: dict, plan: dict | None,
+                          negotiation: dict | None = None) -> None:
     """A clickable card standing in for the data, Claude-artifact style.
 
     The table does not belong in the transcript: a 250-row grid squeezed into a
@@ -203,7 +205,8 @@ def _artifact_dataframe(table: dict):
     return pd.DataFrame(table.get("rows") or [], columns=table.get("columns") or [])
 
 
-def _render_artifact_panel(table: dict, plan: dict | None) -> None:
+def _render_artifact_panel(table: dict, plan: dict | None,
+                           negotiation: dict | None = None) -> None:
     """The open artifact: data, the reasoning behind it, and where it came from.
 
     Three tabs because they answer three different questions, and a reviewer
@@ -218,7 +221,8 @@ def _render_artifact_panel(table: dict, plan: dict | None) -> None:
             st.session_state.open_artifact = None
             st.rerun()
 
-    tab_table, tab_plan, tab_source = st.tabs(["Table", "Data plan", "Source"])
+    tab_table, tab_plan, tab_talk, tab_source = st.tabs(
+        ["Table", "Data plan", "Discussion", "Source"])
 
     with tab_table:
         try:
@@ -241,6 +245,9 @@ def _render_artifact_panel(table: dict, plan: dict | None) -> None:
 
     with tab_plan:
         _render_plan_body(plan)
+
+    with tab_talk:
+        _render_discussion(negotiation)
 
     with tab_source:
         provenance = table.get("provenance") or {}
@@ -271,36 +278,78 @@ def _render_plan_body(plan: dict | None) -> None:
     for warning in plan.get("warnings") or []:
         st.warning(warning)
 
-    requested, granted = plan.get("requested_rows"), plan.get("granted_rows")
+    rows = plan.get("rows")
     left, right = st.columns(2)
-    left.metric("Rows returned", f"{granted:,}",
-                delta=(f"{granted - requested:+,} vs asked" if requested else None),
-                delta_color="off")
-    right.metric("Fields granted", len(plan.get("granted_fields") or []))
+    left.metric("Rows returned", f"{rows:,}" if rows is not None else "unstated")
+    right.metric("Fields granted", len(plan.get("fields") or []))
 
-    st.markdown(f"**Basis** — {plan.get('basis', '')}")
-    st.markdown(f"**Why this many rows** — {plan.get('row_reason', '')}")
+    # The grounding evidence, front and centre. This is the claim the whole
+    # design rests on: the window came out of the knowledge base, not out of a
+    # constant, and here is the sentence it came from.
+    if plan.get("grounded") and plan.get("row_quote"):
+        st.success("Row count is quoted from the knowledge base:")
+        st.markdown(f"> {plan['row_quote']}")
+    elif rows is not None:
+        st.error("This row count could NOT be traced to a knowledge source.")
+    else:
+        st.info("The knowledge base states no observation window for this task. "
+                "Add one to a document under `knowledge/` and it is used on the "
+                "next request — no code change.")
 
-    decisions = plan.get("field_decisions") or []
-    if decisions:
+    if plan.get("row_reason"):
+        st.markdown(f"**Why this many rows** — {plan['row_reason']}")
+    if plan.get("answerable") is False and plan.get("unanswerable_reason"):
+        st.markdown(f"**Declined** — {plan['unanswerable_reason']}")
+
+    notes = plan.get("field_notes") or []
+    if notes:
         st.markdown("**Field decisions**")
-        badge = {"required": "✅", "dropped": "➖", "unavailable": "⚠️"}
-        for decision in decisions:
+        badge = {"required": "✅", "not_needed": "➖", "unavailable": "⚠️"}
+        for note in notes:
             st.markdown(
-                f"- {badge.get(decision['verdict'], '•')} `{decision['name']}` "
-                f"— *{decision['verdict']}*: {decision['reason']}"
+                f"- {badge.get(note.get('verdict'), '•')} `{note.get('name')}` "
+                f"— *{note.get('verdict')}*: {note.get('reason')}"
             )
 
-    sources = plan.get("sources") or []
-    if sources:
-        st.markdown("**Decided from these knowledge sources**")
-        for source in sources:
-            distance = source.get("distance")
+    # `citations`, not `sources`: this payload comes from the domain expert's
+    # Requirement, and reading the old planner's key name is why this panel
+    # rendered empty.
+    citations = plan.get("citations") or []
+    if citations:
+        st.markdown(f"**Retrieved from Qdrant — {len(citations)} chunk(s)**")
+        for citation in citations:
+            distance = citation.get("distance")
             suffix = f" · distance {distance}" if distance is not None else ""
-            st.markdown(f"- `{source.get('domain')}/{source.get('source')}` — "
-                        f"{source.get('heading')}{suffix}")
+            st.markdown(f"- `{citation.get('domain')}/{citation.get('source')}` — "
+                        f"{citation.get('heading')}{suffix}")
     else:
         st.caption("No knowledge chunks were retrieved for this plan.")
+
+
+def _render_discussion(negotiation: dict | None) -> None:
+    """The exchange between the domain expert and the MCP agent.
+
+    Shown because the requirement being *argued* is the claim: one agent knows
+    what the method needs, the other knows what the source holds, and the plan
+    is what they agreed rather than what either assumed.
+    """
+    if not negotiation:
+        st.caption("No discussion was recorded for this turn.")
+        return
+
+    rounds = negotiation.get("rounds_used", 0)
+    if negotiation.get("converged"):
+        st.success(f"Agreed after {rounds} round(s).")
+    else:
+        st.warning(f"No agreement after {rounds} round(s).")
+    if negotiation.get("outcome"):
+        st.caption(negotiation["outcome"])
+
+    who = {"domain_expert": "🧠 Domain expert", "mcp_agent": "🔌 MCP agent"}
+    for turn in negotiation.get("turns") or []:
+        st.markdown(f"**{who.get(turn.get('speaker'), turn.get('speaker'))}** "
+                    f"· round {turn.get('round')}")
+        st.markdown(f"> {turn.get('message', '')}")
 
 
 def _render_header() -> None:
@@ -432,7 +481,8 @@ def _send(chat: dict, question: str) -> None:
     # Tables and the plan ride on the message itself, so a rerun (every button
     # click in Streamlit is one) redraws them instead of losing them.
     chat["messages"].append({"role": "assistant", "content": result.answer,
-                             "tables": result.tables, "data_plan": result.data_plan})
+                             "tables": result.tables, "data_plan": result.data_plan,
+                             "negotiation": result.negotiation})
     chat["pending"] = result.elicitation if result.awaiting_clarification else None
     if not chat["messages"][:-2] and not chat.get("titled"):
         # Provisional title from the first question, replaced by the summary later.
@@ -448,7 +498,8 @@ def _render_history(messages: list[dict]) -> None:
         # for it, so the conversation stays readable at a glance.
         for artifact_index, table in enumerate(message.get("tables") or []):
             _render_artifact_card(index, artifact_index, table,
-                                  message.get("data_plan"))
+                                  message.get("data_plan"),
+                                  message.get("negotiation"))
 
 
 def _open_artifact(chat: dict) -> tuple[dict, dict | None] | None:
@@ -462,7 +513,8 @@ def _open_artifact(chat: dict) -> tuple[dict, dict | None] | None:
         return None
     try:
         message = chat["messages"][reference["message"]]
-        return message["tables"][reference["artifact"]], message.get("data_plan")
+        return (message["tables"][reference["artifact"]],
+                message.get("data_plan"), message.get("negotiation"))
     except (KeyError, IndexError, TypeError):
         st.session_state.open_artifact = None
         return None
