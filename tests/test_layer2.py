@@ -6,8 +6,8 @@ LLM loop is intentionally not exercised here.
 
 import json
 
-from data_provider import MockDataProvider
-from smart_agent import TraceStep, extract_sources, trace_as_dicts
+from backend.providers.base import MockDataProvider
+from backend.agent.quant_agent import TraceStep, extract_sources, trace_as_dicts
 
 
 # --- Treasury-shaped mock data provider ---------------------------------------
@@ -72,7 +72,7 @@ def test_trace_as_dicts_is_json_serializable():
 def test_service_health_and_validation():
     from fastapi.testclient import TestClient
 
-    import agent_service
+    from backend.api import service as agent_service
 
     client = TestClient(agent_service.app)
     assert client.get("/health").status_code == 200

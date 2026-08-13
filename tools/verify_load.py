@@ -44,12 +44,11 @@ from pathlib import Path
 from typing import Any, Sequence
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT / ".claude" / "loading"))
 
 import psycopg2  # noqa: E402  (needed for the privilege probes)
 
-from _db import connect, describe_target, fetch_all, scalar  # noqa: E402
-from load_us_treasury import (  # noqa: E402
+from treasury_db.db import connect, describe_target, fetch_all, scalar  # noqa: E402
+from treasury_db.load import (
     LOAD_SPECS,
     MANIFEST_PATH,
     PROCESSED_DIR,

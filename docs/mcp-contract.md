@@ -11,7 +11,7 @@ host launches each server as a child process.
 ## Topology
 
 ```
-host (src/host)  — MCP host + client, the only component that reasons
+host (.claude/src/mcp/src/mcp_servers/host) — MCP host + client, the only component that reasons
   ├── stdio ──► market-risk-data-mcp   12 tools · 4 resources · 3 prompts
   │                └── PostgreSQL as mcp_reader (SELECT on analytics + demo)
   └── stdio ──► risk-engine-mcp         5 tools · 2 resources
@@ -29,7 +29,7 @@ Six boundaries, each enforced by mechanism rather than intent:
 | Bulk arrays bypass model context | Routed through the result's `_meta` channel |
 | Real vs synthetic is unambiguous | `CHECK` constraints in `demo.*`, classification on every payload |
 
-Verify the second one: `python -m src.host --isolation`.
+Verify the second one: `python -m mcp_servers.host --isolation`.
 
 ---
 
@@ -231,8 +231,8 @@ computation is a different workload and should not shape the first API.
 
 ```bash
 python tools/verify_mcp.py --self-test    # 35 checks; 3 canaries must be caught
-python -m src.host --isolation            # risk engine has no DB reachability
-python -m src.host --demo                 # full chain
+python -m mcp_servers.host --isolation            # risk engine has no DB reachability
+python -m mcp_servers.host --demo                 # full chain
 ```
 
 The canaries are payloads that must be **rejected**: a rate missing

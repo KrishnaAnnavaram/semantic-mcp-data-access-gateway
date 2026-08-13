@@ -66,7 +66,7 @@ the loader stops. Three edits:
 **1. Staging column** — a **new** migration, never an edit to an applied one:
 
 ```sql
--- db/migrations/V008__add_bc_2_5month.sql
+-- .claude/src/postgres/migrations/V008__add_bc_2_5month.sql
 ALTER TABLE staging.par_yield_curve
     ADD COLUMN IF NOT EXISTS bc_2_5month numeric(9,4);
 ```
@@ -89,8 +89,8 @@ ON CONFLICT (data_key, series_code) DO UPDATE
 same migration. The tidy `v_observation` needs nothing.
 
 ```bash
-python .claude/loading/migrate.py
-python .claude/loading/load_us_treasury.py
+python -m treasury_db.migrate
+python -m treasury_db.load
 python tools/verify_load.py --self-test
 ```
 
@@ -142,8 +142,8 @@ a new bill tenor needs no code change.
 ## Verify before you commit
 
 ```bash
-python .claude/loading/migrate.py --status
-python .claude/loading/load_us_treasury.py
+python -m treasury_db.migrate --status
+python -m treasury_db.load
 python tools/verify_load.py --self-test
 ```
 

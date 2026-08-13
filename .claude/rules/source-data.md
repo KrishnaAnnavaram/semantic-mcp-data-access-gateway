@@ -1,6 +1,6 @@
 ---
 paths:
-  - ".claude/acquisition/**/*.py"
+  - "data/acquisition/**/*.py"
   - "data/**"
 ---
 
@@ -45,6 +45,6 @@ After any change here, re-run acquisition and confirm the reports still
 reconcile:
 
 ```bash
-python .claude/acquisition/download_us_treasury.py
+python -m acquisition.download_us_treasury
 python tools/verify_load.py --self-test
 ```

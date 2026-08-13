@@ -13,7 +13,7 @@ psycopg2-binary>=2.9    # PostgreSQL driver for migrate.py / load_us_treasury.py
 # floor, not a preference.
 mcp>=2.0.0
 
-# --- knowledge layer + smart agent ---
+# --- knowledge layer + quant agent ---
 anthropic>=0.69.0
 qdrant-client[fastembed]>=1.12 # vector store: embedded (dev) or Qdrant server (Docker)
 

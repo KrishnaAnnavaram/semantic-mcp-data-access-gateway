@@ -17,7 +17,7 @@ this project exists to prevent.
 - Confirm the acquired data is present:
   `data/processed/us_treasury/*.csv` and
   `data/metadata/us_treasury/download_manifest.json`.
-  If missing, run `python .claude/acquisition/download_us_treasury.py` first
+  If missing, run `python -m acquisition.download_us_treasury` first
   and say that you are doing so — it fetches ~60 MB from Treasury.
 - Confirm `psycopg2` is importable; if not, `pip install psycopg2-binary`.
 
@@ -35,8 +35,8 @@ service for them.
 ## 3. Migrate
 
 ```bash
-python .claude/loading/migrate.py --status
-python .claude/loading/migrate.py
+python -m treasury_db.migrate --status
+python -m treasury_db.migrate
 ```
 
 If it reports that applied migrations were edited, **stop**. That is schema
@@ -46,7 +46,7 @@ force it through.
 ## 4. Load
 
 ```bash
-python .claude/loading/load_us_treasury.py
+python -m treasury_db.load
 ```
 
 If it aborts naming an unmapped column, Treasury has published a new series.

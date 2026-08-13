@@ -26,9 +26,9 @@ manifest ──verify SHA-256──► meta.source_file
 ## Run it
 
 ```bash
-python .claude/loading/load_us_treasury.py
-python .claude/loading/load_us_treasury.py --dataset daily_treasury_yield_curve
-python .claude/loading/load_us_treasury.py --dry-run     # check inputs, write nothing
+python -m treasury_db.load
+python -m treasury_db.load --dataset daily_treasury_yield_curve
+python -m treasury_db.load --dry-run     # check inputs, write nothing
 ```
 
 Reference result: 52 series, 267,517 observations, 140 source files verified.

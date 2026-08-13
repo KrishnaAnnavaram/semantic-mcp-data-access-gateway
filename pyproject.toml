@@ -1,0 +1,27 @@
+# Workspace configuration for semantic-mcp-data-access-gateway.
+#
+# This file intentionally declares NO [project] table — the repository is not a
+# single distribution. It is three, each with its own pyproject.toml:
+#
+#   src/postgres/   treasury-db      schema, migrations, loader, DB access
+#   src/mcp/        mcp-servers      the two stdio servers and the host
+#   src/backend/    gateway-backend  quant agent, knowledge retrieval, /chat API
+#
+# Install all three for development:
+#
+#   pip install -r requirements.txt
+#   pip install -e ./.claude/src/postgres -e ./.claude/src/mcp -e ./.claude/src/backend
+#
+# The frontend is a Streamlit app, run in place, with its own test suite.
+
+[tool.pytest.ini_options]
+# Root `pytest` runs the cross-tier integration suite only. The frontend suite
+# imports its modules flat (`from agent_client import ...`) and expects its own
+# rootdir, so it runs from there: `cd .claude/src/frontend && pytest`.
+testpaths = ["tests"]
+pythonpath = [".claude/src/postgres/src", ".claude/src/mcp/src", ".claude/src/backend/src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = ["adaptive-legacy-code-complexity-harness", "data/raw", "data/processed"]

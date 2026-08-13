@@ -21,9 +21,8 @@ from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT))
 
-from src.mcp_data.server import server as data_server  # noqa: E402
+from mcp_servers.data.server import server as data_server  # noqa: E402
 
 LOGGER = logging.getLogger("verify_mcp")
 
@@ -123,9 +122,25 @@ async def check_tool_declarations(v: Verifier) -> None:
     v.record("all_have_output_schema", 0,
              sum(1 for t in tools if not t.output_schema),
              "structured results, not prose the model must parse")
-    v.record("all_read_only", 0,
+    # "Read-only" is not the invariant; "cannot write to the source of record"
+    # is. Those came to the same thing while every tool only read. `export_curve_csv`
+    # writes a file into a directory the *client* declared as a root, which is a
+    # different act from writing to the database, and collapsing the two would
+    # force an honest tool to declare a dishonest annotation.
+    #
+    # So the allowlist is named here rather than inferred. Adding a writing tool
+    # means editing this line, which is exactly the amount of friction the
+    # decision deserves.
+    DECLARED_WRITERS = {"export_curve_csv"}
+    writers = {t.name for t in tools
+               if not (t.annotations and t.annotations.read_only_hint)}
+    v.record("no_undeclared_writers", set(), writers - DECLARED_WRITERS,
+             "a tool that writes must be listed in DECLARED_WRITERS on purpose")
+    v.record("database_tools_all_read_only", 0,
              sum(1 for t in tools
-                 if not (t.annotations and t.annotations.read_only_hint)))
+                 if t.name not in DECLARED_WRITERS
+                 and not (t.annotations and t.annotations.read_only_hint)),
+             "the mcp_reader grant enforces this; the annotation must agree")
     v.record("none_destructive", 0,
              sum(1 for t in tools
                  if t.annotations and t.annotations.destructive_hint))
@@ -279,12 +294,107 @@ async def check_resources(v: Verifier) -> None:
     v.record("prompts_present", True, len(prompts) >= 3, f"{len(prompts)} prompts")
 
 
+async def check_client_directed_primitives(v: Verifier) -> None:
+    """Elicitation, roots and sampling: the three that ask the client mid-call.
+
+    These cannot be checked the way every other tool here is. The in-process
+    `server.call_tool()` used above has no request context, so a resolver cannot
+    run and every one of these tools fails with "Context is not available
+    outside of a request" — a fact about the harness, not about the contract.
+
+    So this block drives the real thing: child processes over stdio, with a host
+    that actually answers. The elicitation is answered from a preset written
+    down here rather than guessed inside a callback, which is the same
+    discipline the primitive itself exists to enforce.
+    """
+    LOGGER.info("client-directed primitives (over stdio, with a real client)")
+
+    from mcp_servers.host.interaction import InteractionPolicy  # noqa: PLC0415
+    from mcp_servers.host.mcp_clients import McpHost  # noqa: PLC0415
+
+    policy = InteractionPolicy.default(
+        elicitation="preset", preset_answers={"rate_kind": "real"})
+
+    def structured(result: Any) -> dict[str, Any]:
+        data = getattr(result, "structured_content", None)
+        return data if isinstance(data, dict) else {}
+
+    async with McpHost(policy=policy) as host:
+        v.record("modern_protocol_negotiated", "2026-07-28",
+                 host.servers["market-risk-data"].session.protocol_version,
+                 "below this revision the three ride deprecated standalone requests")
+
+        # Elicitation. '30 year' matches BC_30YEAR and TC_30YEAR - a nominal par
+        # yield and a real yield. The server must ask rather than pick.
+        amb = structured(await host.call("search_series", {"query": "30 year"}))
+        v.record("ambiguous_query_elicits", "elicited", amb.get("resolution"),
+                 "the server must ask, not choose, when a query spans rate kinds")
+        v.record("elicited_answer_filters_matches", ["TC_30YEAR"],
+                 [m["series_code"] for m in amb.get("matches", [])],
+                 "the caller's answer must actually narrow the result")
+
+        # ...and the unambiguous path must NOT ask, or every search costs a round
+        # trip and the feature becomes too expensive to leave switched on.
+        una = structured(await host.call("search_series", {
+            "query": "30 year", "data_key": "daily_treasury_yield_curve"}))
+        v.record("unambiguous_query_does_not_elicit", "unambiguous",
+                 una.get("resolution"), "one rate kind, so no question is owed")
+
+        # Roots. The destination is the client's to grant, never the server's to
+        # assume, and a name that would escape the grant must be refused.
+        exported = structured(await host.call("export_curve_csv", {
+            "filename": "verify_curve.csv", "curve_family": "nominal"}))
+        written = exported.get("written_path")
+        v.record("export_uses_client_root", True,
+                 bool(written) and any(str(r) in str(written) for r in policy.roots),
+                 f"wrote to {written}")
+        v.record("export_reports_roots_offered", True,
+                 bool(exported.get("roots_offered")),
+                 "a refusal must be diagnosable without guessing")
+
+        escaped = structured(await host.call("export_curve_csv", {
+            "filename": "../escaped.csv", "curve_family": "nominal"}))
+        v.record("export_refuses_root_escape", None, escaped.get("written_path"),
+                 "a path separator or '..' must be refused, never sanitised")
+        v.record("export_escape_states_reason", True,
+                 bool(escaped.get("refused_reason")))
+
+        # Sampling. The data server has no model; the prose must come from the
+        # client, and the verbatim caveat must travel beside it so the rewrite
+        # can be checked against its source.
+        brief = structured(await host.call("brief_dataset_caveat", {
+            "data_key": "daily_treasury_yield_curve"}))
+        v.record("briefing_names_drafting_model", True,
+                 bool(brief.get("drafted_by_model")),
+                 f"model={brief.get('drafted_by_model')}")
+        v.record("briefing_carries_verbatim_caveat", True,
+                 bool((brief.get("verbatim_caveat") or "").strip()),
+                 "a briefing that cannot be checked is worse than none")
+
+    # Containment is also checked directly, because the boundary must hold as a
+    # pure function and not only when a cooperative client is on the other end.
+    from mcp.types import ListRootsResult, Root  # noqa: PLC0415
+
+    from mcp_servers.data import interactive  # noqa: PLC0415
+
+    granted = REPO_ROOT / "data" / "exports"
+    granted.mkdir(parents=True, exist_ok=True)
+    roots = ListRootsResult(roots=[Root(uri=granted.resolve().as_uri(), name="exports")])
+    escapes = [name for name in ("../escaped.csv", "sub/nested.csv", "a\\b.csv", "")
+               if interactive.contained_target(roots, name)[0] is not None]
+    v.record("root_containment_refuses_escape", [], escapes,
+             "a path separator or '..' must be refused, never sanitised")
+    inside, _ = interactive.contained_target(roots, "curve.csv")
+    v.record("root_containment_allows_bare_name", True, inside is not None,
+             "a bare filename inside a granted root must still be writable")
+
+
 # --- canaries ---------------------------------------------------------------
 
 
 async def self_test() -> bool:
     """Prove the checks bite, by feeding them results that must be rejected."""
-    LOGGER.info("self-test: three deliberately broken payloads")
+    LOGGER.info("self-test: four deliberately broken payloads")
     results: list[tuple[str, bool]] = []
 
     probe = Verifier()
@@ -306,6 +416,22 @@ async def self_test() -> bool:
         "positions": [{"instrument_id": "DEMO_NOTE_10Y", "face_notional": "8000000"}]})
     results.append(("demo position unlabelled", bool(probe.failures)))
 
+    # A roots grant is a permission boundary, so the containment check has to be
+    # shown capable of failing rather than merely observed passing. Feed it a
+    # deliberately escaping name against a real grant and require a refusal.
+    from mcp_servers.data import interactive  # noqa: PLC0415
+    from mcp.types import ListRootsResult, Root  # noqa: PLC0415
+
+    granted = REPO_ROOT / "data" / "exports"
+    granted.mkdir(parents=True, exist_ok=True)
+    roots = ListRootsResult(roots=[Root(uri=granted.resolve().as_uri(), name="exports")])
+    escaped, _ = interactive.contained_target(roots, "../../etc/passwd")
+    allowed, _ = interactive.contained_target(roots, "curve.csv")
+    # Caught means: the escape was refused AND the legitimate name still works.
+    # Refusing everything would also "pass" a one-sided check while breaking the
+    # feature, so both halves are required.
+    results.append(("root escape permitted", escaped is None and allowed is not None))
+
     ok = True
     for label, caught in results:
         LOGGER.info("  canary %-28s %s", label, "caught" if caught else "MISSED")
@@ -313,7 +439,7 @@ async def self_test() -> bool:
     if not ok:
         LOGGER.error("SELF-TEST FAILED: a canary went undetected. The suite cannot be trusted.")
     else:
-        LOGGER.info("self-test OK: all three canaries were caught")
+        LOGGER.info("self-test OK: all four canaries were caught")
     return ok
 
 
@@ -352,6 +478,7 @@ async def run(args: argparse.Namespace) -> int:
     await check_tool_behaviour(v)
     await check_error_contract(v)
     await check_resources(v)
+    await check_client_directed_primitives(v)
 
     status = "PASS" if not v.failures else "FAIL"
     write_reports(v, status)

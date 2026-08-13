@@ -1,8 +1,8 @@
 # PostgreSQL load verification
 
 - Target: `postgresql://gateway:***@localhost:5432/gateway`
-- Load run: **4**
-- Generated (UTC): **2026-08-13T00:03:45+00:00**
+- Load run: **7**
+- Generated (UTC): **2026-08-13T06:17:09+00:00**
 - Result: **PASS** (74/74 checks passed)
 
 Every expected value below is recounted from the processed CSVs, not read back from the database.

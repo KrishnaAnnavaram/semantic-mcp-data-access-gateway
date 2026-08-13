@@ -8,7 +8,7 @@ Report the current state of the Treasury database. Read-only — change nothing.
 
 ```bash
 docker compose ps
-python .claude/loading/migrate.py --status
+python -m treasury_db.migrate --status
 ```
 
 ## 2. What does it hold?

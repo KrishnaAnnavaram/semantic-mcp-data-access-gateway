@@ -16,15 +16,15 @@ import math
 
 import pytest
 
-from src.mcp_risk.curves import (
+from mcp_servers.risk.curves import (
     CurveError, ParCurve, build_discount_curve, simple_discount_factor,
 )
-from src.mcp_risk.manifest import MODEL_MANIFEST, run_fingerprint
-from src.mcp_risk.pricing import (
+from mcp_servers.risk.manifest import MODEL_MANIFEST, run_fingerprint
+from mcp_servers.risk.pricing import (
     FixedRateBond, Position, PricingError, generate_cash_flows, price_bond,
     price_portfolio,
 )
-from src.mcp_risk.risk import (
+from mcp_servers.risk.risk import (
     RiskError, compute_dv01, compute_historical_risk, compute_key_rate_dv01,
     nearest_rank_quantile, run_stress,
 )
@@ -301,7 +301,7 @@ def test_the_engine_never_imports_a_database_driver():
 
     banned = {"psycopg2", "sqlalchemy", "asyncpg", "requests", "httpx",
               "anthropic", "openai", "socket", "urllib"}
-    package = pathlib.Path(__file__).resolve().parents[1] / "src" / "mcp_risk"
+    package = pathlib.Path(__file__).resolve().parents[1] / "mcp" / "src" / "mcp_servers" / "risk"
 
     for path in sorted(package.glob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
@@ -313,5 +313,5 @@ def test_the_engine_never_imports_a_database_driver():
                 imported.add(node.module.split(".")[0])
         offending = imported & banned
         assert not offending, (
-            f"src/mcp_risk/{path.name} imports {sorted(offending)}; the risk "
+            f"gateway/mcp_risk/{path.name} imports {sorted(offending)}; the risk "
             "engine must have no database, network or model access")

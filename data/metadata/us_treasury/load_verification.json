@@ -1,6 +1,6 @@
 {
-  "generated_at_utc": "2026-08-13T00:03:45+00:00",
-  "load_run_id": 4,
+  "generated_at_utc": "2026-08-13T06:17:09+00:00",
+  "load_run_id": 7,
   "target": "postgresql://gateway:***@localhost:5432/gateway",
   "status": "PASS",
   "checks_total": 74,

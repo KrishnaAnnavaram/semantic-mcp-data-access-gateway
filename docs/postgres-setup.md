@@ -44,7 +44,7 @@ ISO dates and the read-only role.
 ## 3. Apply the schema
 
 ```bash
-python .claude/loading/migrate.py
+python -m treasury_db.migrate
 ```
 
 ```
@@ -65,14 +65,14 @@ Safe to re-run: applied migrations are skipped.
 The repository ships with the acquired data, so this works immediately:
 
 ```bash
-python .claude/loading/load_us_treasury.py
+python -m treasury_db.load
 ```
 
 If `data/processed/us_treasury/*.csv` is missing, acquire it first
 (~60 MB, ~4 minutes, 140 requests to Treasury):
 
 ```bash
-python .claude/acquisition/download_us_treasury.py
+python -m acquisition.download_us_treasury
 ```
 
 Expected: 52 series, 267,517 observations, 140 source files verified.
@@ -148,8 +148,8 @@ before `docker compose down` and `git push`, and denies writes to
 ```bash
 docker compose down -v          # destroys the volume and all data
 docker compose up -d
-python .claude/loading/migrate.py
-python .claude/loading/load_us_treasury.py
+python -m treasury_db.migrate
+python -m treasury_db.load
 python tools/verify_load.py --self-test
 ```
 
@@ -165,18 +165,18 @@ was built.
 | `could not connect to server` | Container not healthy yet | `docker compose ps`; `docker compose logs postgres` |
 | `No module named psycopg2` | Driver missing | `pip install psycopg2-binary` |
 | `applied migrations have been edited` | A `V00N` file changed after running | Revert it and add a new migration. Migrations are forward-only by design |
-| `dataset(s) not registered in treasury.dataset` | Migrations not applied | `python .claude/loading/migrate.py` |
+| `dataset(s) not registered in treasury.dataset` | Migrations not applied | `python -m treasury_db.migrate` |
 | `staging column(s) with no registered series` | Treasury published a new maturity | Working as intended — see [loading-contract.md](loading-contract.md) |
-| `raw source files do not match the manifest` | Raw XML edited or truncated | Re-acquire: `python .claude/acquisition/download_us_treasury.py --refresh` |
+| `raw source files do not match the manifest` | Raw XML edited or truncated | Re-acquire: `python -m acquisition.download_us_treasury --refresh` |
 | Verification fails | Something genuinely diverged | Do **not** adjust the expectation. Work outward: staging vs CSV, CSV vs raw XML, then the model |
 
 ## What runs where
 
 | | Talks to Treasury | Talks to PostgreSQL |
 |---|---|---|
-| `.claude/acquisition/download_us_treasury.py` | yes | no |
-| `.claude/loading/migrate.py` | no | yes |
-| `.claude/loading/load_us_treasury.py` | no | yes |
+| `data/acquisition/download_us_treasury.py` | yes | no |
+| `.claude/src/postgres/src/treasury_db/migrate.py` | no | yes |
+| `.claude/src/postgres/src/treasury_db/load_us_treasury.py` | no | yes |
 | `tools/verify_load.py` | no | yes (read-only, except its own audit rows) |
 
 That split is why a database problem can never be mistaken for a data problem.

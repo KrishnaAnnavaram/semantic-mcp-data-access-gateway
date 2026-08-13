@@ -1,7 +1,7 @@
 {
-  "generated_at_utc": "2026-08-13T00:04:07+00:00",
+  "generated_at_utc": "2026-08-13T06:17:26+00:00",
   "status": "PASS",
-  "checks_total": 35,
+  "checks_total": 48,
   "checks_failed": 0,
   "checks": [
     {
@@ -9,7 +9,7 @@
       "expected": true,
       "actual": true,
       "passed": true,
-      "detail": "12 tools"
+      "detail": "14 tools"
     },
     {
       "check": "all_have_output_schema",
@@ -19,11 +19,18 @@
       "detail": "structured results, not prose the model must parse"
     },
     {
-      "check": "all_read_only",
+      "check": "no_undeclared_writers",
+      "expected": "set()",
+      "actual": "set()",
+      "passed": true,
+      "detail": "a tool that writes must be listed in DECLARED_WRITERS on purpose"
+    },
+    {
+      "check": "database_tools_all_read_only",
       "expected": 0,
       "actual": 0,
       "passed": true,
-      "detail": ""
+      "detail": "the mcp_reader grant enforces this; the annotation must agree"
     },
     {
       "check": "none_destructive",
@@ -53,7 +60,9 @@
         "list_portfolios",
         "get_portfolio",
         "list_scenarios",
-        "get_scenario"
+        "get_scenario",
+        "export_curve_csv",
+        "brief_dataset_caveat"
       ],
       "actual": [
         "list_datasets",
@@ -67,7 +76,9 @@
         "list_portfolios",
         "get_portfolio",
         "list_scenarios",
-        "get_scenario"
+        "get_scenario",
+        "export_curve_csv",
+        "brief_dataset_caveat"
       ],
       "passed": true,
       "detail": ""
@@ -274,6 +285,94 @@
       "actual": true,
       "passed": true,
       "detail": "3 prompts"
+    },
+    {
+      "check": "modern_protocol_negotiated",
+      "expected": "2026-07-28",
+      "actual": "2026-07-28",
+      "passed": true,
+      "detail": "below this revision the three ride deprecated standalone requests"
+    },
+    {
+      "check": "ambiguous_query_elicits",
+      "expected": "elicited",
+      "actual": "elicited",
+      "passed": true,
+      "detail": "the server must ask, not choose, when a query spans rate kinds"
+    },
+    {
+      "check": "elicited_answer_filters_matches",
+      "expected": [
+        "TC_30YEAR"
+      ],
+      "actual": [
+        "TC_30YEAR"
+      ],
+      "passed": true,
+      "detail": "the caller's answer must actually narrow the result"
+    },
+    {
+      "check": "unambiguous_query_does_not_elicit",
+      "expected": "unambiguous",
+      "actual": "unambiguous",
+      "passed": true,
+      "detail": "one rate kind, so no question is owed"
+    },
+    {
+      "check": "export_uses_client_root",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "wrote to E:\\Virtusa Projects\\semantic-mcp-data-access-gateway\\data\\exports\\verify_curve.csv"
+    },
+    {
+      "check": "export_reports_roots_offered",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "a refusal must be diagnosable without guessing"
+    },
+    {
+      "check": "export_refuses_root_escape",
+      "expected": null,
+      "actual": null,
+      "passed": true,
+      "detail": "a path separator or '..' must be refused, never sanitised"
+    },
+    {
+      "check": "export_escape_states_reason",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "briefing_names_drafting_model",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "model=claude-opus-5"
+    },
+    {
+      "check": "briefing_carries_verbatim_caveat",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "a briefing that cannot be checked is worse than none"
+    },
+    {
+      "check": "root_containment_refuses_escape",
+      "expected": [],
+      "actual": [],
+      "passed": true,
+      "detail": "a path separator or '..' must be refused, never sanitised"
+    },
+    {
+      "check": "root_containment_allows_bare_name",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "detail": "a bare filename inside a granted root must still be writable"
     }
   ]
 }

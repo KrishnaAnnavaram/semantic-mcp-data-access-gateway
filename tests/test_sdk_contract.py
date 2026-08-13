@@ -56,7 +56,7 @@ def test_servers_declare_no_deprecated_capabilities() -> None:
     """
     import inspect  # noqa: PLC0415
 
-    from src.mcp_data import server as data_module  # noqa: PLC0415
+    from mcp_servers.data import server as data_module  # noqa: PLC0415
 
     source = inspect.getsource(data_module)
     for deprecated in ("sampling/createMessage", "create_message", "roots/list"):
