@@ -1,6 +1,15 @@
-.venv/
-__pycache__/
-*.pyc
+node_modules/
+dist/
+dist-ssr/
+*.local
+*.log
 .env
-.streamlit/secrets.toml
-.pytest_cache/
+.env.local
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# Vite/TS build cache
+*.tsbuildinfo

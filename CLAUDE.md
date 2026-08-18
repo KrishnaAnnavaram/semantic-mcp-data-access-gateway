@@ -16,7 +16,7 @@ boundaries between tiers are the part worth protecting.
 ## Four layers, one road between them
 
 ```
-  user ─► frontend/          Streamlit + LangSmith            AGENT_BACKEND=rest
+  user ─► frontend/          React (Vite + TS + Tailwind)     VITE_AGENT_BACKEND=rest
             │ POST /chat
             ▼
           agents/            orchestrator → domain expert ⇄ mcp agent
@@ -31,8 +31,8 @@ boundaries between tiers are the part worth protecting.
           postgres/ + data/  PostgreSQL 17, Treasury rates
 ```
 
-One directory per runtime tier, dependencies strictly downward. Five are installable
-distributions; the frontend is a Streamlit app run in place.
+One directory per runtime tier, dependencies strictly downward. Four are installable
+Python distributions; the frontend is an npm package (React) run in place.
 
 | Directory | Distribution | Import package |
 |---|---|---|
@@ -40,7 +40,7 @@ distributions; the frontend is a Streamlit app run in place.
 | `postgres/` | `treasury-db` | `treasury_db` — migrations, loader, DB access |
 | `mcp/` | `mcp-servers` | `mcp_servers` — `.data`, `.risk`, `.host` |
 | `backend/` | `gateway-backend` | `backend` — `.api`, `.agent`, `.knowledge`, `.providers` |
-| `frontend/` | — | Streamlit app |
+| `frontend/` | `vantage-ui` (npm) | React + TypeScript + Tailwind, talks to `/chat` over REST |
 | `data/` | — | source of record, plus the `acquisition/` that fills it |
 | `knowledge/` | — | RAG corpus the vector store ingests |
 
@@ -110,7 +110,7 @@ python -m mcp_servers.host --isolation   # prove the risk engine cannot reach th
 python -m mcp_servers.host --primitives  # exercise all six MCP primitives
 python -m mcp_servers.host --ask "..."   # the host's own agent, driving both servers
 python tools/verify_mcp.py --self-test   # 48 checks; 4 canaries must be caught
-pytest                                   # frontend: cd frontend && pytest
+pytest                                   # 68 tests (frontend: cd frontend && npm test)
 ```
 
 ## All six MCP primitives are live
@@ -162,7 +162,7 @@ renames the fields, which parses cleanly and is wrong. See `docs/model-provider.
 docker compose up -d qdrant
 python -m backend.knowledge.knowledge_base   # ingest; no API key needed
 python -m backend.api.service                # POST /chat on :8000
-cd frontend && streamlit run app.py                               # :8501
+cd frontend && npm install && npm run dev                         # :5173
 python -m evaluation.run                     # 13 cases x 11 scorers, offline table
 ```
 
@@ -176,9 +176,11 @@ Re-ingest after editing any knowledge doc:
 python -c "from backend.knowledge.knowledge_base import KnowledgeBase; KnowledgeBase(rebuild=True)"
 ```
 
-Set `AGENT_BACKEND=rest` in `frontend/.env` or the UI silently serves canned mock answers, and
-raise `AGENT_TIMEOUT_SECONDS` — one turn runs several MCP round trips behind an Opus loop, and
-the 30s default expires mid-answer.
+Set `VITE_AGENT_BACKEND=rest` in `frontend/.env` or the UI silently serves canned mock answers,
+and raise `VITE_AGENT_TIMEOUT_SECONDS` — one turn runs several MCP round trips behind an Opus
+loop, and the 30s-scale default expires mid-answer. The backend must also list the frontend's
+origin in `CORS_ALLOWED_ORIGINS` (defaults already cover Vite's `:5173`) or the browser blocks
+the response even though the request reached the service.
 
 ## The rule everything rests on
 
@@ -236,7 +238,7 @@ its history — neither is cleanly recoverable once pushed.
 2. `python -m treasury_db.load`
 3. `python tools/verify_load.py --self-test` — 74/74
 4. `python tools/verify_mcp.py --self-test` — 48/48 (spawns real child processes)
-5. `pytest` — 68 passed (plus `cd frontend && pytest` — 4 passed)
+5. `pytest` — 68 passed (plus `cd frontend && npm test` — 21 passed)
 6. `git status` shows no `adaptive-legacy-code-complexity-harness/`, no `.env`
 7. **`git grep -nE '^(<<<<<<<|=======|>>>>>>>)' -- ':!data/'` returns nothing.** Conflict markers
    have reached `main` once already, in four files, breaking `pip install` for everyone.

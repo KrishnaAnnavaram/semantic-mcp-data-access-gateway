@@ -1,0 +1,151 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Light theme (default) — off-white chrome, deep charcoal-navy text.
+     RGB triplets (not hex) so Tailwind's `/opacity` modifiers work on them. */
+  --color-bg: 247 248 250;
+  --color-surface: 255 255 255;
+  --color-surface-2: 241 242 245;
+  --color-surface-hover: 234 235 239;
+  --color-border: 224 226 231;
+  --color-border-strong: 203 206 214;
+
+  --color-text: 20 23 31;
+  --color-text-muted: 91 100 116;
+  --color-text-faint: 138 146 160;
+
+  --color-accent: 47 74 219;
+  --color-accent-hover: 33 56 176;
+
+  --color-data: 180 90 10;
+
+  --color-success: 21 128 61;
+  --color-warning: 180 83 9;
+  --color-danger: 185 28 28;
+}
+
+/* Dark theme — the original "Terminal" palette: deep navy chrome, amber
+   reserved for data/numbers only. Applied via data-theme, toggled by
+   src/store/themeStore.ts. */
+[data-theme='dark'] {
+  --color-bg: 10 14 20;
+  --color-surface: 19 24 34;
+  --color-surface-2: 24 31 43;
+  --color-surface-hover: 28 36 49;
+  --color-border: 35 41 55;
+  --color-border-strong: 46 54 72;
+
+  --color-text: 232 234 237;
+  --color-text-muted: 139 148 163;
+  --color-text-faint: 91 100 116;
+
+  --color-accent: 59 91 255;
+  --color-accent-hover: 81 113 255;
+
+  --color-data: 245 166 35;
+
+  --color-success: 34 197 94;
+  --color-warning: 245 158 11;
+  --color-danger: 239 68 68;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background-color: rgb(var(--color-bg));
+  color: rgb(var(--color-text));
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* Scrollbars, styled to match chrome rather than the OS default */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--color-border-strong)) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: rgb(var(--color-border-strong));
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* GFM tables rendered inside markdown answers */
+.md-table-wrap {
+  overflow-x: auto;
+  border: 1px solid rgb(var(--color-border));
+  border-radius: 0.5rem;
+}
+.md-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.8125rem;
+}
+.md-table th,
+.md-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgb(var(--color-border));
+  text-align: left;
+  white-space: nowrap;
+}
+.md-table th {
+  color: rgb(var(--color-text-muted));
+  font-family: Inter, ui-sans-serif, sans-serif;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: rgb(var(--color-surface-2));
+}
+.md-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Prose spacing inside an assistant markdown answer */
+.md-content p {
+  margin: 0 0 0.5rem;
+}
+.md-content p:last-child {
+  margin-bottom: 0;
+}
+.md-content ul,
+.md-content ol {
+  margin: 0 0 0.5rem;
+  padding-left: 1.25rem;
+}
+.md-content li {
+  margin-bottom: 0.15rem;
+}
+.md-content strong {
+  color: rgb(var(--color-text));
+  font-weight: 600;
+}
+.md-content h1,
+.md-content h2,
+.md-content h3 {
+  margin: 0.75rem 0 0.35rem;
+  font-weight: 600;
+  color: rgb(var(--color-text));
+}
+.md-content h1 {
+  font-size: 1.05rem;
+}
+.md-content h2 {
+  font-size: 0.98rem;
+}
+.md-content h3 {
+  font-size: 0.92rem;
+}

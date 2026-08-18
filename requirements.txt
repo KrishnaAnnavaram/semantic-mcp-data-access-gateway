@@ -28,9 +28,7 @@ qdrant-client[fastembed]>=1.12 # vector store: embedded (dev) or Qdrant server (
 fastapi>=0.110
 uvicorn[standard]>=0.29
 
-# --- chatbot (Streamlit UI) runtime ---
-streamlit>=1.31
-python-dotenv>=1.0
+# --- LangSmith tracing (used by agents/observability.py) ---
 langsmith>=0.1
 
 # --- dev / test ---

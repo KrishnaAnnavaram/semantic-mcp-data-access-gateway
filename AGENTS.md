@@ -235,7 +235,7 @@ boundaries between tiers are the part worth protecting.
 | **database-agent** | migrations, loader, analytics views, grants | download source data |
 | **mcp-agent** | both MCP servers, the host, curve/risk maths | provision databases, author knowledge |
 | **backend-agent** | the three runtime agents, provider seam, `/chat` service | build MCP servers |
-| **frontend-agent** | the Streamlit app and trace panel | change the agents or the `/chat` contract |
+| **frontend-agent** | the React app and artifact panel | change the agents or the `/chat` contract |
 | **knowledge-author** | the `knowledge/` corpus | change retrieval code |
 | **verification-agent** | the gates between a defect and `main` | quietly fix the code under test |
 

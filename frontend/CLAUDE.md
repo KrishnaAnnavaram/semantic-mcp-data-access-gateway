@@ -1,60 +1,88 @@
-# chatbot
+# frontend/ — Vantage
 
-Streamlit chatbot front-end for the semantic-mcp-data-access-gateway project. See the repo root `CLAUDE.md` for how this
-fits into the overall system; see `README.md` for human-oriented setup instructions.
-
-## What this service does
-
-Takes a user's question, forwards it to the quant agent (owned by another teammate) over the REST
-contract below, and renders the answer directly in the chat thread. It has no reasoning logic of
-its own — that all lives in the agent.
-
-## Architecture
-
-- `app.py` — Streamlit UI: sidebar chat-session list, chat input/history rendered as custom bubbles.
-- `styles.py` — custom CSS (dark theme, bubbles, header, empty state) injected via `inject_custom_css()`.
-- `agent_client.py` — talks to the quant agent. `AgentClient` is a `Protocol` with two
-  implementations: `RestAgentClient` (real HTTP calls) and `MockAgentClient` (canned responses,
-  used when `AGENT_BACKEND=mock`, the default — lets the UI run standalone before the real agent
-  exists). Swapping the transport to an MCP client later means adding a new implementation here
-  and updating `_build_client`; `app.py` doesn't need to change.
-- `observability.py` — validates LangSmith env config and logs whether tracing is active.
-  Tracing itself happens via the `@traceable` decorator on `agent_client.ask_agent`.
-- `config.py` — typed `Settings`, loaded once from `.env` / the environment via `get_settings()`.
-
-## Agent contract
+React + TypeScript + Tailwind, replacing the earlier Streamlit app. This is
+the only thing a human sees, and it talks to the backend over exactly one
+contract:
 
 ```
-POST {AGENT_API_URL}/chat
-  { "query": "<user question>", "session_id": "<uuid>" }
-  -> { "answer": "<text>", "sources": ["..."] }
+POST /chat       {query, session_id}
+  -> {answer, sources, trace, awaiting_clarification, elicitation, route,
+      tables, data_plan, negotiation, catalogue, calculation, langsmith_url}
+POST /summarise   {messages} -> {title}
+GET  /health
 ```
 
-This is interim for the demo — if the agent/MCP side lands on a different shape, update
-`RestAgentClient.ask` accordingly.
+Do not add a second channel to the backend, and do not reach past `/chat`
+into a provider or the MCP layer — the frontend is thin on purpose. See
+`backend/src/backend/api/service.py` for the authoritative shape; keep
+`src/types/chat.ts` in lockstep with it.
 
-## Running
-
-Dependencies for all workstreams live in one `requirements.txt` at the repo root — install from
-there, then run the app from here:
-
-```
-pip install -r ../requirements.txt
-cp .env.example .env
-streamlit run app.py
-```
-
-Defaults to the mock agent, so it runs standalone. Set `AGENT_BACKEND=rest` and `AGENT_API_URL`
-in `.env` to point at a real quant agent.
-
-## Testing
+## Structure
 
 ```
-pytest
+src/
+  api/client.ts        REST + mock transport, one AgentClientError type
+  config.ts             reads VITE_-prefixed env vars
+  types/chat.ts          mirrors ChatResponse exactly
+  store/chatStore.ts     zustand — chats, activeChatId, openArtifact
+  hooks/useSend.ts        send/regenerate/auto-title orchestration
+  lib/                    pure, tested logic (elicitation dedupe, artifact summary)
+  components/             Header, Sidebar, ChatWindow, MessageBubble,
+                          ElicitationPrompt, ArtifactCard, ArtifactPanel, ...
 ```
 
-## Conventions
+`lib/` holds anything worth unit-testing without mounting a component.
+`App.test.tsx` is the smoke test — it mounts the whole tree in mock mode and
+drives it through sending a question, opening a new chat, and switching back.
+Prefer extending that test over adding a parallel one when the change touches
+how components compose, not just a pure function.
 
-- No Docker for this service — it's a plain Python app, run directly.
-- Keep the agent transport behind `AgentClient` — don't call `requests` or an MCP client directly
-  from `app.py`.
+## Configuration traps that cost an afternoon each
+
+- **`VITE_AGENT_BACKEND=rest` must be set** in `frontend/.env`, or the UI
+  silently serves canned mock answers forever. It looks like a working app
+  giving wrong numbers, which is worse than an error. The header shows a
+  "Mock backend" badge when this is the case — check it before debugging
+  anything else.
+- **Raise `VITE_AGENT_TIMEOUT_SECONDS`.** One turn runs several MCP round
+  trips behind an Opus loop; a short timeout expires mid-answer.
+- **CORS.** The backend must list this app's origin in `CORS_ALLOWED_ORIGINS`
+  (see root `.env.example`) — defaults already cover Vite's `:5173`. Without
+  it the browser blocks the response even though the request reached the
+  service; this looks identical to a network failure in the browser console.
+- Vite only exposes env vars prefixed `VITE_` to client code. An unprefixed
+  var in `.env` is silently invisible to `import.meta.env`.
+
+## Rendering rules
+
+- **Never present synthetic data as real.** The demo book arrives labelled
+  `SYNTHETIC_DEMO` and the curve `REAL_MARKET_DATA`. Both labels must be
+  visible in the UI (the `ArtifactCard`/`ArtifactPanel` badges), not stripped
+  for tidiness.
+- **Show the quoting basis** wherever a rate is displayed — the Source tab
+  renders it from `table.provenance.quote_basis`. A bill discount rate and a
+  par yield look identical on a chart and are different quantities.
+- **A clarifying question is a first-class state**, not an error. When
+  `awaiting_clarification` is set, `ElicitationPrompt` renders the question
+  and the same `session_id` (the chat's own id) carries into the next turn.
+- The Data plan and Discussion tabs are the project's claim to being
+  auditable — keep citations and the domain-expert/mcp-agent negotiation
+  visible, not collapsed away for cleanliness.
+- Charts, if added, follow the `dataviz` skill: read it before writing chart
+  code.
+
+## Run and test
+
+```bash
+cd frontend
+npm install
+npm run dev            # :5173
+npm test                # vitest, run once
+npm run build            # tsc -b && vite build
+```
+
+The backend must be up first (`python -m backend.api.service`). If the UI
+shows answers while `/health` is failing, you are looking at the mock
+backend — check `VITE_AGENT_BACKEND` before debugging anything else.
+
+Report what you actually ran. If a check fails, say so with its output.

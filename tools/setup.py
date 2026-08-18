@@ -85,14 +85,14 @@ def check_env() -> bool:
         fail("neither .env nor .env.example found")
         return False
 
-    frontend_env = REPO_ROOT / ".claude" / "src" / "frontend" / ".env"
-    if not frontend_env.exists() and (REPO_ROOT / ".claude" / "src" / "frontend" / ".env.example").exists():
-        shutil.copy(REPO_ROOT / ".claude" / "src" / "frontend" / ".env.example", frontend_env)
+    frontend_env = REPO_ROOT / "frontend" / ".env"
+    if not frontend_env.exists() and (REPO_ROOT / "frontend" / ".env.example").exists():
+        shutil.copy(REPO_ROOT / "frontend" / ".env.example", frontend_env)
         text = frontend_env.read_text(encoding="utf-8").replace(
-            "AGENT_BACKEND=mock", "AGENT_BACKEND=rest").replace(
-            "AGENT_TIMEOUT_SECONDS=30", "AGENT_TIMEOUT_SECONDS=180")
+            "VITE_AGENT_BACKEND=mock", "VITE_AGENT_BACKEND=rest").replace(
+            "VITE_AGENT_TIMEOUT_SECONDS=60", "VITE_AGENT_TIMEOUT_SECONDS=180")
         frontend_env.write_text(text, encoding="utf-8")
-        ok("frontend/.env created (AGENT_BACKEND=rest, 180s timeout)")
+        ok("frontend/.env created (VITE_AGENT_BACKEND=rest, 180s timeout)")
     return True
 
 
@@ -259,7 +259,7 @@ Verify the whole stack:
 
 Run it:
     python -m backend.api.service                API   on :8000
-    cd frontend && streamlit run app.py          UI    on :8501
+    cd frontend && npm install && npm run dev    UI    on :5173
 
 ANTHROPIC_API_KEY must be set in .env before the agent will answer.
 """)
