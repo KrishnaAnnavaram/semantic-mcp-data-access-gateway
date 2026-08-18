@@ -46,6 +46,7 @@ from agents.domain_expert_agent import DomainExpertAgent
 from agents.mcp_agent import McpAgent
 from agents.observability import run_url, traced
 from agents.orchestrator_agent import OrchestratorAgent
+from agents.redaction import scrub_identifiers
 
 LOGGER = logging.getLogger("agents.pipeline")
 
@@ -110,6 +111,9 @@ class AgentPipeline:
 
         # --- 2. what can the data layer actually do? -------------------------
         catalogue = self.mcp.catalogue()
+        # Taken from the live catalogue rather than a hard-coded list, so a tool
+        # added tomorrow is covered without anyone remembering to update this.
+        tool_names = [t.name for t in catalogue.tools]
         trace.append({
             "kind": "tool_call",
             "label": f"MCP agent advertised {len(catalogue.tools)} tool(s)",
@@ -136,8 +140,10 @@ class AgentPipeline:
         })
 
         if not requirement.answerable:
-            answer = (requirement.unanswerable_reason
-                      or "This task cannot be answered from the available data.")
+            answer = scrub_identifiers(
+                requirement.unanswerable_reason
+                or "This task cannot be answered from the available data.",
+                tool_names)
             trace.append({"kind": "answer", "label": "Declined", "detail": answer})
             return AgentOutcome(answer=answer, route="data_request", intent=intent,
                                 requirement=requirement, catalogue=catalogue,
@@ -165,7 +171,9 @@ class AgentPipeline:
         })
 
         # --- 6. orchestrator reflects ----------------------------------------
-        answer = self.orchestrator.reflect(question, requirement, negotiation, result)
+        answer = scrub_identifiers(
+            self.orchestrator.reflect(question, requirement, negotiation, result),
+            tool_names)
         trace.append({"kind": "answer", "label": "Composed reply", "detail": answer})
 
         return AgentOutcome(
