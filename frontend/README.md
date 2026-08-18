@@ -1,56 +1,34 @@
-# chatbot
+# Vantage
 
-Streamlit chatbot front-end for the semantic-mcp-data-access-gateway project. Sends a user's question to the quant
-agent and shows the answer.
-
-## Setup
-
-Run from the repo root (dependencies for all workstreams live in one `requirements.txt` there):
-
-```bash
-cd ..
-python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-cd chatbot
-cp .env.example .env
-```
+Semantic Financial Data & Risk Intelligence — the React frontend for the
+semantic-mcp-data-access-gateway. Grounded answers on U.S. Treasury rates,
+every figure cited. Replaces the earlier Streamlit app; talks to the FastAPI
+backend over the same `/chat` contract.
 
 ## Run
 
 ```bash
-streamlit run app.py
+npm install
+cp .env.example .env     # defaults to mock mode
+npm run dev              # http://localhost:5173
 ```
 
-By default `AGENT_BACKEND=mock` in `.env.example`, so the app runs standalone with canned
-responses — no other services required. Once the quant agent is available, set in `.env`:
+Set `VITE_AGENT_BACKEND=rest` in `.env` to talk to the real backend
+(`python -m backend.api.service`, on `:8000` by default). The backend also
+needs this app's origin in `CORS_ALLOWED_ORIGINS` — see the root
+`.env.example`; the default already covers `http://localhost:5173`.
 
-```
-AGENT_BACKEND=rest
-AGENT_API_URL=http://<agent-host>:<port>
-```
-
-## Observability
-
-Set these in `.env` to enable [LangSmith](https://smith.langchain.com) tracing of every
-question/answer round-trip:
-
-```
-LANGCHAIN_TRACING_V2=true
-LANGCHAIN_API_KEY=<your key>
-LANGCHAIN_PROJECT=semantic-mcp-data-access-gateway
-```
-
-## Test
+## Test and build
 
 ```bash
-pytest
+npm test          # vitest — pure logic + a full-app smoke test, run once
+npm run build      # type-checks (tsc -b) then produces dist/
+npm run preview     # serve the production build locally
 ```
 
-## Lint
+## Stack
 
-```bash
-ruff check .
-```
-
-See `CLAUDE.md` for architecture notes and the agent API contract.
+Vite + React 18 + TypeScript, Tailwind CSS, Zustand for chat/session state,
+`react-markdown` + `remark-gfm` for answer rendering, Lucide icons. See
+`CLAUDE.md` in this directory for the project conventions and the
+configuration traps worth knowing before you debug a blank/mock UI.

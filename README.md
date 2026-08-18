@@ -68,7 +68,7 @@ Six components. Dependencies run strictly downward — nothing ever reaches back
 ```mermaid
 flowchart TB
     U(["👤 User"])
-    F["<b>Streamlit UI</b><br/>frontend/"]
+    F["<b>Vantage (React UI)</b><br/>frontend/"]
     B["<b>FastAPI service</b><br/>backend/ · POST /chat"]
     A["<b>Three AI agents</b><br/>agents/"]
     M["<b>MCP host + 2 servers</b><br/>mcp/ · protocol 2026-07-28"]
@@ -135,7 +135,7 @@ The complete path of one real question:
 sequenceDiagram
     autonumber
     actor User
-    participant UI as Streamlit
+    participant UI as Vantage (React)
     participant API as FastAPI<br/>/chat
     participant ORC as 1️⃣ Orchestrator<br/>routing model
     participant DOM as 2️⃣ Domain Expert<br/>reasoning model
@@ -819,9 +819,10 @@ while the chat stays live, and the two panes scroll independently.
 | **Discussion** | The full transcript between the domain expert and the MCP agent |
 | **Source** | The knowledge chunks behind the plan |
 
-> ⚠️ Set `AGENT_BACKEND=rest` in `frontend/.env` or the UI silently serves canned mock answers.
-> Raise `AGENT_TIMEOUT_SECONDS` too — one turn runs several MCP round trips behind an Opus loop,
-> and the 30s default expires mid-answer.
+> ⚠️ Set `VITE_AGENT_BACKEND=rest` in `frontend/.env` or the UI silently serves canned mock
+> answers. Raise `VITE_AGENT_TIMEOUT_SECONDS` too — one turn runs several MCP round trips behind
+> an Opus loop, and a short timeout expires mid-answer. The backend also needs this app's origin
+> in `CORS_ALLOWED_ORIGINS` (defaults already cover Vite's `:5173`).
 
 ---
 
@@ -894,7 +895,7 @@ If it is off, it tells you exactly why — one of:
 
 **Per-request link.** `POST /chat` returns a `langsmith_url` field pointing at that turn's run,
 so you can jump straight to the trace for a specific answer. *(It is returned by the API but
-not yet rendered in the Streamlit UI — see [known issues](#16-known-issues).)*
+not yet rendered in the UI — see [known issues](#16-known-issues).)*
 
 ## 10.5 Running the evaluation against LangSmith
 
@@ -995,7 +996,7 @@ python -c "from backend.knowledge.knowledge_base import KnowledgeBase; Knowledge
 
 # 4 — service + UI
 python -m backend.api.service                     # :8000
-cd frontend && streamlit run app.py               # :8501
+cd frontend && npm install && npm run dev         # :5173
 ```
 
 ### Environment variables that matter
@@ -1007,8 +1008,9 @@ cd frontend && streamlit run app.py               # :8501
 | `ANTHROPIC_API_KEY` | your key | Required when `LLM_BACKEND=anthropic` |
 | `DATA_BACKEND` | `mcp` · `postgres` · `mock` | Which `DataProvider` is used |
 | `QDRANT_URL` | a URL, or unset | Docker server vs embedded |
-| `AGENT_BACKEND` | `rest` | **Required**, or the UI serves mock answers |
-| `AGENT_TIMEOUT_SECONDS` | raise from 30 | One turn runs several MCP round trips |
+| `CORS_ALLOWED_ORIGINS` | comma-separated origins | Backend must list the frontend's origin, or the browser blocks `/chat` |
+| `VITE_AGENT_BACKEND` | `rest` | **Required** (in `frontend/.env`), or the UI serves mock answers |
+| `VITE_AGENT_TIMEOUT_SECONDS` | raise from 60 | One turn runs several MCP round trips |
 | `LANGSMITH_TRACING` | `true` | Turn tracing on |
 
 ---
@@ -1088,7 +1090,7 @@ Ten minutes, in this order.
 | `backend/` | `gateway-backend` | `backend` | `/chat` service, seams, KnowledgeBase, workflows |
 | `mcp/` | `mcp-servers` | `mcp_servers` | Both servers, the host, risk maths |
 | `postgres/` | `treasury-db` | `treasury_db` | Migrations, loader, DB access |
-| `frontend/` | — | — | Streamlit app, run in place |
+| `frontend/` | `vantage-ui` (npm) | — | React + TypeScript + Tailwind UI, run in place |
 | `evaluation/` | — | — | Dataset, evaluators, runner |
 | `knowledge/` | — | — | The RAG corpus — 4 domains, 11 docs |
 | `data/` | — | — | Source of record + `acquisition/` |

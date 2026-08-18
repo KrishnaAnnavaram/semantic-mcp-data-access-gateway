@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 # Load .env before anything reads the environment. Without this the service
@@ -35,6 +36,24 @@ load_dotenv()
 
 
 app = FastAPI(title="semantic-mcp-data-access-gateway", version="0.2.0")
+
+# The React frontend is a separate origin (Vite dev server, or a built static
+# host later), so the browser enforces CORS even though the socket is reachable.
+# `CORS_ALLOWED_ORIGINS` is a comma-separated override for non-default hosts;
+# the Vite defaults cover local dev out of the box.
+_default_origins = "http://localhost:5173,http://127.0.0.1:5173"
+_allowed_origins = [
+    origin.strip()
+    for origin in os.environ.get("CORS_ALLOWED_ORIGINS", _default_origins).split(",")
+    if origin.strip()
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # session_id -> {"turns": [...], "clarified": bool}. In-memory, so it resets on
 # restart; `clarified` records whether the last turn asked a question, which is
