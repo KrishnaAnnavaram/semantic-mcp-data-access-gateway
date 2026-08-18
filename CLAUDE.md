@@ -21,7 +21,7 @@ boundaries between tiers are the part worth protecting.
             ▼
           agents/            orchestrator → domain expert ⇄ mcp agent
             │                              (Qdrant knowledge)
-            │ ModelProvider seam                             LLM_BACKEND=anthropic|zai
+            │ ModelProvider seam                        LLM_BACKEND=zai (default)|anthropic
           backend/           /chat service, seams, workflows
             │ DataProvider seam                             DATA_BACKEND=mcp
             ▼
@@ -212,9 +212,9 @@ in `treasury.series.placeholder_zero_before`, as data, not code.
 - **Never name a model in an agent.** Agents declare a *call site*; the model is
   configuration (`LLM_BACKEND` + `ORCHESTRATOR_MODEL` and friends). A pinned model
   string is how a cheap routing path quietly becomes an expensive one.
-- **Model:** default backend is `anthropic` with `claude-opus-5` and adaptive
-  thinking. Do not downgrade unless asked. `LLM_BACKEND=zai` runs GLM instead —
-  see `docs/model-provider.md`.
+- **Model:** the default backend is **`zai`**, running `glm-5.2` at every call
+  site. `LLM_BACKEND=anthropic` returns to `claude-opus-5` with adaptive thinking
+  and is fully maintained. See `docs/model-provider.md`.
 
 ## Adding a maturity Treasury has started publishing
 

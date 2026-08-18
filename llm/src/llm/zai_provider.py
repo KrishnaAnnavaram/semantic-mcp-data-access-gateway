@@ -59,8 +59,15 @@ class ZaiProvider:
 
     def __init__(self, config: ModelConfig) -> None:
         if not config.api_key:
+            # Names the fix, both ways. `zai` is the project default, so this is
+            # the first thing a teammate hits on a fresh checkout - and an error
+            # that only says "auth failed" would send them looking in the wrong
+            # place entirely.
             raise ProviderError(
-                "ZAI_API_KEY is not set; the zai backend cannot start", kind="auth")
+                "ZAI_API_KEY is not set, and zai is this project's default "
+                "model backend. Either add ZAI_API_KEY to .env (get one at "
+                "https://z.ai), or set LLM_BACKEND=anthropic to run on Claude "
+                "with your ANTHROPIC_API_KEY instead.", kind="auth")
         self.config = config
         self._client: Any = None
 

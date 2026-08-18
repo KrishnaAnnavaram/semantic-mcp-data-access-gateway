@@ -83,9 +83,35 @@ def test_zai_without_a_key_fails_at_construction(monkeypatch):
     assert caught.value.kind == "auth"
 
 
-def test_the_default_backend_is_anthropic_so_nothing_changes_silently(monkeypatch):
+def test_the_default_backend_is_zai(monkeypatch):
+    """This project runs on open weights unless told otherwise.
+
+    Pinned as a test rather than left implicit: which vendor gets billed, and
+    which model answers a market-risk question, should not be something a reader
+    has to infer from a default argument.
+    """
+    monkeypatch.setattr("llm.config._load_dotenv", lambda: None)
     monkeypatch.delenv("LLM_BACKEND", raising=False)
+    assert load_config().backend == ZAI
+
+
+def test_anthropic_remains_reachable_in_one_variable(monkeypatch):
+    """The fallback has to be real, not decorative."""
+    monkeypatch.setenv("LLM_BACKEND", "anthropic")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "placeholder-not-a-real-key")
     assert load_config().backend == ANTHROPIC
+
+
+def test_a_missing_zai_key_names_both_ways_out(monkeypatch):
+    """The first error a teammate hits on a fresh checkout must not be a riddle."""
+    monkeypatch.setattr("llm.config._load_dotenv", lambda: None)
+    monkeypatch.delenv("LLM_BACKEND", raising=False)
+    monkeypatch.delenv("ZAI_API_KEY", raising=False)
+    with pytest.raises(ProviderError) as caught:
+        build_provider()
+    message = str(caught.value)
+    assert "ZAI_API_KEY" in message
+    assert "LLM_BACKEND=anthropic" in message
 
 
 # --- per-call-site model allocation -----------------------------------------

@@ -116,8 +116,8 @@ The agents talk only to interfaces, so engines are configurable rather than weld
 | `ModelProvider` | `AnthropicProvider` (Claude) · `ZaiProvider` (GLM) | `LLM_BACKEND` |
 
 The third means **the LLM engine itself is interchangeable**. No agent names a model — each
-declares a *call site*, and the model serving it is configuration. Running the entire system
-on open weights is `LLM_BACKEND=zai`, with no change in any agent.
+declares a *call site*, and the model serving it is configuration. The system runs on open weights **by
+default**; `LLM_BACKEND=anthropic` returns it to Claude, with no change in any agent.
 Details and the measurements behind the allocation:
 [`docs/model-provider.md`](docs/model-provider.md).
 
@@ -722,13 +722,13 @@ flowchart TB
     class QD store
 ```
 
-| Agent | Responsibility | `LLM_BACKEND=anthropic` | `LLM_BACKEND=zai` |
+| Agent | Responsibility | `LLM_BACKEND=zai` *(default)* | `LLM_BACKEND=anthropic` |
 |---|---|---|---|
-| **Orchestrator** | Classify → reply / clarify / delegate. Then write the final answer. Runs on **every** turn including "hi". | `claude-haiku-4-5` | `glm-5.2` |
-| **Domain Expert** | Vector-search Qdrant, decide the requirement, defend it. This is where the thinking is. | `claude-opus-5` | `glm-5.2` |
-| **MCP Agent** | Advertise tools, negotiate, fetch, calculate. | `claude-opus-5` | `glm-5.2` |
-| *(MCP sampling)* | Rewrite a dataset caveat as desk-ready prose. | `claude-opus-5` | `glm-5.2` |
-| *(Host agent)* | The standalone `--ask` loop. | `claude-opus-5` | `glm-5.2` |
+| **Orchestrator** | Classify → reply / clarify / delegate. Then write the final answer. Runs on **every** turn including "hi". | `glm-5.2` | `claude-haiku-4-5` |
+| **Domain Expert** | Vector-search Qdrant, decide the requirement, defend it. This is where the thinking is. | `glm-5.2` | `claude-opus-5` |
+| **MCP Agent** | Advertise tools, negotiate, fetch, calculate. | `glm-5.2` | `claude-opus-5` |
+| *(MCP sampling)* | Rewrite a dataset caveat as desk-ready prose. | `glm-5.2` | `claude-opus-5` |
+| *(Host agent)* | The standalone `--ask` loop. | `glm-5.2` | `claude-opus-5` |
 
 **No agent names a model.** Each declares a *call site*; the model is resolved by
 `LLM_BACKEND` plus `ORCHESTRATOR_MODEL`, `DOMAIN_EXPERT_MODEL` and friends, and a QA test
@@ -1002,8 +1002,9 @@ cd frontend && streamlit run app.py               # :8501
 
 | Variable | Values | Effect |
 |---|---|---|
-| `LLM_BACKEND` | `anthropic` · `zai` | Which model engine answers |
-| `ANTHROPIC_API_KEY` / `ZAI_API_KEY` | your key | Whichever backend is selected |
+| `LLM_BACKEND` | **`zai`** (default) · `anthropic` | Which model engine answers |
+| `ZAI_API_KEY` | your key | Required by the default backend |
+| `ANTHROPIC_API_KEY` | your key | Required when `LLM_BACKEND=anthropic` |
 | `DATA_BACKEND` | `mcp` · `postgres` · `mock` | Which `DataProvider` is used |
 | `QDRANT_URL` | a URL, or unset | Docker server vs embedded |
 | `AGENT_BACKEND` | `rest` | **Required**, or the UI serves mock answers |

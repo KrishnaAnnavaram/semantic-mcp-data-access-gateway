@@ -14,8 +14,16 @@ way it is, and what was measured to decide the model allocation.
          └── ZaiProvider           forced function call (OpenAI-compatible)
 ```
 
-Selected by `LLM_BACKEND`, exactly as the repository's two existing seams are
-selected:
+Selected by `LLM_BACKEND`, which **defaults to `zai`** — this project runs on
+open weights unless told otherwise. `LLM_BACKEND=anthropic` returns it to
+Claude, and that path is maintained, tested and evaluated rather than
+decorative (72/73 on the same suite).
+
+A checkout with only an `ANTHROPIC_API_KEY` therefore refuses to start the model
+layer instead of quietly billing a different vendor than the one configured; the
+error names both ways out.
+
+Chosen exactly as the repository's two existing seams are:
 
 | Seam | Implementations | Chosen by |
 |---|---|---|
@@ -35,13 +43,13 @@ than importing `treasury_db`.
 Per call site, not per provider. Routing a greeting and grounding a market-risk
 requirement are different problems.
 
-| Call site | `LLM_BACKEND=anthropic` | `LLM_BACKEND=zai` | Override |
+| Call site | `LLM_BACKEND=zai` *(default)* | `LLM_BACKEND=anthropic` | Override |
 |---|---|---|---|
-| Orchestrator | `claude-haiku-4-5` | `glm-5.2` | `ORCHESTRATOR_MODEL` |
-| Sampling | `claude-opus-5` | `glm-5.2` | `SAMPLING_MODEL` |
-| MCP agent | `claude-opus-5` | `glm-5.2` | `MCP_AGENT_MODEL` |
-| Host agent | `claude-opus-5` | `glm-5.2` | `HOST_AGENT_MODEL` |
-| Domain expert | `claude-opus-5` | `glm-5.2` | `DOMAIN_EXPERT_MODEL` |
+| Orchestrator | `glm-5.2` | `claude-haiku-4-5` | `ORCHESTRATOR_MODEL` |
+| Sampling | `glm-5.2` | `claude-opus-5` | `SAMPLING_MODEL` |
+| MCP agent | `glm-5.2` | `claude-opus-5` | `MCP_AGENT_MODEL` |
+| Host agent | `glm-5.2` | `claude-opus-5` | `HOST_AGENT_MODEL` |
+| Domain expert | `glm-5.2` | `claude-opus-5` | `DOMAIN_EXPERT_MODEL` |
 
 ### Why the orchestrator is not on the cheap model
 

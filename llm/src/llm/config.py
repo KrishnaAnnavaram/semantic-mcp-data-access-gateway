@@ -24,6 +24,15 @@ from llm.contracts import CallSite
 ANTHROPIC = "anthropic"
 ZAI = "zai"
 
+# This project runs on open weights by default. Set LLM_BACKEND=anthropic to go
+# back to Claude - that path is maintained, tested and evaluated, not decorative.
+#
+# The consequence is deliberate and worth stating: a checkout with only an
+# ANTHROPIC_API_KEY will refuse to start the model layer rather than quietly
+# billing a different vendor than the one configured. `load_config()` names the
+# missing variable and the one-line fix.
+DEFAULT_BACKEND = ZAI
+
 ZAI_DEFAULT_BASE_URL = "https://api.z.ai/api/paas/v4"
 
 # Per-call-site defaults, per backend. The split is deliberate: routing and
@@ -151,7 +160,7 @@ def load_config() -> ModelConfig:
     """
     _load_dotenv()
 
-    backend = _env("LLM_BACKEND", ANTHROPIC).lower()
+    backend = _env("LLM_BACKEND", DEFAULT_BACKEND).lower()
     if backend not in (ANTHROPIC, ZAI):
         raise ValueError(
             f"LLM_BACKEND={backend!r} is not recognised; expected "
