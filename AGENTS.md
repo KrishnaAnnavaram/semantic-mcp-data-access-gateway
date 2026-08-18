@@ -13,12 +13,12 @@ There is no other path: `POST /chat` calls `AgentPipeline.handle()` and nothing 
     User question
        │
        ▼
-    ORCHESTRATOR (Haiku)  classify
+    ORCHESTRATOR  classify
        ├─ normal question ─────────────────────► reply, stop
        └─ data request
             │
             ▼
-       DOMAIN EXPERT (Opus)  Qdrant vector search → requirement
+       DOMAIN EXPERT  Qdrant vector search → requirement
             │
             ├──► MCP AGENT: what tools and data do you have?
             │◄── catalogue
@@ -29,17 +29,23 @@ There is no other path: `POST /chat` calls `AgentPipeline.handle()` and nothing 
             │  ╚══════════════════════════════════════════════╝
             │
             ▼  final requirement
-       MCP AGENT (Opus)  fetch + calculate
+       MCP AGENT  fetch + calculate
             │
             ▼
-    ORCHESTRATOR (Haiku)  reflect → reply
+    ORCHESTRATOR  reflect → reply
 ```
 
-| Agent | Module | Model | Why that model |
+| Agent | Module | Job | Model is |
 |---|---|---|---|
-| **Orchestrator** | `agents/orchestrator_agent.py` | `claude-haiku-4-5` | Runs on *every* turn, including "hi". Routing needs speed, not depth. |
-| **Domain Expert** | `agents/domain_expert_agent.py` | `claude-opus-5` | This is where the thinking is. |
-| **MCP Agent** | `agents/mcp_agent.py` | `claude-opus-5` | Judging what a source can serve needs reading, not a set lookup. |
+| **Orchestrator** | `agents/orchestrator_agent.py` | Routing. Runs on *every* turn, including "hi". | configuration |
+| **Domain Expert** | `agents/domain_expert_agent.py` | The thinking. Retrieval, requirement, citation. | configuration |
+| **MCP Agent** | `agents/mcp_agent.py` | Judging what a source can serve. | configuration |
+
+**No agent names a model.** Each declares a *call site*; which model serves it
+is decided by `LLM_BACKEND` and the per-call-site variables, exactly as
+`DATA_BACKEND` decides which `DataProvider` serves a fetch. See
+[`docs/model-provider.md`](docs/model-provider.md) for the allocation and the
+measurements behind it.
 
 ### 1. Orchestrator — the front door
 
@@ -49,8 +55,8 @@ A model asked to reply with the word `QUANT` will eventually reply `QUANT.` or
 
 | Route | Meaning | Cost |
 |---|---|---|
-| `direct` | Small talk, or a question about the system itself. | One Haiku turn. |
-| `clarify` | A missing detail that would change the result. | One Haiku turn + a catalogue read for real choices. |
+| `direct` | Small talk, or a question about the system itself. | One routing turn. |
+| `clarify` | A missing detail that would change the result. | One routing turn + a catalogue read for real choices. |
 | `data_request` | A real question for the data layer. | The full path below. |
 
 It also writes the **final reply**, after the work is done — so the expensive agents
@@ -133,6 +139,14 @@ an agent.
 |---|---|---|
 | `VectorStore` | `QdrantVectorStore` (embedded for dev, or Docker via `QDRANT_URL`) | `QDRANT_URL` |
 | `DataProvider` | `McpDataProvider` · `PostgresDataProvider` · `MockDataProvider` | `DATA_BACKEND` |
+| `ModelProvider` | `AnthropicProvider` · `ZaiProvider` | `LLM_BACKEND` |
+
+**Structured output is validated, never trusted.** A provider returns an object
+only after it has passed strict schema and type checking, because valid JSON is
+not the same as a valid answer: a renamed field or a whole float where an
+integer was required parses cleanly and then becomes `None` three layers later.
+Grounding is checked *separately and afterwards* — a structurally perfect result
+can still be factually ungrounded, and is rejected.
 
 **Capability is detected, never assumed.** Portfolio and risk tools are offered only
 when the provider can actually reach them (`hasattr(self.data, "call_tool")`). Under
@@ -200,7 +214,7 @@ python -m mcp_servers.host --ask "..."
 ```
 
 It exists so the MCP layer can be exercised and demonstrated **without the backend,
-Qdrant or the UI running**. It shares the model (`claude-opus-5`, adaptive thinking)
+Qdrant or the UI running**. It shares the model layer (`HOST_AGENT_MODEL`)
 and the honesty rules, but has no knowledge base, no discussion and no decision
 trace. It is not in the `/chat` path.
 
