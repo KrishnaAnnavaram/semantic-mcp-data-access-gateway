@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gateway-llm"
+version = "0.1.0"
+description = "The ModelProvider seam: one interface, many LLM engines"
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=0.69.0",   # AnthropicProvider
+    "openai>=1.40",        # ZaiProvider, over Z.AI's OpenAI-compatible endpoint
+    "jsonschema>=4.20",    # strict structural validation of model output
+]
+
+# The lowest layer in the repository: it imports none of the other
+# distributions. That is deliberate - the MCP host must keep working standalone
+# (`python -m mcp_servers.host --ask`) without the backend, Qdrant or the UI,
+# which it could not do if the model seam lived above it.
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]

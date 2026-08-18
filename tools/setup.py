@@ -113,7 +113,8 @@ def wait_for_postgres(timeout_s: int = 90) -> bool:
 def install_dependencies() -> bool:
     for args, label in (
         (["-r", "requirements.txt"], "requirements.txt"),
-        (["-e", "./postgres", "-e", "./mcp", "-e", "./backend"], "three packages (editable)"),
+        (["-e", "./llm", "-e", "./postgres", "-e", "./mcp", "-e", "./backend",
+          "-e", "./agents"], "five packages (editable)"),
     ):
         r = run([sys.executable, "-m", "pip", "install", "-q", *args], capture=True)
         if r.returncode != 0:
@@ -174,7 +175,7 @@ def report_state() -> int:
         ok("backend, mcp_servers, treasury_db importable")
     except ImportError as exc:
         warn(f"packages not importable ({exc.name}) — run:"
-             " pip install -e ./postgres -e ./mcp -e ./backend")
+             " pip install -e ./llm -e ./postgres -e ./mcp -e ./backend -e ./agents")
     print()
     print("Database")
     run([sys.executable, "-m", "treasury_db.migrate", "--status"])
