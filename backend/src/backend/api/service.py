@@ -6,11 +6,14 @@ This is the only thing the UI talks to, and the only caller of `agents/`:
       -> { "answer", "sources", "trace", "awaiting_clarification",
            "tables", "data_plan", "negotiation", "catalogue", "calculation" }
     POST /summarise { "messages": [...] } -> { "title": "..." }
-    GET  /health -> { "status": "ok" }
+    GET  /health -> { "status", "llm_backend", "models", "data_backend" }
 
 The service owns session memory; the pipeline is stateless. Run it:
 
-    ANTHROPIC_API_KEY=...  python -m backend.api.service      # :8000
+    python -m backend.api.service      # :8000
+
+The model backend defaults to `zai` (glm-5.2 at every call site); set
+LLM_BACKEND=anthropic to run on Claude. `/health` reports which one is live.
 """
 
 from __future__ import annotations
@@ -18,6 +21,7 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
@@ -113,7 +117,30 @@ class ChatResponse(BaseModel):
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok", "api_key_configured": bool(os.environ.get("ANTHROPIC_API_KEY"))}
+    """Liveness, plus which engines are actually answering.
+
+    The model backend is reported here rather than only logged. `log_status()`
+    writes it at INFO, but uvicorn's logging configuration swallows that, so a
+    running service had no way of being *asked* which vendor it was using — and
+    "which model answered this" is exactly the question worth being able to
+    settle without reading source or restarting anything.
+
+    `redacted()` reports whether a key is present, never the key.
+    """
+    status: dict[str, Any] = {"status": "ok"}
+    try:
+        from llm import provider_status  # noqa: PLC0415
+
+        models = provider_status()
+        status["llm_backend"] = models.get("backend")
+        status["models"] = models.get("models")
+        status["api_key_configured"] = models.get("api_key_configured")
+    except Exception as exc:  # noqa: BLE001 - health must answer even when broken
+        status["llm_backend"] = "unavailable"
+        status["model_layer_error"] = str(exc)
+        status["api_key_configured"] = False
+    status["data_backend"] = os.environ.get("DATA_BACKEND", "mock")
+    return status
 
 
 @app.post("/summarise", response_model=SummaryResponse)

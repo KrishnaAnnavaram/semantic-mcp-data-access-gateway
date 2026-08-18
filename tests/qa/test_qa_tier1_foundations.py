@@ -19,15 +19,36 @@ import pytest
 
 
 @pytest.mark.parametrize("module", [
-    "treasury_db", "mcp_servers", "backend", "agents",
+    "treasury_db", "mcp_servers", "backend", "agents", "llm",
     "mcp_servers.data.server", "mcp_servers.risk.server",
     "mcp_servers.host.mcp_clients", "mcp_servers.host.interaction",
     "mcp_servers.data.interactive", "backend.workflows.risk_workflows",
-    "agents.pipeline",
+    "agents.pipeline", "llm.anthropic_provider", "llm.zai_provider",
 ])
 def test_every_distribution_imports(module):
-    """All four distributions must be installed; they import each other."""
+    """All five distributions must be installed; they import each other."""
     assert importlib.import_module(module) is not None
+
+
+def test_the_model_seam_depends_on_nothing_above_it():
+    """`llm` is the lowest layer, and must stay that way.
+
+    The MCP host has to keep working standalone -- `python -m mcp_servers.host
+    --ask` runs with no backend, no Qdrant and no UI. It could not if the model
+    seam sat above it, so `llm` imports none of the other distributions.
+    """
+    from pathlib import Path  # noqa: PLC0415
+
+    forbidden = {"agents", "backend", "mcp_servers", "treasury_db"}
+    offenders = []
+    for path in Path("llm/src/llm").rglob("*.py"):
+        source = path.read_text(encoding="utf-8", errors="replace")
+        for line in source.splitlines():
+            stripped = line.strip()
+            for name in forbidden:
+                if stripped.startswith((f"import {name}", f"from {name}")):
+                    offenders.append(f"{path}: {stripped}")
+    assert offenders == [], f"llm must not import upward: {offenders}"
 
 
 def test_no_sys_path_manipulation_anywhere_in_the_source():

@@ -13,8 +13,15 @@ psycopg2-binary>=2.9    # PostgreSQL driver for migrate.py / load_us_treasury.py
 # floor, not a preference.
 mcp>=2.0.0
 
-# --- knowledge layer + quant agent ---
-anthropic>=0.69.0
+# --- model layer (the ModelProvider seam) ---
+# Two engines behind one interface, chosen by LLM_BACKEND. Both SDKs are
+# declared here because either may be the configured backend; only the selected
+# one is imported at runtime.
+anthropic>=0.69.0       # AnthropicProvider - Claude
+openai>=1.40            # ZaiProvider - GLM, over Z.AI's OpenAI-compatible API
+jsonschema>=4.20        # strict structural validation of model output
+
+# --- knowledge layer + agents ---
 qdrant-client[fastembed]>=1.12 # vector store: embedded (dev) or Qdrant server (Docker)
 
 # --- agent service (Layer 2 /chat API) ---

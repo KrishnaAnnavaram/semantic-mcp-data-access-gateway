@@ -39,7 +39,7 @@ from .mcp_clients import McpHost
 
 LOGGER = logging.getLogger("host.agent")
 
-MODEL = "claude-opus-5"
+# The model is configuration (`HOST_AGENT_MODEL`), resolved by the provider.
 MAX_TOKENS = 32_000
 MAX_STEPS = 24
 
@@ -81,22 +81,21 @@ observation date and the dataset_snapshot_id for any number you quote.
 """
 
 
-def _anthropic_tools(host: McpHost) -> list[dict[str, Any]]:
-    """Both servers' tools as one Anthropic tool list.
+def _tool_specs(host: McpHost) -> list[Any]:
+    """Both servers' tools as one provider-neutral tool list.
 
     Names are already unique across servers (the host logs and drops a
     collision), so the model sees a flat namespace and the host maps each call
-    back to its owning server.
+    back to its owning server. Translating these into Anthropic `input_schema`
+    or OpenAI `parameters` is the provider's job, not this loop's.
     """
-    tools = []
-    for tool in host.all_tools():
-        schema = tool.input_schema or {"type": "object", "properties": {}}
-        tools.append({
-            "name": tool.name,
-            "description": (tool.description or "").strip(),
-            "input_schema": schema,
-        })
-    return tools
+    from llm import ToolSpec  # noqa: PLC0415
+
+    return [ToolSpec(name=tool.name,
+                     description=(tool.description or "").strip(),
+                     parameters=tool.input_schema or {"type": "object",
+                                                      "properties": {}})
+            for tool in host.all_tools()]
 
 
 async def _grounding(host: McpHost) -> str:
@@ -154,59 +153,61 @@ def _result_text(result: Any) -> str:
 
 
 async def answer(host: McpHost, question: str) -> str:
-    """Run the tool-calling loop until the model stops asking for tools."""
-    import anthropic  # noqa: PLC0415
+    """Run the tool-calling loop until the model stops asking for tools.
 
-    client = anthropic.Anthropic()
-    tools = _anthropic_tools(host)
+    Provider-neutral throughout: the loop sees `ToolSpec` in and `ModelReply`
+    out, and hands message shaping back to the provider. Swapping the engine
+    changes nothing here.
+    """
+    from llm import CallSite, ProviderError, make_model_provider  # noqa: PLC0415
+
+    provider = make_model_provider()
+    tools = _tool_specs(host)
     system = SYSTEM + "\n\n" + await _grounding(host)
-    messages: list[dict[str, Any]] = [{"role": "user", "content": question}]
+    messages: list[Any] = [{"role": "user", "content": question}]
+
+    LOGGER.info("host agent: provider=%s model=%s", provider.name,
+                provider.model_for(CallSite.HOST_AGENT))
 
     for step in range(MAX_STEPS):
-        # Streaming, because adaptive thinking plus a 32k ceiling is exactly the
-        # shape that trips the SDK's non-streaming timeout guard.
-        with client.messages.stream(
-            model=MODEL,
-            max_tokens=MAX_TOKENS,
-            system=system,
-            tools=tools,
-            thinking={"type": "adaptive"},
-            output_config={"effort": "high"},
-            messages=messages,
-        ) as stream:
-            response = stream.get_final_message()
+        try:
+            reply = provider.tool_turn(call_site=CallSite.HOST_AGENT,
+                                       system=system, messages=messages,
+                                       tools=tools, max_tokens=MAX_TOKENS)
+        except ProviderError as exc:
+            # Bounded and visible. A model failure ends the loop with a labelled
+            # message rather than an answer nobody can distinguish from a real one.
+            return f"[model call failed: {exc.kind}: {exc}]"
 
-        if response.stop_reason == "refusal":
-            detail = getattr(response, "stop_details", None)
-            return (f"[refused by the model's safety classifiers"
-                    f"{': ' + detail.category if detail else ''}]")
+        if reply.refused:
+            return "[refused by the model's safety classifiers]"
 
-        messages.append({"role": "assistant", "content": response.content})
+        # The assistant turn goes back in whatever shape this provider uses; the
+        # loop never inspects it.
+        messages.append(provider.assistant_message(reply))
 
-        calls = [b for b in response.content if getattr(b, "type", None) == "tool_use"]
-        if not calls:
-            return "".join(b.text for b in response.content
-                           if getattr(b, "type", None) == "text").strip()
+        if not reply.tool_calls:
+            return reply.text
 
-        results = []
-        for call in calls:
-            LOGGER.info("step %d: %s(%s)", step + 1, call.name,
-                        json.dumps(call.input, default=str)[:160])
-            print(f"  -> {call.name}({json.dumps(call.input, default=str)[:120]})", flush=True)
+        results: list[tuple[str, str, bool]] = []
+        for call in reply.tool_calls:
+            shown = json.dumps(call.arguments, default=str)
+            LOGGER.info("step %d: %s(%s)", step + 1, call.name, shown[:160])
+            print(f"  -> {call.name}({shown[:120]})", flush=True)
             try:
                 # Any elicitation, roots or sampling request the tool raises is
                 # answered and retried inside here; this loop never sees it.
-                raw = await host.call(call.name, dict(call.input))
+                raw = await host.call(call.name, dict(call.arguments))
                 content, is_error = _result_text(raw), bool(getattr(raw, "is_error", False))
             except Exception as exc:  # noqa: BLE001 - surfaced to the model
                 content, is_error = f"tool call failed: {type(exc).__name__}: {exc}", True
-            results.append({
-                "type": "tool_result", "tool_use_id": call.id,
-                "content": content, "is_error": is_error,
-            })
-        # All results in one user message: splitting them teaches the model to
-        # stop making parallel calls.
-        messages.append({"role": "user", "content": results})
+            results.append((call.id, content, is_error))
+
+        # The provider decides whether that is one message or several: Anthropic
+        # takes all results in a single user turn, OpenAI-compatible APIs take
+        # one message per result.
+        shaped = provider.tool_result_message(results)
+        messages.extend(shaped) if isinstance(shaped, list) else messages.append(shaped)
 
     return "[stopped: reached the maximum number of tool-calling steps]"
 
@@ -218,8 +219,13 @@ async def run_ask(question: str, *, interactive: bool = False) -> int:
     from treasury_db.db import load_dotenv  # noqa: PLC0415
 
     load_dotenv()
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        print("ANTHROPIC_API_KEY is not set; the host cannot reason without it.")
+    from llm import load_config  # noqa: PLC0415
+
+    config = load_config()
+    if not config.api_key:
+        key = "ZAI_API_KEY" if config.backend == "zai" else "ANTHROPIC_API_KEY"
+        print(f"{key} is not set; the host cannot reason without it "
+              f"(LLM_BACKEND={config.backend}).")
         return 2
     policy = InteractionPolicy.default(elicitation="prompt" if interactive else "decline")
     async with McpHost(policy=policy) as host:

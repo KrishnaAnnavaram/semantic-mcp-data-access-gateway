@@ -33,11 +33,13 @@ import logging
 from typing import Any
 
 from agents.contracts import ServeResponse, ToolCatalogue, ToolSpec
+from llm import CallSite
+
 from agents.observability import structured_call, traced
 
 LOGGER = logging.getLogger("agents.mcp_agent")
 
-MODEL = "claude-opus-5"
+CALL_SITE = CallSite.MCP_AGENT
 
 TENOR_MONTHS: dict[str, float] = {
     "m1": 1, "m1_5": 1.5, "m2": 2, "m3": 3, "m4": 4, "m6": 6,
@@ -93,9 +95,9 @@ ASSESS_SCHEMA: dict[str, Any] = {
 class McpAgent:
     """Advertises what the data layer can do, negotiates, and executes."""
 
-    def __init__(self, data_provider, model: str = MODEL) -> None:
+    def __init__(self, data_provider) -> None:
         self.data = data_provider
-        self.model = model
+        self.call_site = CALL_SITE
 
     # -- advertise -----------------------------------------------------------
 
@@ -189,7 +191,7 @@ class McpAgent:
     def assess(self, requirement, catalogue: ToolCatalogue) -> ServeResponse:
         """Judge a proposed requirement against what this source truly holds."""
         payload = structured_call(
-            model=self.model, system=ASSESS_SYSTEM,
+            call_site=CALL_SITE, system=ASSESS_SYSTEM,
             prompt=(f"Proposed requirement:\n{requirement.as_dict()}\n\n"
                     f"Your catalogue:\n{catalogue.as_dict()}"),
             schema=ASSESS_SCHEMA, max_tokens=3000,

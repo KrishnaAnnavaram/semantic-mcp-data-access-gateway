@@ -21,6 +21,7 @@ boundaries between tiers are the part worth protecting.
             ▼
           agents/            orchestrator → domain expert ⇄ mcp agent
             │                              (Qdrant knowledge)
+            │ ModelProvider seam                        LLM_BACKEND=zai (default)|anthropic
           backend/           /chat service, seams, workflows
             │ DataProvider seam                             DATA_BACKEND=mcp
             ▼
@@ -30,11 +31,12 @@ boundaries between tiers are the part worth protecting.
           postgres/ + data/  PostgreSQL 17, Treasury rates
 ```
 
-One directory per runtime tier, dependencies strictly downward. Three are installable
+One directory per runtime tier, dependencies strictly downward. Five are installable
 distributions; the frontend is a Streamlit app run in place.
 
 | Directory | Distribution | Import package |
 |---|---|---|
+| `llm/` | `gateway-llm` | `llm` — the `ModelProvider` seam; imports nothing above it |
 | `postgres/` | `treasury-db` | `treasury_db` — migrations, loader, DB access |
 | `mcp/` | `mcp-servers` | `mcp_servers` — `.data`, `.risk`, `.host` |
 | `backend/` | `gateway-backend` | `backend` — `.api`, `.agent`, `.knowledge`, `.providers` |
@@ -69,20 +71,20 @@ Or by hand:
 
 ```bash
 pip install -r requirements.txt
-pip install -e ./postgres -e ./mcp -e ./backend
+pip install -e ./llm -e ./postgres -e ./mcp -e ./backend -e ./agents
 ```
 
-All three must be installed — they import each other (`backend` uses `mcp_servers`, the
-data server uses `treasury_db`). **There are no `sys.path` hacks anywhere; do not add one.**
-Modules find the repo root by walking up for a marker (`paths.py` in each package), never by
-counting `parents[N]` — three packages sit at three depths and a count is wrong the moment a
-file moves.
+All five must be installed — they import each other (`backend` uses `mcp_servers`, the
+data server uses `treasury_db`, and everything that reasons uses `llm`). **There are no
+`sys.path` hacks anywhere; do not add one.** Modules find the repo root by walking up for a
+marker (`paths.py` in each package), never by counting `parents[N]` — five packages sit at
+five depths and a count is wrong the moment a file moves.
 
-**`.claude/` holds both configuration and the four source distributions.** Configuration
-lives in `agents/`, `commands/`, `rules/`, `skills/` and `settings.json`; product code lives
-under ``. This is unusual — most tooling assumes `.claude/` is configuration only
-— so the split is a rule rather than a convention: nothing outside `` is
-importable code, and nothing inside it is Claude Code configuration.
+`llm/` is the **lowest** layer and imports none of the others, so
+`python -m mcp_servers.host --ask` still runs with no backend, no Qdrant and no UI.
+
+**`.claude/` holds configuration only.** Agents, commands, rules, skills and
+`settings.json` — no product code. Every distribution lives at the repository root.
 
 ## Commands
 
@@ -108,7 +110,7 @@ python -m mcp_servers.host --isolation   # prove the risk engine cannot reach th
 python -m mcp_servers.host --primitives  # exercise all six MCP primitives
 python -m mcp_servers.host --ask "..."   # the host's own agent, driving both servers
 python tools/verify_mcp.py --self-test   # 48 checks; 4 canaries must be caught
-pytest                                   # 68 tests (frontend: cd frontend && pytest)
+pytest                                   # frontend: cd frontend && pytest
 ```
 
 ## All six MCP primitives are live
@@ -140,6 +142,19 @@ entry point. `verify_mcp.py` asserts the negotiated revision so this cannot regr
 Servers are never run by hand — the host launches them as child processes. If you do run one,
 **stdout is the protocol channel**: a stray `print()` corrupts the stream and shows up as a
 mysterious client disconnect. Diagnostics go to stderr.
+
+**Model layer**
+
+```bash
+# Which engine answers, and with what per call site. Prints no secret.
+python -c "from llm import provider_status; print(provider_status())"
+LLM_BACKEND=zai python -m evaluation.run     # the same 13 cases, on GLM
+```
+
+Structured output is **validated, never trusted**: a provider returns an object only
+after strict schema and type checking. Under `zai` the mechanism is a **forced function
+call**, not `response_format` — Z.AI answers HTTP 200 to a JSON-schema request and then
+renames the fields, which parses cleanly and is wrong. See `docs/model-provider.md`.
 
 **Reasoning + UI**
 
@@ -194,7 +209,12 @@ in `treasury.series.placeholder_zero_before`, as data, not code.
   contain proves nothing.
 - **Keep the seams.** The agent talks only to interfaces — `VectorStore` and `DataProvider` must
   stay swappable. Never let it import a concrete engine directly.
-- **Model:** default to `claude-opus-5` with adaptive thinking. Do not downgrade unless asked.
+- **Never name a model in an agent.** Agents declare a *call site*; the model is
+  configuration (`LLM_BACKEND` + `ORCHESTRATOR_MODEL` and friends). A pinned model
+  string is how a cheap routing path quietly becomes an expensive one.
+- **Model:** the default backend is **`zai`**, running `glm-5.2` at every call
+  site. `LLM_BACKEND=anthropic` returns to `claude-opus-5` with adaptive thinking
+  and is fully maintained. See `docs/model-provider.md`.
 
 ## Adding a maturity Treasury has started publishing
 

@@ -40,12 +40,14 @@ import re
 from typing import Any
 
 from agents.contracts import FieldNote, KnowledgeChunk, Requirement, ToolCatalogue
+from llm import CallSite
+
 from agents.observability import structured_call, traced
 
 LOGGER = logging.getLogger("agents.domain_expert")
 
 # High-capability model: this is the reasoning seat of the system.
-MODEL = "claude-opus-5"
+CALL_SITE = CallSite.DOMAIN_EXPERT
 
 # Columns that accompany any rate regardless of task. A correctness rule, not a
 # threshold: a rate without its quoting basis cannot be safely combined.
@@ -142,9 +144,26 @@ def _normalise(text: str) -> str:
     Chunks wrap mid-sentence and models re-emit en dashes as hyphens; neither is
     a paraphrase. Failing an honest quote on typography would push the agent
     toward inventing numbers instead of citing them.
+
+    **Markdown emphasis is typography too.** The corpus is markdown, and the
+    sentence the agent must cite is written
+
+        Historical simulation reads a fixed lookback window of
+        **250 trading days** of daily observations.
+
+    A model that reproduces the asterisks matched; one that quoted the same
+    sentence as plain prose did not, and had its correct citation discarded as
+    ungrounded. That is the guard failing on formatting rather than substance -
+    and it fails *toward* the outcome this whole design exists to prevent, since
+    an agent whose honest quotes keep getting rejected has no way left to
+    justify a number.
+
+    Stripping the markers from **both** sides keeps the check exactly as strict:
+    a paraphrase still does not appear in the source, emphasised or not.
     """
     text = (text or "").replace("–", "-").replace("—", "-")
     text = text.replace("’", "'").replace("“", '"').replace("”", '"')
+    text = text.replace("**", "").replace("__", "").replace("`", "")
     return re.sub(r"\s+", " ", text).strip().lower()
 
 
@@ -166,9 +185,9 @@ def quote_is_grounded(quote: str | None, context: str) -> bool:
 class DomainExpertAgent:
     """Reads the corpus, decides the requirement, and defends it in discussion."""
 
-    def __init__(self, knowledge, model: str = MODEL, n_results: int = 6) -> None:
+    def __init__(self, knowledge, n_results: int = 6) -> None:
         self.kb = knowledge
-        self.model = model
+        self.call_site = CALL_SITE
         self.n_results = n_results
 
     # -- knowledge -----------------------------------------------------------
@@ -230,7 +249,7 @@ class DomainExpertAgent:
 
         prompt = self._prompt(question, task, catalogue, requested_fields,
                               requested_rows, self._context(chunks))
-        payload = structured_call(model=self.model, system=DERIVE_SYSTEM,
+        payload = structured_call(call_site=CALL_SITE, system=DERIVE_SYSTEM,
                                   prompt=prompt, schema=SCHEMA, max_tokens=6000)
         if payload is None:
             return self._blocked(task or question,
@@ -251,7 +270,7 @@ class DomainExpertAgent:
             f"Knowledge excerpts (your ONLY source for numbers):\n"
             f"{self._context(chunks)}"
         )
-        payload = structured_call(model=self.model, system=REVISE_SYSTEM,
+        payload = structured_call(call_site=CALL_SITE, system=REVISE_SYSTEM,
                                   prompt=prompt, schema=SCHEMA, max_tokens=6000)
         if payload is None:
             # Revision failed: keep the grounded proposal rather than degrading

@@ -105,7 +105,7 @@ flowchart TB
 | **PostgreSQL** | **Where truth lives** |
 | **Qdrant** | **What the domain means** — the system's brain |
 
-### Two swap seams
+### Three swap seams
 
 The agents talk only to interfaces, so engines are configurable rather than welded in.
 
@@ -113,6 +113,13 @@ The agents talk only to interfaces, so engines are configurable rather than weld
 |---|---|---|
 | `DataProvider` | `McpDataProvider` · `PostgresDataProvider` · `MockDataProvider` | `DATA_BACKEND` |
 | `VectorStore` | `QdrantVectorStore` (embedded, or Docker via `QDRANT_URL`) | `QDRANT_URL` |
+| `ModelProvider` | `AnthropicProvider` (Claude) · `ZaiProvider` (GLM) | `LLM_BACKEND` |
+
+The third means **the LLM engine itself is interchangeable**. No agent names a model — each
+declares a *call site*, and the model serving it is configuration. The system runs on open weights **by
+default**; `LLM_BACKEND=anthropic` returns it to Claude, with no change in any agent.
+Details and the measurements behind the allocation:
+[`docs/model-provider.md`](docs/model-provider.md).
 
 ---
 
@@ -130,10 +137,10 @@ sequenceDiagram
     actor User
     participant UI as Streamlit
     participant API as FastAPI<br/>/chat
-    participant ORC as 1️⃣ Orchestrator<br/>Haiku 4.5
-    participant DOM as 2️⃣ Domain Expert<br/>Opus 5
+    participant ORC as 1️⃣ Orchestrator<br/>routing model
+    participant DOM as 2️⃣ Domain Expert<br/>reasoning model
     participant QD as Qdrant
-    participant MCP as 3️⃣ MCP Agent<br/>Opus 5
+    participant MCP as 3️⃣ MCP Agent<br/>reasoning model
     participant SRV as MCP servers
     participant PG as PostgreSQL
 
@@ -692,9 +699,9 @@ roots or sampling — Inspector v1 connects with `initialize` and so negotiates 
 ```mermaid
 flowchart TB
     Q(["question"])
-    O["<b>1️⃣ ORCHESTRATOR</b><br/>claude-haiku-4-5<br/><i>routes</i>"]
-    D["<b>2️⃣ DOMAIN EXPERT</b><br/>claude-opus-5<br/><i>what data is needed?</i>"]
-    M["<b>3️⃣ MCP AGENT</b><br/>claude-opus-5<br/><i>what can be served?</i>"]
+    O["<b>1️⃣ ORCHESTRATOR</b><br/>routing model<br/><i>routes</i>"]
+    D["<b>2️⃣ DOMAIN EXPERT</b><br/>reasoning model<br/><i>what data is needed?</i>"]
+    M["<b>3️⃣ MCP AGENT</b><br/>reasoning model<br/><i>what can be served?</i>"]
     R(["answer + trace"])
     QD[("Qdrant")]
 
@@ -715,11 +722,18 @@ flowchart TB
     class QD store
 ```
 
-| Agent | Model | Why that model | Responsibility |
+| Agent | Responsibility | `LLM_BACKEND=zai` *(default)* | `LLM_BACKEND=anthropic` |
 |---|---|---|---|
-| **Orchestrator** | `claude-haiku-4-5` | Runs on **every** turn including "hi". Routing needs speed, not depth. | Classify → reply / clarify / delegate. Then write the final answer. |
-| **Domain Expert** | `claude-opus-5` | This is where the thinking is. | Vector-search Qdrant, decide the requirement, defend it. |
-| **MCP Agent** | `claude-opus-5` | Judging what a source can serve needs reading, not a set lookup. | Advertise tools, negotiate, fetch, calculate. |
+| **Orchestrator** | Classify → reply / clarify / delegate. Then write the final answer. Runs on **every** turn including "hi". | `glm-5.2` | `claude-haiku-4-5` |
+| **Domain Expert** | Vector-search Qdrant, decide the requirement, defend it. This is where the thinking is. | `glm-5.2` | `claude-opus-5` |
+| **MCP Agent** | Advertise tools, negotiate, fetch, calculate. | `glm-5.2` | `claude-opus-5` |
+| *(MCP sampling)* | Rewrite a dataset caveat as desk-ready prose. | `glm-5.2` | `claude-opus-5` |
+| *(Host agent)* | The standalone `--ask` loop. | `glm-5.2` | `claude-opus-5` |
+
+**No agent names a model.** Each declares a *call site*; the model is resolved by
+`LLM_BACKEND` plus `ORCHESTRATOR_MODEL`, `DOMAIN_EXPERT_MODEL` and friends, and a QA test
+fails the build if a model string reappears in an agent. The allocation above is measured,
+not assumed — see [`docs/model-provider.md`](docs/model-provider.md).
 
 ## 8.1 Why a discussion, not a handoff — the heart of the design
 
@@ -955,13 +969,13 @@ python tools/setup.py --check    # report state, change nothing
 
 ```bash
 pip install -r requirements.txt
-pip install -e ./postgres -e ./mcp -e ./backend -e ./agents
+pip install -e ./llm -e ./postgres -e ./mcp -e ./backend -e ./agents
 cp .env.example .env             # set POSTGRES_PASSWORD and ANTHROPIC_API_KEY
 ```
 
-All four distributions must be installed — they import each other. There are **no `sys.path`
+All five distributions must be installed — they import each other. There are **no `sys.path`
 hacks anywhere**; modules find the repo root by walking up for a marker, never by counting
-`parents[N]` (four packages sit at four depths, and a count is wrong the moment a file moves).
+`parents[N]` (five packages sit at five depths, and a count is wrong the moment a file moves).
 
 ### Bring it up
 
@@ -988,12 +1002,14 @@ cd frontend && streamlit run app.py               # :8501
 
 | Variable | Values | Effect |
 |---|---|---|
+| `LLM_BACKEND` | **`zai`** (default) · `anthropic` | Which model engine answers |
+| `ZAI_API_KEY` | your key | Required by the default backend |
+| `ANTHROPIC_API_KEY` | your key | Required when `LLM_BACKEND=anthropic` |
 | `DATA_BACKEND` | `mcp` · `postgres` · `mock` | Which `DataProvider` is used |
 | `QDRANT_URL` | a URL, or unset | Docker server vs embedded |
 | `AGENT_BACKEND` | `rest` | **Required**, or the UI serves mock answers |
 | `AGENT_TIMEOUT_SECONDS` | raise from 30 | One turn runs several MCP round trips |
 | `LANGSMITH_TRACING` | `true` | Turn tracing on |
-| `ANTHROPIC_API_KEY` | your key | Required for all three agents |
 
 ---
 
@@ -1067,6 +1083,7 @@ Ten minutes, in this order.
 
 | Path | Distribution | Import package | Holds |
 |---|---|---|---|
+| `llm/` | `gateway-llm` | `llm` | The `ModelProvider` seam — imports nothing above it |
 | `agents/` | `gateway-agents` | `agents` | The three runtime agents + the pipeline |
 | `backend/` | `gateway-backend` | `backend` | `/chat` service, seams, KnowledgeBase, workflows |
 | `mcp/` | `mcp-servers` | `mcp_servers` | Both servers, the host, risk maths |
@@ -1111,6 +1128,7 @@ Recorded rather than hidden.
 | [`CLAUDE.md`](CLAUDE.md) | Shared project memory; rules for every session |
 | [`agents/README.md`](agents/README.md) | The three agents in depth |
 | [`docs/loading-contract.md`](docs/loading-contract.md) | How to extend the data pipeline |
+| [`docs/model-provider.md`](docs/model-provider.md) | The `ModelProvider` seam, and why structured output uses forced tool calls |
 | [`docs/mcp-contract.md`](docs/mcp-contract.md) | The MCP tool/resource/prompt contract |
 | [`docs/risk-methodology.md`](docs/risk-methodology.md) | Curve construction and risk maths |
 | [`docs/postgres-setup.md`](docs/postgres-setup.md) | Database provisioning, narrated |
