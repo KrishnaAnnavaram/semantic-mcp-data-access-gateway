@@ -4,15 +4,19 @@ A trace of one request should show the shape of the system, not one opaque span
 per HTTP call:
 
     orchestrator_agent
-      ├─ orchestrator.classify            (llm, Haiku)
+      ├─ orchestrator.classify            (llm, routing model)
       ├─ domain_expert_agent
       │    ├─ knowledge_retrieval         (retriever, Qdrant)
-      │    ├─ domain_expert.derive        (llm, Opus)
+      │    ├─ domain_expert.derive        (llm, reasoning model)
       │    └─ discussion
-      │         ├─ round_1.mcp_agent.assess    (llm, Opus)
-      │         └─ round_1.domain_expert.revise(llm, Opus)
+      │         ├─ round_1.mcp_agent.assess    (llm, reasoning model)
+      │         └─ round_1.domain_expert.revise(llm, reasoning model)
       ├─ mcp_agent.execute                (tool)
-      └─ orchestrator.reflect             (llm, Haiku)
+      └─ orchestrator.reflect             (llm, routing model)
+
+Which concrete model serves each call site is `LLM_BACKEND` configuration, not
+something an agent or this module decides. `log_status()` reports the resolved
+allocation at startup, with the key redacted to a present/absent flag.
 
 That nesting is what makes the system *evaluable*: an evaluator can score the
 domain expert's requirement on its own, separately from the answer eventually
@@ -133,68 +137,84 @@ def run_url() -> str | None:
 
 
 def log_status(logger: logging.Logger | None = None) -> None:
+    log = logger or LOGGER
     status = langsmith_status()
-    (logger or LOGGER).info("LangSmith: %s (project=%s) - %s",
-                            "ENABLED" if status["enabled"] else "disabled",
-                            status["project"], status["reason"])
+    log.info("LangSmith: %s (project=%s) - %s",
+             "ENABLED" if status["enabled"] else "disabled",
+             status["project"], status["reason"])
+
+    # Which engine is answering, and with what per call site. No secret is
+    # printed - `redacted()` reports only whether a key is present.
+    try:
+        from llm import provider_status  # noqa: PLC0415
+
+        model_status = provider_status()
+        log.info("Models: backend=%s key=%s %s",
+                 model_status.get("backend"),
+                 "set" if model_status.get("api_key_configured") else "MISSING",
+                 model_status.get("models"))
+    except Exception as exc:  # noqa: BLE001 - status must never break startup
+        log.warning("model provider status unavailable: %s", exc)
 
 
-_CLIENT = None
+_PROVIDER = None
 
 
-def anthropic_client():
-    """One Anthropic client for every agent.
+def model_provider():
+    """The process-wide `ModelProvider`.
 
-    Shared so connection pooling and retry settings are configured in exactly
-    one place; the per-agent difference is the *model*, not the transport.
+    Which vendor answers is decided by `LLM_BACKEND`, exactly as `DATA_BACKEND`
+    decides which `DataProvider` answers. Agents never see the difference.
     """
-    global _CLIENT  # noqa: PLW0603 - deliberate process-wide singleton
-    if _CLIENT is None:
+    global _PROVIDER  # noqa: PLW0603 - deliberate process-wide singleton
+    if _PROVIDER is None:
         _load_env()
-        import anthropic  # noqa: PLC0415
+        from llm import make_model_provider  # noqa: PLC0415
 
-        _CLIENT = anthropic.Anthropic()
-    return _CLIENT
+        _PROVIDER = make_model_provider()
+    return _PROVIDER
 
 
-def structured_call(*, model: str, system: str, prompt: str, schema: dict[str, Any],
-                    max_tokens: int = 4000, effort: str = "high") -> dict[str, Any] | None:
-    """One JSON-schema-constrained model call, shared by all three agents.
+def structured_call(*, call_site, system: str, prompt: str, schema: dict[str, Any],
+                    max_tokens: int | None = None,
+                    result_name: str = "emit_result") -> dict[str, Any] | None:
+    """One schema-validated model call, shared by all three agents.
+
+    The *call site* is the argument, not the model: which model serves it is
+    configuration, and routing a greeting is not the same problem as grounding
+    a market-risk requirement.
 
     Returns `None` rather than raising: an agent that cannot get a structured
     answer has to degrade visibly (say so, hand back control) rather than take
-    the whole request down.
+    the whole request down. Crucially, `None` is now also what a *structurally
+    wrong* answer produces — a renamed field or a float where an integer was
+    required no longer flows on as a half-populated dict whose missing keys
+    quietly become `None` three layers later.
     """
-    import json  # noqa: PLC0415
+    from llm import ProviderError, SchemaViolation  # noqa: PLC0415
 
-    # Adaptive thinking and `effort` are frontier-model features. Haiku rejects
-    # both with a 400, and the orchestrator deliberately runs on Haiku - so the
-    # request is shaped to the model rather than the model chosen to fit one
-    # request shape.
-    request: dict[str, Any] = {
-        "model": model,
-        "max_tokens": max_tokens,
-        "system": system,
-        "output_config": {"format": {"type": "json_schema", "schema": schema}},
-        "messages": [{"role": "user", "content": prompt}],
-    }
-    if not model.startswith("claude-haiku"):
-        request["thinking"] = {"type": "adaptive"}
-        request["output_config"]["effort"] = effort
-
+    provider = model_provider()
+    model = provider.model_for(call_site)
     try:
-        response = anthropic_client().messages.create(**request)
-    except Exception as exc:  # noqa: BLE001
-        LOGGER.warning("structured call to %s failed: %s", model, exc)
+        payload = provider.structured_call(
+            call_site=call_site, system=system, prompt=prompt, schema=schema,
+            max_tokens=max_tokens, result_name=result_name)
+    except SchemaViolation as exc:
+        # Loud on purpose. This is the failure that used to be invisible.
+        LOGGER.error("structured call rejected | provider=%s model=%s "
+                     "call_site=%s | %s", provider.name, model,
+                     getattr(call_site, "value", call_site), exc)
+        return None
+    except ProviderError as exc:
+        LOGGER.warning("structured call failed | provider=%s model=%s "
+                       "call_site=%s kind=%s | %s", provider.name, model,
+                       getattr(call_site, "value", call_site), exc.kind, exc)
+        return None
+    except Exception as exc:  # noqa: BLE001 - never take a request down
+        LOGGER.warning("structured call errored | provider=%s model=%s | %s",
+                       provider.name, model, exc)
         return None
 
-    if getattr(response, "stop_reason", None) == "refusal":
-        LOGGER.warning("model %s refused the request", model)
-        return None
-    text = "".join(b.text for b in response.content
-                   if getattr(b, "type", None) == "text")
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        LOGGER.warning("model %s returned unparseable JSON", model)
-        return None
+    LOGGER.debug("structured call ok | provider=%s model=%s call_site=%s",
+                 provider.name, model, getattr(call_site, "value", call_site))
+    return payload

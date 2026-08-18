@@ -25,13 +25,16 @@ import logging
 from typing import Any
 
 from agents.contracts import Intent
+from llm import CallSite
+
 from agents.observability import structured_call, traced
 
 LOGGER = logging.getLogger("agents.orchestrator")
 
-# Low-cost model: this runs on every turn, including the ones that are just
-# "hi". Routing does not need frontier reasoning.
-MODEL = "claude-haiku-4-5"
+# This runs on every turn, including the ones that are just "hi". Routing does
+# not need frontier reasoning, so the call site is bound to the cheap model by
+# configuration (`ORCHESTRATOR_MODEL`) rather than pinned here.
+CALL_SITE = CallSite.ORCHESTRATOR
 
 CLASSIFY_SYSTEM = """\
 You are the front door of a U.S. Treasury market-risk data gateway. You route \
@@ -182,11 +185,33 @@ REFLECT_SCHEMA: dict[str, Any] = {
 }
 
 
+def _catalogue_options(choices: dict[str, Any]) -> list[dict[str, str]]:
+    """Real, clickable options straight from what the data layer advertises.
+
+    The last line of defence for "a clarifying question must carry real
+    choices". Nothing here is generated: every label and sentence is built from
+    an id the catalogue actually returned, so padding can never offer something
+    that does not exist.
+    """
+    built: list[dict[str, str]] = []
+    for scenario in (choices or {}).get("scenarios") or []:
+        name = scenario.get("name") or scenario.get("scenario_id")
+        ident = scenario.get("scenario_id")
+        if name and ident:
+            built.append({"label": name,
+                          "value": f"Run the {name} scenario on the demo book."})
+    for portfolio in (choices or {}).get("portfolios") or []:
+        name = portfolio.get("name") or portfolio.get("portfolio_id")
+        if name:
+            built.append({"label": name, "value": f"Use the {name} book."})
+    return built
+
+
 class OrchestratorAgent:
     """Routes the question in, and writes the reply out."""
 
-    def __init__(self, model: str = MODEL) -> None:
-        self.model = model
+    def __init__(self) -> None:
+        self.call_site = CALL_SITE
 
     @traced("orchestrator.classify", run_type="llm")
     def classify(self, question: str, history: list[dict] | None = None,
@@ -218,9 +243,9 @@ class OrchestratorAgent:
                      "it will state which default it used.\n")
 
         payload = structured_call(
-            model=self.model, system=CLASSIFY_SYSTEM,
+            call_site=CALL_SITE, system=CLASSIFY_SYSTEM,
             prompt=f"{recent}{guard}\nUser question:\n{question}",
-            schema=CLASSIFY_SCHEMA, max_tokens=1200, effort="low",
+            schema=CLASSIFY_SCHEMA, max_tokens=1200,
         )
         if payload is None:
             # Routing failed. Send it down the data path: the domain expert can
@@ -254,7 +279,7 @@ class OrchestratorAgent:
         answers.
         """
         payload = structured_call(
-            model=self.model,
+            call_site=CALL_SITE,
             system=("You are refining a clarifying question. You are given the "
                     "question and the REAL portfolios, scenarios and curve "
                     "families available. Rewrite the options so each one is a "
@@ -273,6 +298,13 @@ class OrchestratorAgent:
                     "question": {"type": "string"},
                     "options": {
                         "type": "array",
+                        # A single option is not a choice, it is a statement, so
+                        # the count is part of the *contract* rather than a
+                        # request in the prompt. Under-delivering is now a schema
+                        # violation, which earns one corrective retry telling the
+                        # model exactly what was wrong.
+                        "minItems": 2,
+                        "maxItems": 4,
                         "items": {"type": "object",
                                   "properties": {"label": {"type": "string"},
                                                  "value": {"type": "string"}},
@@ -283,15 +315,21 @@ class OrchestratorAgent:
                 "required": ["question", "options"],
                 "additionalProperties": False,
             },
-            max_tokens=1500, effort="low",
+            max_tokens=1500,
         )
-        if not payload:
-            return intent          # keep the generic question rather than none
-        options = [o for o in payload.get("options") or []
+        options = [o for o in (payload or {}).get("options") or []
                    if o.get("label") and o.get("value")]
-        if options:
+        if len(options) < 2:
+            # The model under-delivered even after its retry, or the call failed
+            # outright. Rather than ask a question with nothing to click, build
+            # the choices from the catalogue directly. These are real portfolios
+            # and scenarios, never invented - the same source the model was given.
+            options = (options + _catalogue_options(choices))[:4]
+            LOGGER.info("clarification options padded from the catalogue (%d)",
+                        len(options))
+        if len(options) >= 2:
             intent.options = options
-            intent.question = payload.get("question") or intent.question
+            intent.question = (payload or {}).get("question") or intent.question
         return intent
 
     @traced("orchestrator.reflect", run_type="llm")
@@ -316,9 +354,9 @@ class OrchestratorAgent:
             "table_title": ((result or {}).get("table") or {}).get("title"),
         }
         payload = structured_call(
-            model=self.model, system=REFLECT_SYSTEM,
+            call_site=CALL_SITE, system=REFLECT_SYSTEM,
             prompt=f"Material to write from (JSON):\n{summary}",
-            schema=REFLECT_SCHEMA, max_tokens=1200, effort="low",
+            schema=REFLECT_SCHEMA, max_tokens=1200,
         )
         if payload and payload.get("reply"):
             return payload["reply"].strip()
@@ -338,7 +376,7 @@ class OrchestratorAgent:
         transcript = "\n".join(
             f"{m.get('role')}: {str(m.get('content'))[:300]}" for m in messages[-8:])
         payload = structured_call(
-            model=self.model,
+            call_site=CALL_SITE,
             system=("Name this conversation in 2-5 words, like a chat history "
                     "entry. Describe the subject, not the format: 'Treasury "
                     "yields nominal and real', not 'Data request'. No quotes, "
@@ -347,7 +385,7 @@ class OrchestratorAgent:
             schema={"type": "object",
                     "properties": {"title": {"type": "string"}},
                     "required": ["title"], "additionalProperties": False},
-            max_tokens=300, effort="low",
+            max_tokens=300,
         )
         title = (payload or {}).get("title", "").strip().strip('"')
         return title or None

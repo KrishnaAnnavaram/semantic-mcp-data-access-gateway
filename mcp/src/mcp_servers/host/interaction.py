@@ -60,9 +60,23 @@ from mcp_servers.paths import REPO_ROOT
 
 LOGGER = logging.getLogger("host.interaction")
 
-# The reasoning model this host lends to servers that ask for one. Kept in step
-# with the rest of the project; do not downgrade to save cost without being told.
-SAMPLING_MODEL = "claude-opus-5"
+def _configured_sampling_model() -> str:
+    """The model this host lends to servers that ask for one.
+
+    Resolved from the model layer rather than pinned here, so the sampling model
+    is chosen by `LLM_BACKEND` + `SAMPLING_MODEL` alongside every other call
+    site. This is only a *label* for the policy — the actual call goes through
+    the provider, which reads the same configuration.
+    """
+    try:
+        from llm import CallSite, load_config  # noqa: PLC0415
+
+        return load_config().model_for(CallSite.SAMPLING)
+    except Exception:  # noqa: BLE001 - a policy label must never break a host
+        return "unconfigured"
+
+
+SAMPLING_MODEL = _configured_sampling_model()
 
 ElicitationMode = Literal["decline", "prompt", "preset"]
 
@@ -82,7 +96,7 @@ class InteractionPolicy:
     #: Used by the demo and the verifier, where a human cannot be asked but the
     #: intended answer is known in advance and recorded in the source.
     preset_answers: dict[str, Any] = field(default_factory=dict)
-    sampling_model: str = SAMPLING_MODEL
+    sampling_model: str = field(default_factory=_configured_sampling_model)
     max_rounds: int = 8
 
     @classmethod
@@ -177,17 +191,20 @@ def _ask_on_terminal(message: str, schema: dict, fields: list[str]) -> ElicitRes
 
 
 def make_sampling_callback(policy: InteractionPolicy):
-    """Lend this host's Anthropic model to a server that has none.
+    """Lend this host's model to a server that has none.
 
     SEP-2577 deprecated the *client capability declaration* around sampling, and
     the recommended replacement is exactly this: the host integrates the LLM
     provider API directly. That is what happens here — the server still asks
-    over the protocol, and the host answers with a real Anthropic call rather
-    than by proxying to some model the protocol knows about.
+    over the protocol, and the host answers with a real model call rather than
+    by proxying to some model the protocol knows about.
+
+    *Which* model is a `ModelProvider` decision, not this callback's. The
+    server never learns the vendor, and neither does this function.
     """
 
     async def sample(context: ClientRequestContext, params: Any) -> CreateMessageResult:
-        text, model, stop = _anthropic_completion(params, policy.sampling_model)
+        text, model, stop = _sampling_completion(params, policy)
         return CreateMessageResult(
             role="assistant",
             content=TextContent(type="text", text=text),
@@ -198,17 +215,16 @@ def make_sampling_callback(policy: InteractionPolicy):
     return sample
 
 
-def _anthropic_completion(params: Any, model: str) -> tuple[str, str, str | None]:
-    """Run the sampling request against the Anthropic API.
+def _sampling_completion(params: Any, policy: InteractionPolicy
+                         ) -> tuple[str, str, str | None]:
+    """Run the sampling request through the configured model provider.
 
     Returns ``(text, model_label, stop_reason)``. Failures return empty text and
     a model label that names the cause, because a server that receives prose has
-    no way to tell a real draft from an apology — but it can read a label.
+    no way to tell a real draft from an apology — but it can read a label. The
+    tool's own fallback then prints the verbatim caveat instead, which is the
+    load-bearing half.
     """
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        LOGGER.warning("sampling requested but ANTHROPIC_API_KEY is unset")
-        return "", "unavailable:no-api-key", "error"
-
     messages = []
     for msg in getattr(params, "messages", None) or []:
         content = getattr(msg, "content", None)
@@ -218,35 +234,28 @@ def _anthropic_completion(params: Any, model: str) -> tuple[str, str, str | None
     if not messages:
         return "", "unavailable:no-messages", "error"
 
-    # The server sets the ceiling; honour it rather than substituting our own.
-    max_tokens = int(getattr(params, "max_tokens", 0) or 1024)
+    # The server sets the ceiling and the provider honours it, raising it only to
+    # the configured floor. That floor matters here: a reasoning model bills its
+    # thinking against the same budget, so a 400-token ceiling can return an
+    # empty completion rather than a short one.
+    requested = int(getattr(params, "max_tokens", 0) or 0) or None
     system = getattr(params, "system_prompt", None)
 
     try:
-        import anthropic  # noqa: PLC0415 - keeps the import cost off module load
+        from llm import CallSite, make_model_provider  # noqa: PLC0415
 
-        client = anthropic.Anthropic()
-        kwargs: dict[str, Any] = {
-            "model": model,
-            "max_tokens": max_tokens,
-            "messages": messages,
-            # Adaptive thinking is this project's default. Thinking is on by
-            # default on claude-opus-5 and shares the max_tokens budget, so a
-            # small server-set ceiling gets effort dialled down to match.
-            "thinking": {"type": "adaptive"},
-            "output_config": {"effort": "low" if max_tokens <= 1024 else "high"},
-        }
-        if system:
-            kwargs["system"] = system
-        response = client.messages.create(**kwargs)
+        provider = make_model_provider()
+        reply = provider.complete(call_site=CallSite.SAMPLING, system=system,
+                                  messages=messages, max_tokens=requested)
     except Exception as exc:  # noqa: BLE001 - reported to the server as a label
         LOGGER.warning("sampling call failed: %s", exc)
         return "", f"unavailable:{type(exc).__name__}", "error"
 
-    if getattr(response, "stop_reason", None) == "refusal":
-        return "", f"{model}:refused", "refusal"
-    text = "".join(b.text for b in response.content if getattr(b, "type", None) == "text")
-    return text, getattr(response, "model", model), getattr(response, "stop_reason", None)
+    if reply.refused:
+        return "", f"{reply.model}:refused", "refusal"
+    LOGGER.info("sampling drafted by provider=%s model=%s usage=%s",
+                reply.provider, reply.model, reply.usage or "-")
+    return reply.text, reply.model or policy.sampling_model, reply.stop_reason
 
 
 # --- the retry loop ---------------------------------------------------------
