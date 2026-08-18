@@ -28,7 +28,7 @@ export function Header() {
             VANTAGE
           </span>
           <span className="hidden text-xs text-text-muted md:inline">
-            Semantic Financial Data &amp; Risk Intelligence
+            Market Risk Intelligence
           </span>
         </div>
       </div>

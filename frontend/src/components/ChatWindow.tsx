@@ -55,7 +55,12 @@ export function ChatWindow({ onOpenArtifact, send, regenerate, sending, error, c
         {sending && (
           <div className="flex items-center gap-2 border-l-2 border-border py-0.5 pl-3.5 text-sm text-text-muted">
             <Loader2 size={13} className="animate-spin" />
-            Analyzing...
+            <span>Analyzing</span>
+            <span className="flex gap-0.5">
+              <span className="h-1 w-1 animate-bounce rounded-full bg-text-faint [animation-delay:0ms]" />
+              <span className="h-1 w-1 animate-bounce rounded-full bg-text-faint [animation-delay:150ms]" />
+              <span className="h-1 w-1 animate-bounce rounded-full bg-text-faint [animation-delay:300ms]" />
+            </span>
           </div>
         )}
       </div>
