@@ -144,19 +144,75 @@ def test_the_risk_engine_never_imports_a_database_driver(module):
 
 @pytest.mark.parametrize("package", ["data", "risk"])
 def test_neither_server_imports_an_llm_client(package):
-    """Only the host reasons. A model inside a server moves reasoning across the boundary."""
+    """Only the host reasons. A model inside a server moves reasoning across the boundary.
+
+    Checks the *vendor* SDKs and the project's own model seam alike: routing a
+    server's reasoning through `llm` would relocate the boundary just as surely
+    as importing `anthropic` directly.
+    """
     root = Path(f"mcp/src/mcp_servers/{package}")
     offenders = [str(path) for path in root.rglob("*.py")
-                 if imported_modules(path) & {"anthropic", "openai"}]
+                 if imported_modules(path) & {"anthropic", "openai", "llm"}]
     assert offenders == []
 
 
 def test_the_host_is_the_only_component_that_holds_a_model():
-    """The mirror image: if nothing imports anthropic, sampling has no answerer."""
+    """The mirror image: if nothing in the host holds a model, sampling has no answerer.
+
+    Asserted against the *architectural rule* rather than one vendor's package
+    name. Before the provider seam this read `"import anthropic" in sources`,
+    which was true only for as long as there was exactly one vendor -- and would
+    have passed a host that reached a model through no abstraction at all.
+    """
     host = Path("mcp/src/mcp_servers/host")
-    sources = " ".join(p.read_text(encoding="utf-8", errors="replace")
-                       for p in host.rglob("*.py"))
-    assert "import anthropic" in sources
+    reaches_a_model = {
+        str(path) for path in host.rglob("*.py")
+        if imported_modules(path) & {"llm", "anthropic", "openai"}
+    }
+    assert reaches_a_model, (
+        "no file in the host package reaches a model provider; sampling would "
+        "have nothing to answer with")
+
+
+def test_the_host_reaches_models_only_through_the_seam():
+    """The host may hold a model. It may not hold a *vendor*.
+
+    Vendor SDKs belong inside a `ModelProvider` implementation, so that swapping
+    `LLM_BACKEND` is a configuration change rather than an edit here.
+    """
+    host = Path("mcp/src/mcp_servers/host")
+    offenders = [str(path) for path in host.rglob("*.py")
+                 if imported_modules(path) & {"anthropic", "openai"}]
+    assert offenders == [], (
+        "host files import a vendor SDK directly; go through `llm` instead")
+
+
+def test_agents_reach_models_only_through_the_seam():
+    """No agent may name a vendor. The whole point of the seam."""
+    offenders = [str(path) for path in Path("agents").rglob("*.py")
+                 if imported_modules(path) & {"anthropic", "openai"}]
+    assert offenders == []
+
+
+def test_no_agent_hardcodes_a_model_name():
+    """Model allocation is configuration, not a constant in an agent.
+
+    A pinned model string is how a cheap routing path quietly becomes an
+    expensive one, and how a provider swap turns into an edit in five files.
+    """
+    import re  # noqa: PLC0415
+
+    pattern = re.compile(r"[\"'](?:claude-[\w.-]+|glm-[\w.-]+|gpt-[\w.-]+)[\"']")
+    offenders = []
+    for path in list(Path("agents").rglob("*.py")) + list(
+            Path("mcp/src/mcp_servers/host").rglob("*.py")):
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+            stripped = line.strip()
+            if stripped.startswith("#") or stripped.startswith("*"):
+                continue          # prose in a comment or docstring bullet
+            if pattern.search(line):
+                offenders.append(f"{path}: {stripped[:80]}")
+    assert offenders == [], "model names belong in llm/config.py: " + str(offenders)
 
 
 def test_the_data_server_holds_no_pricing_code():
