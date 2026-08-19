@@ -199,7 +199,15 @@ count was *argued* rather than assumed.
 - Domains: `market_risk`, `xva`, `regulatory_capital`, `credit_risk`.
 - Pipeline: chunk on markdown headings → tag (domain, source, heading) → embed →
   store → semantic retrieve with optional domain filter.
-- Docs follow Definition → Formula (dry) → Data required → Notes.
+- Docs are **executable analytical contracts**: Definition → When to use →
+  Required inputs (canonical concepts) → Observation window → Calculation (the
+  real MCP tool) → Assumptions → Output → Limitations → **Mapping status**. The
+  `market_risk` docs follow this, aligned to the real data (`analytics.*`,
+  `demo.*`) and the real risk tools (`compute_historical_risk_tool`,
+  `compute_dv01_tool`, `run_stress_tool`). The *Mapping status* table records, per
+  capability, whether every required input resolves — and therefore whether the
+  mode is **Calculate + Explain** or **Explain-only** (e.g. CVA/RWA have no
+  counterparty data, so they explain but never compute).
 - **Don't bloat it.** Retrieval quality falls as the corpus fills with material
   nothing ever asks for.
 - Re-ingest after any edit: `KnowledgeBase(rebuild=True)`.

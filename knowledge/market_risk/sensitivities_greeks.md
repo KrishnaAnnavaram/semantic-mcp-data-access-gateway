@@ -1,44 +1,67 @@
-# Sensitivities & Greeks
+# Sensitivities & DV01
 
 ## Definition
-Sensitivities (a.k.a. "the Greeks") measure how much a position's value changes
-for a small move in an underlying risk factor. Where VaR/ES give a loss
-distribution, sensitivities give the *slope* — the day-to-day market-risk numbers
-desks watch to know their directional exposure and to hedge it.
+A sensitivity measures how much a position's value changes for a small move in a
+risk factor. Where VaR/ES give a loss distribution, a sensitivity gives the
+*slope* — the day-to-day number a rates desk watches to know its directional
+exposure and to hedge it. For an interest-rate book the governing measure is
+**DV01**.
 
-## The core measures
-- **Delta**: change in value per unit change in the underlying price (equities,
-  FX). A $1M delta means +$1M P&L per +1 unit move.
-- **DV01 / PV01**: change in value for a 1 basis-point move in interest rates
-  (rates, bonds). The primary interest-rate sensitivity.
-- **Vega**: change in value per 1% change in volatility (options).
-- **Gamma**: change in delta per unit move in the underlying (convexity).
-- **Theta**: change in value per day of time decay (options).
+## When to use / when not to use
+- **Use** DV01 to size interest-rate exposure and to hedge — per position, per
+  key tenor, or for the whole book.
+- **Do not use** it for large moves — DV01 is a local (first-order) measure;
+  VaR/ES and stress cover large moves.
+- **Cannot compute without a portfolio.**
 
-## Observation window — how many rows a sensitivity calculation reads
-DV01 and the other Greeks are bump-and-revalue measures on a **single curve**, so
-they read exactly **1 observation date**. No time series is consumed: the
-sensitivity is a property of the position against today's curve, not of how that
-curve has moved. Requesting history for a DV01 returns data the calculation never
-reads.
+## The measures that apply here
+- **DV01 / PV01**: change in value for a **1 basis-point** move in rates. The
+  primary interest-rate sensitivity.
+- **Key-rate DV01**: DV01 attributed to each curve node (2/5/10/20/30Y), showing
+  *where* on the curve the exposure sits.
+- Delta, vega, gamma, theta are equity/FX/option Greeks. **The demo book holds
+  only fixed-rate bonds, so these do not apply** — the agent should say so rather
+  than report them.
 
-## Method (dry)
-Sensitivity to factor f ≈ ( V(f + Δf) − V(f − Δf) ) / (2 · Δf)
+## Required inputs (canonical concepts)
+1. `portfolio.positions`
+2. `portfolio.instrument_terms`
+3. `us_treasury.par_yield.curve` — one dated curve to bump and revalue against.
 
-i.e. revalue the position with the factor bumped up and down by a small Δf and
-take the central difference. Aggregate sensitivities across positions by risk
-factor to see net desk exposure.
+## Observation window — how many rows a DV01 calculation reads
+DV01 is a bump-and-revalue on a **single curve**, so it reads exactly **1
+observation date**. No time series is consumed: the sensitivity is a property of
+the position against today's curve, not of how the curve has moved. Requesting
+history for a DV01 returns data the calculation never reads.
 
-## Data required
-1. **Portfolio positions** — instruments and quantities to bump-and-revalue
-   (`portfolio_positions`).
-2. **Asset metadata** — asset class, to know which Greek applies (delta for
-   equity/FX, DV01 for rates, vega for options) (`assets`).
-3. **Historical prices** — current levels of the underlying factors
-   (`historical_prices`).
+## Calculation (deterministic)
+Computed by the risk engine's `compute_dv01_tool` by **full revaluation** (not an
+analytic approximation, so convexity is captured): revalue the book on the base
+curve, again on the curve shifted 1bp, and difference. Use
+`compute_key_rate_dv01_tool` to attribute DV01 to each curve node — key tenors are
+supplied as `key_tenors_months` (2/5/10/20/30Y = 24/60/120/240/360).
 
-## Notes
-- Sensitivities are *local* (first-order): valid for small moves. VaR/ES and
-  stress tests cover large moves.
-- Hedging works by offsetting net sensitivities to (near) zero per factor.
-- Sensitivities also feed the FRTB standardised capital charge.
+## Assumptions & conventions
+- Nominal par curve, `par_coupon_semiannual`; a discount curve is bootstrapped
+  first — par yields are not used directly as discount rates.
+- 1bp shift; result in currency per basis point (USD/bp).
+
+## Output & interpretation
+DV01 per position and for the total book, optionally per key tenor. A DV01 of
+$10,000 means roughly $10,000 of P&L per 1bp parallel move. Reported for a
+**SYNTHETIC_DEMO** book priced off the **REAL** curve.
+
+## Limitations & refusal cases
+- No portfolio available → explain the method, do not produce a number.
+- Local first-order measure — not valid for large moves.
+- No options/equities in the book → no vega/gamma/theta/delta to report.
+
+## Mapping status
+| Required input | Mapping | Status |
+|---|---|---|
+| `portfolio.positions` | `demo.position` | Available — Synthetic |
+| `portfolio.instrument_terms` | `demo.instrument` | Available — Synthetic |
+| `us_treasury.par_yield.curve` | `analytics.v_par_yield_curve` | Available — Real |
+
+**Mode: CALCULATE + EXPLAIN** — via `compute_dv01_tool` (and
+`compute_key_rate_dv01_tool` for per-node key-rate DV01).

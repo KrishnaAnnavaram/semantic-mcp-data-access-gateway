@@ -176,6 +176,17 @@ Re-ingest after editing any knowledge doc:
 python -c "from backend.knowledge.knowledge_base import KnowledgeBase; KnowledgeBase(rebuild=True)"
 ```
 
+Knowledge docs under `knowledge/` are **executable analytical contracts**, not just
+prose. Each states its *Required inputs* as canonical concepts, names the real MCP
+tool that computes the metric (`compute_historical_risk_tool`, `compute_dv01_tool`,
+`run_stress_tool`, `get_curve`, …), and ends with a *Mapping status* table recording
+whether every input resolves to real data — and therefore whether the mode is
+**Calculate + Explain** or **Explain-only**. The `market_risk` docs are aligned this
+way to `analytics.*`/`demo.*` and the real tool signatures. **The knowledge never
+asks for data the system does not have**: a concept with no mapping is marked
+*Unavailable* and the agent explains rather than fabricates. Full convention:
+`.claude/skills/risk-analysis/SKILL.md`.
+
 Set `VITE_AGENT_BACKEND=rest` in `frontend/.env` or the UI silently serves canned mock answers,
 and raise `VITE_AGENT_TIMEOUT_SECONDS` — one turn runs several MCP round trips behind an Opus
 loop, and the 30s-scale default expires mid-answer. The backend must also list the frontend's
