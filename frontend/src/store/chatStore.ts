@@ -19,6 +19,7 @@ interface ChatStore {
   newChat: () => void
   switchChat: (id: string) => void
   clearActiveChat: () => void
+  deleteChat: (id: string) => void
   openArtifactPanel: (ref: OpenArtifact) => void
   closeArtifactPanel: () => void
 
@@ -53,6 +54,22 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       chats: { ...state.chats, [state.activeChatId]: newSession() },
       openArtifact: null,
     })),
+
+  // Deleting the active chat falls back to the most recently started
+  // survivor, or a fresh chat if that was the last one — never leaves
+  // activeChatId pointing at a chat that no longer exists.
+  deleteChat: (id) =>
+    set((state) => {
+      const rest = Object.fromEntries(Object.entries(state.chats).filter(([key]) => key !== id))
+      const survivors = Object.entries(rest)
+      if (survivors.length === 0) {
+        const freshId = newSessionId()
+        return { chats: { [freshId]: newSession() }, activeChatId: freshId, openArtifact: null }
+      }
+      if (state.activeChatId !== id) return { chats: rest }
+      const [nextId] = survivors.sort((a, b) => b[1].startedAt - a[1].startedAt)[0]
+      return { chats: rest, activeChatId: nextId, openArtifact: null }
+    }),
 
   openArtifactPanel: (ref) => set({ openArtifact: ref }),
   closeArtifactPanel: () => set({ openArtifact: null }),

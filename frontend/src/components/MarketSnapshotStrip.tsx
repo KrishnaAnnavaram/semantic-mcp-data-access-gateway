@@ -21,13 +21,9 @@ export function MarketSnapshotStrip() {
   const messages = useChatStore((s) => s.chats[s.activeChatId]?.messages ?? [])
   const table = findLatestCurveTable(messages)
 
-  if (!table) {
-    return (
-      <div className="flex h-9 shrink-0 items-center border-b border-border bg-surface px-4 text-[12px] text-text-faint">
-        No market snapshot yet — ask a curve question to populate this.
-      </div>
-    )
-  }
+  // Nothing to show yet — stay out of the layout rather than reserve space
+  // for a placeholder. Appears the moment a curve question returns one.
+  if (!table) return null
 
   const snapshot = toSnapshot(table)
   const badge = classificationBadge(snapshot.classification, isMockMode())

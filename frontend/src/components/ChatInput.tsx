@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Mic, Send } from 'lucide-react'
 
 function getSpeechRecognition(): SpeechRecognitionLike | null {
@@ -15,11 +15,22 @@ export function ChatInput({ onSend, disabled }: { onSend: (text: string) => void
   const [value, setValue] = useState('')
   const [listening, setListening] = useState(false)
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const speechSupported = typeof window !== 'undefined' && (window.SpeechRecognition ?? window.webkitSpeechRecognition) != null
 
   useEffect(() => {
     return () => recognitionRef.current?.stop()
   }, [])
+
+  // Grows with content (multi-line paste included) up to max-h-32, then
+  // scrolls internally — matches the rest of the layout's items-end
+  // alignment, so Send/mic stay pinned to the bottom as this grows.
+  useLayoutEffect(() => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [value])
 
   function submit() {
     if (!value.trim() || disabled) return
@@ -56,13 +67,14 @@ export function ChatInput({ onSend, disabled }: { onSend: (text: string) => void
     <div className="shrink-0 border-t border-border bg-surface p-3">
       <div className="flex items-end gap-2 rounded-md border border-border bg-surface-2 px-3 py-2 focus-within:border-accent/50">
         <textarea
+          ref={textareaRef}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={onKeyDown}
           rows={1}
           placeholder={listening ? 'Listening...' : 'Ask a market risk question...'}
           disabled={disabled}
-          className="max-h-32 flex-1 resize-none bg-transparent text-sm text-text placeholder:text-text-faint focus:outline-none"
+          className="max-h-32 flex-1 resize-none overflow-y-auto bg-transparent text-sm text-text placeholder:text-text-faint focus:outline-none"
         />
         {speechSupported && (
           <button

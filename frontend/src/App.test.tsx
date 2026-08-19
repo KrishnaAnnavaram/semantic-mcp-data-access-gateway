@@ -25,7 +25,8 @@ describe('App', () => {
     expect(screen.getByText('VANTAGE')).toBeInTheDocument()
     expect(screen.getByText('Query the desk')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /start new chat/i })).toBeInTheDocument()
-    expect(screen.getByText('No market snapshot yet — ask a curve question to populate this.')).toBeInTheDocument()
+    // no curve data yet — the market snapshot strip stays out of the layout entirely
+    expect(screen.queryByText(/market snapshot/i)).not.toBeInTheDocument()
   })
 
   it('sends a curve question and renders the mock answer, its table, and the reasoning trail', async () => {
@@ -37,7 +38,8 @@ describe('App', () => {
       { timeout: 2000 },
     )
     expect(screen.getByText('Data table 1')).toBeInTheDocument()
-    // the reasoning rail is always visible and now shows the completed trace
+    // the reasoning rail is collapsed by default; open it to see the trace
+    fireEvent.click(screen.getByRole('button', { name: /show reasoning panel/i }))
     expect(screen.getByText('Route: data_request')).toBeInTheDocument()
     expect(screen.getByText('Composed reply')).toBeInTheDocument()
     // the market snapshot strip picks up the curve table that was just returned
