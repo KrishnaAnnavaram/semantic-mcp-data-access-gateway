@@ -381,6 +381,14 @@ about. Add it in a migration - do not let the load drop it.
 learns *what a metric means and what data it consumes*, and it is the reason no threshold is
 hardcoded.
 
+Each `market_risk` document is an **executable analytical contract**, not just prose: it names
+its required inputs as canonical concepts, the real MCP tool that computes the metric
+(`compute_historical_risk_tool`, `compute_dv01_tool`, `run_stress_tool`, `get_curve`), and ends
+with a *Mapping status* table recording — per capability — whether every input resolves to real
+data (**Calculate + Explain**) or not (**Explain-only**, e.g. CVA/RWA, which have no counterparty
+data). That is what keeps retrieval honest: the knowledge cannot ask for data the system does not
+have, and every referenced tool and column is one that actually exists.
+
 ```mermaid
 flowchart LR
     MD["knowledge/<domain>/*.md<br/>11 documents"]
