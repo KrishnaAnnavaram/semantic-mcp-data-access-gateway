@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import asyncio
 import atexit
+import contextlib
 import datetime as _dt
 import json
 import logging
@@ -110,22 +111,46 @@ class _McpBridge:
                 pass
 
     async def _serve(self) -> None:
+        from mcp_servers.host.interaction import InteractionPolicy  # noqa: PLC0415
         from mcp_servers.host.mcp_clients import McpHost  # noqa: PLC0415 - keeps import cost off module load
 
         self._stop = asyncio.Event()
-        async with McpHost() as host:
+        # `relay`, not `decline`. Under the agent stack a human IS reachable —
+        # through the orchestrator — so silently declining a question the server
+        # raised because it cannot choose would throw away the one answer that
+        # exists. The relay records it instead and `call_tool_with_input`
+        # surfaces it, which is what lets the MCP agent stop its A2A task in
+        # `input-required` rather than guess.
+        async with McpHost(policy=InteractionPolicy.default(elicitation="relay")) as host:
             self._host = host
             LOGGER.info("mcp bridge up: %s", ", ".join(host.servers))
             self._ready.set()
             await self._stop.wait()
         self._host = None
 
-    def call_raw(self, tool: str, arguments: dict[str, Any]) -> Any:
-        """Call a tool and return the full CallToolResult (so `_meta` survives)."""
+    def call_raw(self, tool: str, arguments: dict[str, Any],
+                 relay: Any = None) -> Any:
+        """Call a tool and return the full CallToolResult (so `_meta` survives).
+
+        When a `relay` is supplied it is installed *inside* the coroutine that
+        runs the call, so the elicitation callback sees it for exactly this call
+        and no other. Several agent threads share one host; a relay installed on
+        the loop itself would let one caller answer another caller's question.
+        """
         if self._host is None:
             raise McpUnavailable("MCP host is not running")
-        future = asyncio.run_coroutine_threadsafe(
-            self._host.call(tool, arguments), self._loop)
+        if relay is None:
+            future = asyncio.run_coroutine_threadsafe(
+                self._host.call(tool, arguments), self._loop)
+            return future.result(CALL_TIMEOUT_S)
+
+        from mcp_servers.host.interaction import relaying  # noqa: PLC0415
+
+        async def _call() -> Any:
+            with relaying(relay):
+                return await self._host.call(tool, arguments)
+
+        future = asyncio.run_coroutine_threadsafe(_call(), self._loop)
         return future.result(CALL_TIMEOUT_S)
 
     def tool_names(self) -> list[str]:
@@ -173,17 +198,70 @@ class McpDataProvider:
     def __init__(self) -> None:
         self._bridge = _McpBridge.instance()
         self._series_cache: list[dict] | None = None
+        # Thread-local: one provider serves every agent thread, and an elicited
+        # question belongs to the request that provoked it, not to the process.
+        self._scope = threading.local()
 
     # -- plumbing -------------------------------------------------------------
 
+    @contextlib.contextmanager
+    def input_scope(self, answers: dict[str, Any] | None = None):
+        """Collect any question the servers raise during this block of work.
+
+        Everything called inside — including tool calls made on this thread by
+        `RiskWorkflows` — shares one relay, so a question raised three frames
+        down is still reported to the caller that opened the scope. `answers`
+        is the user's earlier reply coming back: when it covers the fields the
+        server asks about, the call is answered and completes instead of
+        stopping again.
+
+        Yields the relay; read `relay.pending` after the block.
+
+        Kept off the `DataProvider` protocol on purpose. Only the MCP-backed
+        provider can raise a server question at all, so callers detect the
+        capability (`hasattr`) exactly as they detect `call_tool` — a provider
+        that cannot elicit must never appear able to.
+        """
+        from mcp_servers.host.interaction import ElicitationRelay  # noqa: PLC0415
+
+        relay = ElicitationRelay(answers=dict(answers or {}))
+        previous = getattr(self._scope, "relay", None)
+        self._scope.relay = relay
+        try:
+            yield relay
+        finally:
+            self._scope.relay = previous
+
+    def _raw(self, tool: str, arguments: dict[str, Any] | None) -> Any:
+        relay = getattr(self._scope, "relay", None)
+        if relay is not None:
+            # Recorded at ask time, so a relayed question names the tool that
+            # actually raised it rather than the last one called.
+            relay.tool = tool
+        return self._bridge.call_raw(tool, arguments or {}, relay)
+
     def call_tool(self, tool: str, arguments: dict[str, Any] | None = None) -> dict:
         """Escape hatch to any MCP tool, including the risk engine's five."""
-        return _structured(self._bridge.call_raw(tool, arguments or {}))
+        return _structured(self._raw(tool, arguments))
+
+    def call_tool_with_input(self, tool: str,
+                             arguments: dict[str, Any] | None = None,
+                             answers: dict[str, Any] | None = None) -> dict:
+        """One tool call, reporting any question only a human can answer.
+
+        Returns `{"result": ..., "pending_input": ... | None}`. A non-None
+        `pending_input` means the result is the server's declined-path answer
+        and must not be treated as final: the question belongs to the
+        orchestrator.
+        """
+        with self.input_scope(answers) as relay:
+            result = _structured(self._raw(tool, arguments))
+        return {"result": result, "pending_input": relay.pending}
 
     def call_tool_with_meta(self, tool: str,
                             arguments: dict[str, Any] | None = None) -> tuple[dict, dict]:
         """As `call_tool`, but also returns `_meta` — where bulk arrays travel."""
-        raw = self._bridge.call_raw(tool, arguments or {})
+        raw = self._raw(tool, arguments)
         return _structured(raw), dict(getattr(raw, "meta", None) or {})
 
     def tool_names(self) -> list[str]:
@@ -314,11 +392,14 @@ class McpDataProvider:
         }
 
     def get_rate_history(self, tenor: str, start: str | None = None,
-                         end: str | None = None) -> list[dict]:
-        # The agent's history tool has no `kind` argument, so this is the nominal
-        # par curve. Real-curve history goes through call_tool("get_rate_history")
-        # with an explicit TC_* series code.
-        code = self._series_code(tenor, "nominal")
+                         end: str | None = None,
+                         kind: str = "nominal") -> list[dict]:
+        # `kind` resolves the tenor to a BC_* or TC_* series code through the
+        # live catalogue. It used to be hardcoded nominal, which meant a request
+        # for the real curve was answered with the nominal one and nothing in
+        # the output said so.
+        code = self._series_code(tenor, kind if kind in {"nominal", "real"}
+                                 else "nominal")
         if code is None:
             return [{"error": {"message": f"unknown tenor {tenor!r}",
                                "known": sorted(MONTHS_BY_TENOR)}}]

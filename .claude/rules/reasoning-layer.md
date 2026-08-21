@@ -14,6 +14,11 @@ The three agents that answer questions, the seams they get facts through, and th
 HTTP service the chatbot calls. Background: `docs/reasoning-layer.md`, and
 `AGENTS.md` for the agent architecture itself.
 
+**How the three agents reach each other is A2A, and has its own rules:**
+`.claude/rules/a2a-layer.md`, `docs/a2a.md`. In short — an agent never imports
+another agent, only `agents/a2a/` imports the A2A SDK, and only the orchestrator
+may speak to a user.
+
 ## Keep the seams
 
 The agents talk only to two interfaces — `KnowledgeBase` and `DataProvider`.

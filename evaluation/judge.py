@@ -165,7 +165,7 @@ def main() -> int:
     from backend.knowledge.knowledge_base import KnowledgeBase  # noqa: PLC0415
     from backend.providers.base import make_data_provider  # noqa: PLC0415
 
-    from agents import AgentPipeline  # noqa: PLC0415
+    from agents import get_network  # noqa: PLC0415
     from evaluation.dataset import CASES  # noqa: PLC0415
     from evaluation.evaluators import TOOL_NAMES  # noqa: PLC0415
 
@@ -174,7 +174,7 @@ def main() -> int:
         print(f"no case matching {args.case!r}")
         return 2
 
-    pipeline = AgentPipeline(KnowledgeBase(), make_data_provider())
+    pipeline = get_network(KnowledgeBase(), make_data_provider())
     judgements: list[Judgement] = []
     for case in cases:
         print(f"  judging {case.id} ...", flush=True)

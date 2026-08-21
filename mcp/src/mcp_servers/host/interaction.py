@@ -29,6 +29,15 @@ cannot pick correctly, so a headless client inventing an answer would
 manufacture exactly the wrong-curve error the question was raised to prevent. A
 decline is labelled and recoverable; a guess is neither.
 
+A fourth mode, ``relay``, exists for the agent stack. There, declining is not
+the best available answer, because a human *is* reachable — just not from here.
+The relay records the server's question, declines this round so the call ends
+cleanly, and lets the caller carry the question up to the orchestrator, which is
+the only component allowed to speak to a user. The answer comes back down on a
+later call through ``preset``-style matching against the same relay. Terminal
+prompting (``prompt``) remains for the standalone host CLI, where there is no
+orchestrator and the terminal genuinely is the user.
+
 **Sampling** borrows this host's model, because the data server has none and
 should not have one — an LLM credential inside it would be a second privilege
 boundary to defend, sitting next to the database credential. When no API key is
@@ -38,6 +47,8 @@ than a plausible sentence, so a missing key can never be mistaken for a briefing
 
 from __future__ import annotations
 
+import contextlib
+import contextvars
 import logging
 import os
 import sys
@@ -78,7 +89,70 @@ def _configured_sampling_model() -> str:
 
 SAMPLING_MODEL = _configured_sampling_model()
 
-ElicitationMode = Literal["decline", "prompt", "preset"]
+ElicitationMode = Literal["decline", "prompt", "preset", "relay"]
+
+
+@dataclass
+class ElicitationRelay:
+    """Carries one server question out to whoever is allowed to ask a human.
+
+    Scoped to a single tool call, and read by the elicitation callback through
+    a context variable rather than passed as an argument — the callback is
+    invoked by the SDK, so there is no argument to pass it. The variable is set
+    inside the coroutine that issues the call, and the MRTR retry loop dispatches
+    input requests inline within that same task, so the value is visible exactly
+    where it should be and nowhere else.
+
+    Two directions, one object:
+
+    * ``answers`` are what the user already said, supplied by the caller when a
+      previously interrupted call is being resumed.
+    * ``pending`` is what the server asked and nobody could answer, read by the
+      caller after the call returns.
+    """
+
+    tool: str = ""
+    answers: dict[str, Any] = field(default_factory=dict)
+    pending: dict[str, Any] | None = None
+
+    def answer_for(self, fields: list[str]) -> dict[str, Any] | None:
+        """The stored answer, if it covers every field the server asked about.
+
+        A partial answer is treated as no answer. Filling three fields out of
+        four and letting the server default the fourth is precisely the guess
+        elicitation exists to prevent.
+        """
+        if not self.answers or not fields:
+            return None
+        answer = {k: v for k, v in self.answers.items() if k in fields}
+        return answer if len(answer) == len(fields) else None
+
+    def record(self, message: str, schema: dict[str, Any],
+               fields: list[str]) -> None:
+        # First question wins. A tool that asks twice in one call is asking
+        # about two different things, and the user can only be shown one at a
+        # time; the second is raised again when the call is retried.
+        if self.pending is None:
+            self.pending = {"tool": self.tool, "message": message,
+                            "schema": schema, "fields": list(fields)}
+
+
+_ACTIVE_RELAY: contextvars.ContextVar[ElicitationRelay | None] = contextvars.ContextVar(
+    "mcp_elicitation_relay", default=None)
+
+
+@contextlib.contextmanager
+def relaying(relay: ElicitationRelay):
+    """Make `relay` the one the elicitation callback answers into."""
+    token = _ACTIVE_RELAY.set(relay)
+    try:
+        yield relay
+    finally:
+        _ACTIVE_RELAY.reset(token)
+
+
+def active_relay() -> ElicitationRelay | None:
+    return _ACTIVE_RELAY.get()
 
 
 @dataclass
@@ -145,6 +219,25 @@ def make_elicitation_callback(policy: InteractionPolicy):
         message = getattr(params, "message", "") or ""
         schema = getattr(params, "requested_schema", {}) or {}
         fields = list((schema.get("properties") or {}).keys())
+
+        if policy.elicitation == "relay":
+            relay = active_relay()
+            if relay is None:
+                LOGGER.info("relay mode with no active relay; declining: %s",
+                            message[:120])
+                return ElicitResult(action="decline")
+            answer = relay.answer_for(fields)
+            if answer is not None:
+                LOGGER.info("elicitation answered from the orchestrator's relay: %s",
+                            sorted(answer))
+                return ElicitResult(action="accept", content=answer)
+            # Nobody here can answer, and this host must not ask. Record the
+            # question and decline *this* round; the caller lifts it to the
+            # orchestrator, which is the only component allowed to reach a user.
+            relay.record(message, schema, fields)
+            LOGGER.info("relaying elicitation upward for %s: %s",
+                        relay.tool or "?", message[:120])
+            return ElicitResult(action="decline")
 
         if policy.elicitation == "preset":
             answer = {k: v for k, v in policy.preset_answers.items() if k in fields}

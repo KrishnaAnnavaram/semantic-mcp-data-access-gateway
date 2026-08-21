@@ -16,7 +16,12 @@ export interface Provenance {
   dataset_snapshot_id?: string | null
   source_file?: string | null
   curve_date?: string | null
+  /** A history table spans a window rather than sitting on one date, so it
+   *  carries the window it actually observed instead of a curve date. */
+  observed_from?: string | null
+  observed_to?: string | null
   quote_basis?: string | null
+  rate_kind?: string | null
   classification?: string | null
 }
 

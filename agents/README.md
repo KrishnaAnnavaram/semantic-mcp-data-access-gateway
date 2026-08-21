@@ -30,7 +30,7 @@ flowchart TD
     D <-->|"semantic search"| Q
     D -->|"what tools do you have?"| M
     M -->|"tool catalogue"| D
-    D <==>|"DISCUSSION<br/>max 3 rounds"| M
+    D <==>|"NEGOTIATION<br/>max 5 rounds"| M
     D -->|"final requirement"| M
     M <-->|"fetch + calculate"| PG
     M --> R
@@ -64,7 +64,7 @@ round 1  mcp_agent     → "I can serve the full daily par-curve history for all
          ✓ converged
 ```
 
-The loop is **bounded at 3 rounds**. Two agents that can always reply will
+The loop is **bounded at 5 rounds**. Two agents that can always reply will
 always reply; if they never converge, that fact is recorded and reported rather
 than hidden behind a last-ditch answer.
 

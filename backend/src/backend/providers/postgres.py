@@ -73,9 +73,14 @@ class PostgresDataProvider:
         return {"curve_date": r["observation_date"].isoformat(), "kind": kind, "points": points}
 
     def get_rate_history(self, tenor: str, start: str | None = None,
-                         end: str | None = None) -> list[dict]:
-        # Validate the tenor against the known columns (also prevents SQL injection).
-        if tenor in NOMINAL_TENORS:
+                         end: str | None = None,
+                         kind: str = "nominal") -> list[dict]:
+        # Validate the tenor against the known columns (also prevents SQL
+        # injection). `kind` picks the view; several tenors exist on both, and
+        # serving the wrong one is indistinguishable in the output.
+        if kind == "real" and tenor in REAL_TENORS:
+            view = "v_real_yield_curve"
+        elif tenor in NOMINAL_TENORS:
             view = "v_par_yield_curve"
         elif tenor in REAL_TENORS:
             view = "v_real_yield_curve"

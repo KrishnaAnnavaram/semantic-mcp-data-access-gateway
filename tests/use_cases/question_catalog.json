@@ -1,0 +1,2074 @@
+{
+  "$comment": [
+    "Supported Question & Use-Case Catalog — machine-readable source of truth.",
+    "",
+    "Derived on 2026-08-20 by inspecting the LIVE PostgreSQL database, the LIVE",
+    "Qdrant collection, the two MCP servers over the wire, and the agent code —",
+    "not from imagination. `data_facts` below is re-checked against PostgreSQL",
+    "and Qdrant by tests/use_cases/test_question_catalog.py, so a catalog that",
+    "drifts from the data fails rather than misleads.",
+    "",
+    "`supported` is about the AGENT path (POST /chat), not about what SQL could",
+    "in principle answer. Data can exist in PostgreSQL, be exposed by MCP, and",
+    "still be unreachable through the agents — that gap is the point of this",
+    "document, and it is recorded rather than smoothed over."
+  ],
+  "version": 1,
+  "generated_from": {
+    "postgres": "gateway@localhost:5432 (treasury/demo/analytics/meta/staging)",
+    "qdrant": "quant_knowledge @ QDRANT_URL",
+    "mcp_servers": [
+      "market-risk-data",
+      "risk-engine"
+    ],
+    "protocol": {
+      "mcp": "2026-07-28",
+      "a2a": "1.0"
+    }
+  },
+  "data_facts": {
+    "$comment": "Asserted against the live stores by test_data_facts_still_match_the_database.",
+    "datasets": [
+      "daily_treasury_bill_rates",
+      "daily_treasury_long_term_rate",
+      "daily_treasury_real_long_term",
+      "daily_treasury_real_yield_curve",
+      "daily_treasury_yield_curve"
+    ],
+    "observation_rows": 267517,
+    "series_count": 52,
+    "earliest_observation": "1990-01-02",
+    "latest_observation": "2026-08-11",
+    "nominal_range": [
+      "1990-01-02",
+      "2026-08-11"
+    ],
+    "real_range": [
+      "2000-01-03",
+      "2026-08-11"
+    ],
+    "known_series": [
+      "BC_2YEAR",
+      "BC_10YEAR",
+      "BC_30YEAR",
+      "TC_10YEAR",
+      "TC_30YEAR"
+    ],
+    "unknown_series": [
+      "BC_15YEAR",
+      "XX_9YEAR"
+    ],
+    "agent_tenors": [
+      "m1",
+      "m1_5",
+      "m2",
+      "m3",
+      "m4",
+      "m6",
+      "y1",
+      "y2",
+      "y3",
+      "y5",
+      "y7",
+      "y10",
+      "y20",
+      "y30"
+    ],
+    "real_curve_tenors": [
+      "y5",
+      "y7",
+      "y10",
+      "y20",
+      "y30"
+    ],
+    "unknown_tenor": "y15",
+    "portfolio_id": "TREASURY_DEMO_001",
+    "portfolio_positions": 5,
+    "unknown_portfolio": "NOT_A_BOOK",
+    "scenario_ids": [
+      "FLATTENER_50BP",
+      "PARALLEL_DOWN_100BP",
+      "PARALLEL_UP_100BP",
+      "REPLAY_1994_BOND_MASSACRE",
+      "REPLAY_2009_QE_ANNOUNCEMENT",
+      "REPLAY_2020_COVID_DASH_FOR_CASH",
+      "STEEPENER_50BP"
+    ],
+    "qdrant_collection": "quant_knowledge",
+    "qdrant_points": 71,
+    "qdrant_domains": [
+      "credit_risk",
+      "market_risk",
+      "regulatory_capital",
+      "xva"
+    ],
+    "qdrant_documents": [
+      "credit_risk/credit_ratings_pd",
+      "credit_risk/pd_lgd_ead",
+      "market_risk/expected_shortfall",
+      "market_risk/sensitivities_greeks",
+      "market_risk/stress_testing",
+      "market_risk/var",
+      "market_risk/yield_curve",
+      "regulatory_capital/basel_capital_ratios",
+      "regulatory_capital/rwa",
+      "xva/cva",
+      "xva/exposure_metrics"
+    ],
+    "agent_history_row_cap": 251,
+    "dispatchable_calculations": [
+      "price_portfolio",
+      "compute_dv01",
+      "compute_var",
+      "run_stress"
+    ],
+    "informational_tools": [
+      "get_curve_slope",
+      "get_rate_history",
+      "get_yield_curve",
+      "list_series"
+    ]
+  },
+  "known_defects": [
+    {
+      "id": "DEF-001",
+      "title": "The tool catalogue advertises four data tools that cannot be dispatched as a calculation",
+      "detail": "McpAgent.catalogue() lists get_yield_curve, get_rate_history, get_curve_slope and list_series as ToolSpecs. The domain expert may legitimately name any catalogue tool as `calculation`, but McpAgent._calculate dispatches only to RiskWorkflows methods, which are price_portfolio, compute_dv01, compute_var and run_stress. Naming get_curve_slope — the natural choice for a 2s10s question — returns {'error': \"no workflow named 'get_curve_slope'\"} instead of a slope.",
+      "reproduced": "Requirement(calculation='get_curve_slope') -> execute() -> calculation.error",
+      "classification": "AGENT_ROUTING_BUG",
+      "affects": [
+        "Q-CURVE-002",
+        "Q-CURVE-003"
+      ],
+      "reported_not_fixed": false,
+      "status": "FIXED",
+      "fix": "ToolSpec gained `executable`. The four retrieval helpers are now advertised as informational; only the four risk workflows are schedulable, and DomainExpertAgent._build drops a calculation that is not on catalogue.executable_tools. Enforced by test_every_executable_capability_can_actually_be_dispatched and test_the_expert_cannot_schedule_an_informational_capability."
+    },
+    {
+      "id": "DEF-002",
+      "title": "A Requirement cannot express a date range, so historical questions about a named period are silently answered with the most recent window",
+      "detail": "MCP's get_rate_history accepts start_date and end_date, but Requirement carries only `rows`. McpAgent._history always asks the provider for the default window (the last calendar year) and takes the N most recent rows. A question about 2008 is therefore answered with 2025-2026 data. The row shortfall is reported honestly; the date substitution is not.",
+      "classification": "DATA_GAP",
+      "affects": [
+        "Q-HIST-004",
+        "Q-HIST-005"
+      ],
+      "reported_not_fixed": false,
+      "status": "FIXED",
+      "fix": "Requirement gained TemporalScope (as_of_date / start_date / end_date / lookback_days). It is derived by the domain expert, assessed by the MCP agent against real coverage, and passed into get_curve and get_rate_history. A period outside coverage is refused with out_of_range rather than silently replaced by the latest window. Enforced by test_a_named_historical_period_is_served_or_refused_never_substituted."
+    }
+  ],
+  "questions": [
+    {
+      "id": "Q-DATA-001",
+      "category": "basic_data_lookup",
+      "question": "What is the current nominal Treasury par yield curve?",
+      "intent": "one day's full curve, every tenor",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "dataset"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "assertions": {
+        "has_table": true,
+        "min_rows": 5,
+        "mentions_observation_date": true
+      }
+    },
+    {
+      "id": "Q-DATA-002",
+      "category": "basic_data_lookup",
+      "question": "What is the latest 10-year Treasury yield?",
+      "intent": "single tenor, latest observation",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "dataset"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "assertions": {
+        "has_table": true,
+        "mentions_observation_date": true
+      }
+    },
+    {
+      "id": "Q-DATA-003",
+      "category": "basic_data_lookup",
+      "question": "Show me the real (TIPS) yield curve.",
+      "intent": "real curve family rather than nominal",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "dataset"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "assertions": {
+        "has_table": true,
+        "curve_family": "real"
+      }
+    },
+    {
+      "id": "Q-DATA-004",
+      "category": "basic_data_lookup",
+      "question": "Give me the 2-year and 10-year yields with their quoting basis.",
+      "intent": "two tenors plus the invariant quote_basis field",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "dataset"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "assertions": {
+        "has_table": true,
+        "requires_field": "quote_basis"
+      }
+    },
+    {
+      "id": "Q-DATA-005",
+      "category": "basic_data_lookup",
+      "question": "What is the 3-month Treasury bill rate today?",
+      "intent": "short end of the par curve",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "dataset"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "assertions": {
+        "has_table": true
+      }
+    },
+    {
+      "id": "Q-META-001",
+      "category": "metadata_catalogue",
+      "question": "Which tenors can I query on the nominal curve?",
+      "intent": "the agent's tenor vocabulary",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "catalogue"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "assertions": {
+        "catalogue_has_tenors": true
+      }
+    },
+    {
+      "id": "Q-META-002",
+      "category": "metadata_catalogue",
+      "question": "What can this system actually do?",
+      "intent": "capability question about the system itself",
+      "sources": [],
+      "expected_agents": [
+        "orchestrator"
+      ],
+      "expected_route": "direct",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "outcome"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "assertions": {
+        "no_specialist_called": true
+      }
+    },
+    {
+      "id": "Q-META-003",
+      "category": "metadata_catalogue",
+      "question": "Which portfolios are available?",
+      "intent": "the demo book listing",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "PARTIAL",
+      "reason": "list_portfolios is reachable only through the clarify branch (list_data_choices) or as a side effect of a risk calculation; there is no data-request path that returns the portfolio catalogue as a table.",
+      "assertions": {}
+    },
+    {
+      "id": "Q-META-004",
+      "category": "metadata_catalogue",
+      "question": "What date range of Treasury data do you hold?",
+      "intent": "coverage of the observation store",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "catalogue"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "PARTIAL",
+      "reason": "The catalogue the agent reads carries first/last observation per series, but no agent path renders a coverage answer; get_series_coverage is an MCP tool the agent never calls.",
+      "assertions": {}
+    },
+    {
+      "id": "Q-META-005",
+      "category": "metadata_catalogue",
+      "question": "Which stress scenarios are defined?",
+      "intent": "the seven demo scenarios",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "mcp-agent"
+      ],
+      "expected_route": "clarify",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "choices"
+      ],
+      "expected_tools": [
+        "list_data_choices"
+      ],
+      "requires_elicitation": false,
+      "supported": "PARTIAL",
+      "reason": "Scenario ids surface as clarification options rather than as an answer in their own right.",
+      "assertions": {}
+    },
+    {
+      "id": "Q-HIST-001",
+      "category": "historical",
+      "question": "Show me the last 250 observations of the 2-year and 10-year yields.",
+      "intent": "recent multi-tenor history at the methodology window",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "dataset"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "assertions": {
+        "has_table": true,
+        "min_rows": 200,
+        "max_rows": 251
+      }
+    },
+    {
+      "id": "Q-HIST-002",
+      "category": "historical",
+      "question": "Give me a year of 10-year yield history.",
+      "intent": "single-tenor history",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "dataset"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "assertions": {
+        "has_table": true,
+        "max_rows": 251
+      }
+    },
+    {
+      "id": "Q-HIST-003",
+      "category": "historical",
+      "question": "Give me 5,000 rows of 10-year yield history.",
+      "intent": "more than the agent path can deliver",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "dataset"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "PARTIAL",
+      "reason": "PostgreSQL holds ~9,158 observations per par tenor, but the agent's history path reads the provider's default one-year window and caps at ~251 rows. The shortfall is reported honestly rather than padded.",
+      "assertions": {
+        "has_table": true,
+        "max_rows": 251,
+        "reports_shortfall": true
+      }
+    },
+    {
+      "id": "Q-HIST-004",
+      "category": "historical",
+      "question": "What was the 10-year yield during 2008?",
+      "intent": "history for a named past period",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "dataset"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "reason": "Served for the named period: TemporalScope carries the dates through the negotiation into get_rate_history.",
+      "assertions": {
+        "no_fabricated_number": true,
+        "must_not_substitute_recent_data": true
+      }
+    },
+    {
+      "id": "Q-HIST-005",
+      "category": "historical",
+      "question": "What was the 30-year yield on 1995-06-15?",
+      "intent": "a single historical observation",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "dataset"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "reason": "Served for the named period: TemporalScope carries the dates through the negotiation into get_rate_history.",
+      "assertions": {
+        "no_fabricated_number": true,
+        "must_not_substitute_recent_data": true
+      }
+    },
+    {
+      "id": "Q-CMP-001",
+      "category": "comparative",
+      "question": "Compare the 2-year and 10-year yields.",
+      "intent": "two tenors side by side",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "dataset"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "PARTIAL",
+      "reason": "Both tenors arrive as columns of one table, so a reader can compare them; the difference is not computed by the system.",
+      "assertions": {
+        "has_table": true
+      }
+    },
+    {
+      "id": "Q-CMP-002",
+      "category": "comparative",
+      "question": "How does the real 10-year yield compare with the nominal 10-year?",
+      "intent": "cross-curve-family comparison (breakeven inflation)",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "dataset"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "NO",
+      "reason": "curve_family is a single value on the Requirement, so one answer carries one family. Both series exist in PostgreSQL; the agent cannot combine them, and combining a nominal par yield with a real yield on one curve is exactly what the quoting-basis rule forbids doing implicitly.",
+      "assertions": {
+        "no_fabricated_number": true,
+        "must_not_mix_curve_families": true
+      }
+    },
+    {
+      "id": "Q-CMP-003",
+      "category": "comparative",
+      "question": "Which tenor moved the most over the last year?",
+      "intent": "ranked change across tenors",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "dataset"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "NO",
+      "reason": "No aggregation or ranking exists in the agent path; the table is returned unreduced.",
+      "assertions": {
+        "no_fabricated_number": true
+      }
+    },
+    {
+      "id": "Q-AGG-001",
+      "category": "aggregation_statistics",
+      "question": "What is the average 10-year yield over the last year?",
+      "intent": "mean of a series",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "dataset"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "NO",
+      "reason": "There is no aggregation capability. McpAgent.execute returns a snapshot or a history table; no mean, min, max, percentile or volatility is computed anywhere in the agent path, and no MCP tool offers one.",
+      "assertions": {
+        "no_fabricated_number": true
+      }
+    },
+    {
+      "id": "Q-AGG-002",
+      "category": "aggregation_statistics",
+      "question": "What is the highest 30-year yield ever recorded?",
+      "intent": "extremum over full history",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "NO",
+      "reason": "No aggregation capability, and no full-history access from the agent path (DEF-002).",
+      "assertions": {
+        "no_fabricated_number": true
+      }
+    },
+    {
+      "id": "Q-AGG-003",
+      "category": "aggregation_statistics",
+      "question": "What is the realised volatility of the 10-year yield?",
+      "intent": "standard deviation of changes",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "NO",
+      "reason": "No volatility tool. The risk engine computes VaR/ES by historical simulation, which is a different quantity and is portfolio-scoped, not series-scoped.",
+      "assertions": {
+        "no_fabricated_number": true
+      }
+    },
+    {
+      "id": "Q-CURVE-001",
+      "category": "yield_curve_analysis",
+      "question": "Is the yield curve currently inverted?",
+      "intent": "curve shape read from a snapshot",
+      "sources": [
+        "postgres",
+        "qdrant"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "dataset",
+        "citations"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "PARTIAL",
+      "reason": "The full curve snapshot is returned and the knowledge base defines inversion, so the orchestrator can describe the shape from real numbers; no inversion flag is computed.",
+      "assertions": {
+        "has_table": true,
+        "has_citations": true
+      }
+    },
+    {
+      "id": "Q-CURVE-002",
+      "category": "yield_curve_analysis",
+      "question": "What is the current 2s10s slope?",
+      "intent": "spread between two tenors in basis points",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "dataset"
+      ],
+      "expected_tools": [
+        "get_curve_slope"
+      ],
+      "requires_elicitation": false,
+      "supported": "PARTIAL",
+      "reason": "Both tenors are returned as a table and the spread is readable from it, but no schedulable capability computes the slope as a single value; get_curve_slope is correctly advertised as informational, so it is no longer named as a calculation and no longer fails at execution.",
+      "assertions": {
+        "has_table": true
+      }
+    },
+    {
+      "id": "Q-CURVE-003",
+      "category": "yield_curve_analysis",
+      "question": "Has the curve steepened or flattened recently?",
+      "intent": "slope change over time",
+      "sources": [
+        "postgres",
+        "qdrant"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "dataset"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "PARTIAL",
+      "reason": "Both tenors are returned as a table and the spread is readable from it, but no schedulable capability computes the slope as a single value; get_curve_slope is correctly advertised as informational, so it is no longer named as a calculation and no longer fails at execution.",
+      "assertions": {
+        "has_table": true
+      }
+    },
+    {
+      "id": "Q-PORT-001",
+      "category": "portfolio_positions",
+      "question": "What is in the demo book?",
+      "intent": "portfolio holdings",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "PARTIAL",
+      "reason": "get_portfolio is an MCP tool and RiskWorkflows.get_portfolio exists, but no agent path renders positions as a table; holdings surface only inside a pricing or DV01 result.",
+      "assertions": {
+        "mentions_synthetic_label": true
+      }
+    },
+    {
+      "id": "Q-PORT-002",
+      "category": "portfolio_positions",
+      "question": "What is the present value of the demo book?",
+      "intent": "mark the book on today's curve",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "calculation"
+      ],
+      "expected_tools": [
+        "price_portfolio"
+      ],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "assertions": {
+        "has_calculation": true,
+        "mentions_synthetic_label": true
+      }
+    },
+    {
+      "id": "Q-RISK-001",
+      "category": "risk_calculation",
+      "question": "What is the DV01 of the demo book?",
+      "intent": "first-order rate sensitivity by full revaluation",
+      "sources": [
+        "postgres",
+        "qdrant"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "calculation"
+      ],
+      "expected_tools": [
+        "compute_dv01"
+      ],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "ground_truth": {
+        "workflow": "compute_dv01",
+        "field": "dv01",
+        "tolerance": 0.01
+      },
+      "assertions": {
+        "has_calculation": true,
+        "contains_units": true,
+        "mentions_synthetic_label": true,
+        "no_tool_names_leaked": true
+      }
+    },
+    {
+      "id": "Q-RISK-002",
+      "category": "risk_calculation",
+      "question": "Compute the 10-day 99% historical VaR on the demo book.",
+      "intent": "historical-simulation VaR at a stated horizon and confidence",
+      "sources": [
+        "postgres",
+        "qdrant"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "calculation"
+      ],
+      "expected_tools": [
+        "compute_var"
+      ],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "ground_truth": {
+        "workflow": "compute_var",
+        "field": "var",
+        "tolerance": 0.01,
+        "params": {
+          "confidence_level": 0.99,
+          "horizon_days": 10,
+          "trading_days": 250
+        }
+      },
+      "assertions": {
+        "has_calculation": true,
+        "horizon_matches_request": 10,
+        "confidence_matches_request": 0.99,
+        "contains_units": true
+      }
+    },
+    {
+      "id": "Q-RISK-003",
+      "category": "risk_calculation",
+      "question": "What is the expected shortfall on the demo book at 97.5%?",
+      "intent": "ES beside VaR from the same simulation",
+      "sources": [
+        "postgres",
+        "qdrant"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "calculation"
+      ],
+      "expected_tools": [
+        "compute_var"
+      ],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "ground_truth": {
+        "workflow": "compute_var",
+        "field": "expected_shortfall",
+        "tolerance": 0.01,
+        "params": {
+          "confidence_level": 0.975
+        }
+      },
+      "assertions": {
+        "has_calculation": true,
+        "confidence_matches_request": 0.975
+      }
+    },
+    {
+      "id": "Q-RISK-004",
+      "category": "risk_calculation",
+      "question": "Run the parallel +100 bp stress on the demo book.",
+      "intent": "revalue under a named scenario",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "calculation"
+      ],
+      "expected_tools": [
+        "run_stress"
+      ],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "assertions": {
+        "has_calculation": true,
+        "mentions_synthetic_label": true
+      }
+    },
+    {
+      "id": "Q-RISK-005",
+      "category": "risk_calculation",
+      "question": "Replay the 2020 COVID dash-for-cash scenario on the demo book.",
+      "intent": "historical replay stress",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "calculation"
+      ],
+      "expected_tools": [
+        "run_stress"
+      ],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "assertions": {
+        "has_calculation": true
+      }
+    },
+    {
+      "id": "Q-RISK-006",
+      "category": "risk_calculation",
+      "question": "Give me the key-rate DV01 breakdown for the demo book.",
+      "intent": "sensitivity per key tenor",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "calculation"
+      ],
+      "expected_tools": [
+        "compute_dv01"
+      ],
+      "requires_elicitation": false,
+      "supported": "PARTIAL",
+      "reason": "compute_key_rate_dv01_tool exists on the risk server and RiskWorkflows.compute_dv01 returns a key-rate breakdown, but the agent advertises only compute_dv01, so the breakdown arrives as part of that result rather than as its own capability.",
+      "assertions": {
+        "has_calculation": true
+      }
+    },
+    {
+      "id": "Q-KNOW-001",
+      "category": "domain_explanation",
+      "question": "What is DV01?",
+      "intent": "definition from the corpus",
+      "sources": [
+        "qdrant"
+      ],
+      "expected_agents": [
+        "orchestrator"
+      ],
+      "expected_route": "direct",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "outcome"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "knowledge_documents": [
+        "market_risk/sensitivities_greeks"
+      ],
+      "assertions": {
+        "no_hallucinated_figures": true
+      }
+    },
+    {
+      "id": "Q-KNOW-002",
+      "category": "domain_explanation",
+      "question": "How many observations does a historical VaR calculation read, and why?",
+      "intent": "the observation window, quoted from the corpus",
+      "sources": [
+        "qdrant"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "citations"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "knowledge_documents": [
+        "market_risk/var"
+      ],
+      "assertions": {
+        "has_citations": true,
+        "grounded_row_quote": true
+      }
+    },
+    {
+      "id": "Q-KNOW-003",
+      "category": "domain_explanation",
+      "question": "When should I use expected shortfall rather than VaR?",
+      "intent": "methodology comparison from the corpus",
+      "sources": [
+        "qdrant"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "citations"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "knowledge_documents": [
+        "market_risk/expected_shortfall",
+        "market_risk/var"
+      ],
+      "assertions": {
+        "has_citations": true
+      }
+    },
+    {
+      "id": "Q-KNOW-004",
+      "category": "domain_explanation",
+      "question": "What are the limitations of historical simulation?",
+      "intent": "caveats section of the corpus",
+      "sources": [
+        "qdrant"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "citations"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "knowledge_documents": [
+        "market_risk/var"
+      ],
+      "assertions": {
+        "has_citations": true
+      }
+    },
+    {
+      "id": "Q-KNOW-005",
+      "category": "domain_explanation",
+      "question": "What is CVA and what inputs does it need?",
+      "intent": "a concept the corpus knows but the data cannot compute",
+      "sources": [
+        "qdrant"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "citations"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "knowledge_documents": [
+        "xva/cva"
+      ],
+      "assertions": {
+        "explains_without_computing": true,
+        "has_citations": true
+      }
+    },
+    {
+      "id": "Q-KNOW-006",
+      "category": "domain_explanation",
+      "question": "What is the difference between a par yield and a bill discount rate?",
+      "intent": "quoting-basis distinction",
+      "sources": [
+        "qdrant",
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "citations"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "PARTIAL",
+      "reason": "Both quoting bases exist in treasury.series and the yield-curve document covers the curve, but no corpus document is dedicated to the discount-versus-coupon-equivalent distinction.",
+      "assertions": {}
+    },
+    {
+      "id": "Q-HYBRID-001",
+      "category": "hybrid_knowledge_data",
+      "question": "What data do you need to compute VaR, and do you have it?",
+      "intent": "corpus requirement checked against the live catalogue",
+      "sources": [
+        "qdrant",
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "catalogue",
+        "citations",
+        "negotiation"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "knowledge_documents": [
+        "market_risk/var"
+      ],
+      "assertions": {
+        "has_citations": true,
+        "negotiation_held": true
+      }
+    },
+    {
+      "id": "Q-HYBRID-002",
+      "category": "hybrid_knowledge_data",
+      "question": "Explain how DV01 is calculated and then compute it for the demo book.",
+      "intent": "explain, then execute",
+      "sources": [
+        "qdrant",
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "calculation",
+        "citations"
+      ],
+      "expected_tools": [
+        "compute_dv01"
+      ],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "assertions": {
+        "has_calculation": true,
+        "has_citations": true
+      }
+    },
+    {
+      "id": "Q-HYBRID-003",
+      "category": "hybrid_knowledge_data",
+      "question": "Can you compute RWA for this book?",
+      "intent": "corpus knows the concept, data cannot support it",
+      "sources": [
+        "qdrant"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "citations"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "knowledge_documents": [
+        "regulatory_capital/rwa"
+      ],
+      "assertions": {
+        "explains_without_computing": true,
+        "declines_calculation": true
+      }
+    },
+    {
+      "id": "Q-MULTI-001",
+      "category": "multi_step_analytical",
+      "question": "Work out what data a 99% VaR needs, check you have it, then run it on the demo book.",
+      "intent": "the full derive - negotiate - execute path",
+      "sources": [
+        "qdrant",
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "negotiation",
+        "catalogue",
+        "calculation",
+        "citations"
+      ],
+      "expected_tools": [
+        "compute_var"
+      ],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "assertions": {
+        "has_calculation": true,
+        "negotiation_held": true,
+        "min_handoffs": 5,
+        "max_handoffs": 12
+      }
+    },
+    {
+      "id": "Q-MULTI-002",
+      "category": "multi_step_analytical",
+      "question": "Which of the demo book's key rates carries the most risk, and what would a 100 bp rise cost?",
+      "intent": "two calculations in one turn",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "calculation"
+      ],
+      "expected_tools": [
+        "compute_dv01"
+      ],
+      "requires_elicitation": false,
+      "supported": "PARTIAL",
+      "reason": "A Requirement names exactly one calculation, so a question needing both a key-rate breakdown and a stress produces one of the two.",
+      "assertions": {
+        "has_calculation": true
+      }
+    },
+    {
+      "id": "Q-ELICIT-001",
+      "category": "clarification_elicitation",
+      "question": "Give me the 30-year rate.",
+      "intent": "30-year exists on both the nominal and the real curve",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "clarify",
+      "expected_state": "input-required",
+      "expected_artifacts": [
+        "input_request"
+      ],
+      "expected_tools": [
+        "search_series"
+      ],
+      "requires_elicitation": true,
+      "supported": "YES",
+      "elicitation": {
+        "field": "rate_kind",
+        "allowed": [
+          "nominal",
+          "real"
+        ],
+        "valid_reply": "Use the real series for this.",
+        "invalid_reply": "30 year Treasury",
+        "cancel_reply": "never mind"
+      },
+      "assertions": {
+        "asks_one_question": true,
+        "options_are_real": true
+      }
+    },
+    {
+      "id": "Q-ELICIT-002",
+      "category": "clarification_elicitation",
+      "question": "Run a stress test.",
+      "intent": "no scenario and no book named",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "mcp-agent"
+      ],
+      "expected_route": "clarify",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "choices"
+      ],
+      "expected_tools": [
+        "list_data_choices"
+      ],
+      "requires_elicitation": true,
+      "supported": "YES",
+      "assertions": {
+        "asks_one_question": true,
+        "options_are_real": true,
+        "no_domain_expert_called": true
+      }
+    },
+    {
+      "id": "Q-ELICIT-003",
+      "category": "clarification_elicitation",
+      "question": "Calculate VaR.",
+      "intent": "metric named with nothing to compute it on",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "mcp-agent"
+      ],
+      "expected_route": "clarify",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "choices"
+      ],
+      "expected_tools": [
+        "list_data_choices"
+      ],
+      "requires_elicitation": true,
+      "supported": "YES",
+      "assertions": {
+        "asks_one_question": true
+      }
+    },
+    {
+      "id": "Q-ELICIT-004",
+      "category": "clarification_elicitation",
+      "question": "Give me the 30-year rate.",
+      "intent": "elicitation answered with something that settles nothing, twice, then correctly",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "mcp-agent"
+      ],
+      "expected_route": "clarify",
+      "expected_state": "input-required",
+      "expected_artifacts": [
+        "input_request"
+      ],
+      "expected_tools": [
+        "provide_input"
+      ],
+      "requires_elicitation": true,
+      "supported": "YES",
+      "elicitation": {
+        "field": "rate_kind",
+        "allowed": [
+          "nominal",
+          "real"
+        ],
+        "sequence": [
+          "30 year Treasury",
+          "whatever you think",
+          "Use the nominal series for this."
+        ],
+        "expect_states": [
+          "input-required",
+          "input-required",
+          "completed"
+        ]
+      },
+      "assertions": {
+        "same_task_throughout": true,
+        "bounded_retries": true
+      }
+    },
+    {
+      "id": "Q-ELICIT-005",
+      "category": "clarification_elicitation",
+      "question": "Give me the 30-year rate.",
+      "intent": "user cancels the clarification",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "mcp-agent"
+      ],
+      "expected_route": "clarify",
+      "expected_state": "canceled",
+      "expected_artifacts": [
+        "input_request"
+      ],
+      "expected_tools": [
+        "provide_input"
+      ],
+      "requires_elicitation": true,
+      "supported": "YES",
+      "elicitation": {
+        "field": "rate_kind",
+        "sequence": [
+          "never mind"
+        ],
+        "expect_states": [
+          "canceled"
+        ]
+      },
+      "assertions": {
+        "nothing_fetched": true
+      }
+    },
+    {
+      "id": "Q-AMB-001",
+      "category": "ambiguous",
+      "question": "Give me risk.",
+      "intent": "no metric, no target",
+      "sources": [],
+      "expected_agents": [
+        "orchestrator",
+        "mcp-agent"
+      ],
+      "expected_route": "clarify",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "choices"
+      ],
+      "expected_tools": [
+        "list_data_choices"
+      ],
+      "requires_elicitation": true,
+      "supported": "YES",
+      "assertions": {
+        "asks_one_question": true,
+        "options_are_real": true
+      }
+    },
+    {
+      "id": "Q-AMB-002",
+      "category": "ambiguous",
+      "question": "Show me the data.",
+      "intent": "no subject at all",
+      "sources": [],
+      "expected_agents": [
+        "orchestrator",
+        "mcp-agent"
+      ],
+      "expected_route": "clarify",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "choices"
+      ],
+      "expected_tools": [
+        "list_data_choices"
+      ],
+      "requires_elicitation": true,
+      "supported": "YES",
+      "assertions": {
+        "asks_one_question": true
+      }
+    },
+    {
+      "id": "Q-AMB-003",
+      "category": "ambiguous",
+      "question": "Give me the curve.",
+      "intent": "subject named, family unstated",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "dataset"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "reason": "A subject is named, so the orchestrator routes it down rather than asking. The domain expert defaults the family to nominal and the answer says which curve it is.",
+      "assertions": {
+        "has_table": true
+      }
+    },
+    {
+      "id": "Q-UNSUP-001",
+      "category": "unsupported",
+      "question": "What is the CVA on our counterparty exposure?",
+      "intent": "counterparty credit valuation adjustment",
+      "sources": [
+        "qdrant"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "citations"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "NO",
+      "reason": "No counterparty, exposure or credit data exists anywhere in PostgreSQL. The corpus knows CVA (xva/cva), so the system must explain and decline rather than compute.",
+      "missing": {
+        "data": "counterparty exposure, default probabilities, netting sets",
+        "mcp": "none",
+        "calculation": "none"
+      },
+      "qdrant_knows": true,
+      "assertions": {
+        "declines_calculation": true,
+        "no_fabricated_number": true
+      }
+    },
+    {
+      "id": "Q-UNSUP-002",
+      "category": "unsupported",
+      "question": "What is the DV01 of our equity book?",
+      "intent": "an asset class that does not exist here",
+      "sources": [],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "NO",
+      "reason": "Only one synthetic Treasury book exists (TREASURY_DEMO_001, five fixed-rate bonds). There is no equity data and DV01 is not an equity measure.",
+      "missing": {
+        "data": "equity positions and prices",
+        "mcp": "none",
+        "calculation": "none"
+      },
+      "qdrant_knows": false,
+      "assertions": {
+        "no_fabricated_number": true
+      }
+    },
+    {
+      "id": "Q-UNSUP-003",
+      "category": "unsupported",
+      "question": "Show me EUR/USD FX rates.",
+      "intent": "an asset class outside the datasets",
+      "sources": [],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "NO",
+      "reason": "All five datasets are U.S. Treasury interest rates. No FX series exists.",
+      "missing": {
+        "data": "FX rates",
+        "mcp": "none",
+        "calculation": "none"
+      },
+      "qdrant_knows": false,
+      "assertions": {
+        "no_fabricated_number": true
+      }
+    },
+    {
+      "id": "Q-UNSUP-004",
+      "category": "unsupported",
+      "question": "Give me the CUSIP and issuer name for every bond in the 10-year sector.",
+      "intent": "instrument-level identifiers on a curve",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "NO",
+      "reason": "A par yield curve holds no instrument records. treasury.bill_security does carry CUSIPs for bills, but it is not exposed through any MCP tool or agent path, and it does not cover the 10-year sector.",
+      "missing": {
+        "data": "note/bond instrument records",
+        "mcp": "no tool over treasury.bill_security",
+        "calculation": "none"
+      },
+      "qdrant_knows": false,
+      "assertions": {
+        "names_missing_fields": true,
+        "no_fabricated_number": true
+      }
+    },
+    {
+      "id": "Q-UNSUP-005",
+      "category": "unsupported",
+      "question": "What is our Basel capital ratio?",
+      "intent": "regulatory capital, known to the corpus only",
+      "sources": [
+        "qdrant"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "citations"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "NO",
+      "reason": "No capital, RWA or balance-sheet data exists. The corpus covers it (regulatory_capital/basel_capital_ratios), so the system explains and declines.",
+      "missing": {
+        "data": "capital and RWA",
+        "mcp": "none",
+        "calculation": "none"
+      },
+      "qdrant_knows": true,
+      "assertions": {
+        "declines_calculation": true,
+        "no_fabricated_number": true
+      }
+    },
+    {
+      "id": "Q-UNSUP-006",
+      "category": "unsupported",
+      "question": "What is the 15-year Treasury yield?",
+      "intent": "a tenor Treasury does not publish",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "NO",
+      "reason": "Treasury publishes no 15-year par yield; the curve jumps 10y to 20y. Interpolating one would be inventing an observation.",
+      "missing": {
+        "data": "no 15-year series",
+        "mcp": "none",
+        "calculation": "no interpolation tool"
+      },
+      "qdrant_knows": false,
+      "assertions": {
+        "no_fabricated_number": true
+      }
+    },
+    {
+      "id": "Q-UNSUP-007",
+      "category": "unsupported",
+      "question": "What is the implied volatility of the 10-year option?",
+      "intent": "options data",
+      "sources": [],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "NO",
+      "reason": "No options, no volatility surface, no pricing model for them.",
+      "missing": {
+        "data": "option prices",
+        "mcp": "none",
+        "calculation": "none"
+      },
+      "qdrant_knows": false,
+      "assertions": {
+        "no_fabricated_number": true
+      }
+    },
+    {
+      "id": "Q-ERR-001",
+      "category": "error_edge_case",
+      "question": "What was the 10-year yield on 1985-01-01?",
+      "intent": "a date before coverage begins",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "NO",
+      "reason": "Coverage begins 1990-01-02. Also blocked by DEF-002 (no date range on the Requirement).",
+      "assertions": {
+        "no_fabricated_number": true
+      }
+    },
+    {
+      "id": "Q-ERR-002",
+      "category": "error_edge_case",
+      "question": "What was the 10-year yield on 2030-01-01?",
+      "intent": "a future date",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "NO",
+      "reason": "Latest observation is 2026-08-11. The system must not forecast.",
+      "assertions": {
+        "no_fabricated_number": true
+      }
+    },
+    {
+      "id": "Q-ERR-003",
+      "category": "error_edge_case",
+      "question": "Price the portfolio NOT_A_BOOK.",
+      "intent": "unknown portfolio id",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "NO",
+      "reason": "Only TREASURY_DEMO_001 exists. The MCP agent resolves the first available book rather than accepting an arbitrary id, so an unknown id cannot reach the risk engine.",
+      "assertions": {
+        "no_fabricated_number": true
+      }
+    },
+    {
+      "id": "Q-ERR-004",
+      "category": "error_edge_case",
+      "question": "Compute VaR at 150% confidence.",
+      "intent": "a parameter outside its meaningful range",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement"
+      ],
+      "expected_tools": [
+        "compute_var"
+      ],
+      "requires_elicitation": false,
+      "supported": "PARTIAL",
+      "reason": "The requirement guard drops a confidence level outside (0,1) and records a warning, so the data layer's documented default stands rather than a nonsense parameter being used.",
+      "assertions": {
+        "parameter_dropped": "confidence_level"
+      }
+    },
+    {
+      "id": "Q-CONV-001",
+      "category": "conversational_followup",
+      "category_detail": "multi-turn session context",
+      "question": "Show me the 10-year yield.",
+      "intent": "opens a session",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "requirement",
+        "dataset"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "followups": [
+        {
+          "question": "What about the 30-year?",
+          "expected_route": "data_request",
+          "supported": "YES",
+          "assertion": "resolves the elided subject from history"
+        },
+        {
+          "question": "Now show me a year of history for it.",
+          "expected_route": "data_request",
+          "supported": "YES",
+          "assertion": "carries the tenor forward"
+        }
+      ],
+      "assertions": {
+        "session_history_used": true
+      }
+    },
+    {
+      "id": "Q-CONV-002",
+      "category": "conversational_followup",
+      "question": "What is the DV01 of the demo book?",
+      "intent": "risk turn followed by a topic switch",
+      "sources": [
+        "postgres"
+      ],
+      "expected_agents": [
+        "orchestrator",
+        "domain-expert",
+        "mcp-agent"
+      ],
+      "expected_route": "data_request",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "calculation"
+      ],
+      "expected_tools": [
+        "compute_dv01"
+      ],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "followups": [
+        {
+          "question": "And what is expected shortfall?",
+          "expected_route": "data_request",
+          "supported": "YES",
+          "assertion": "switches metric without losing the book"
+        }
+      ],
+      "assertions": {
+        "session_history_used": true
+      }
+    },
+    {
+      "id": "Q-SMALL-001",
+      "category": "small_talk",
+      "question": "hi",
+      "intent": "greeting must not enter the expensive path",
+      "sources": [],
+      "expected_agents": [
+        "orchestrator"
+      ],
+      "expected_route": "direct",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "outcome"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "assertions": {
+        "no_specialist_called": true,
+        "max_handoffs": 1
+      }
+    },
+    {
+      "id": "Q-SMALL-002",
+      "category": "small_talk",
+      "question": "thanks, that is helpful",
+      "intent": "closing pleasantry",
+      "sources": [],
+      "expected_agents": [
+        "orchestrator"
+      ],
+      "expected_route": "direct",
+      "expected_state": "completed",
+      "expected_artifacts": [
+        "outcome"
+      ],
+      "expected_tools": [],
+      "requires_elicitation": false,
+      "supported": "YES",
+      "assertions": {
+        "no_specialist_called": true,
+        "max_handoffs": 1
+      }
+    }
+  ]
+}

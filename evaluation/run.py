@@ -8,9 +8,11 @@ Works with or without a LangSmith key. Locally it is a pass/fail harness you can
 run in a terminal; with `--langsmith` the same cases and the same scorers are
 pushed as a dataset and an experiment, so runs are comparable over time.
 
-Deliberately driven through `AgentPipeline` rather than HTTP: the properties
-being scored belong to the agents, and going through the service would make a
-red result ambiguous between a reasoning regression and a serving bug.
+Driven through the orchestrator's own A2A endpoint rather than over HTTP to
+`/chat`: the properties being scored belong to the agents, and going through the
+service would make a red result ambiguous between a reasoning regression and a
+serving bug. It is the same entry point the service uses — there is no second
+path into the agents — so what is scored is what a user would get.
 """
 
 from __future__ import annotations
@@ -28,12 +30,12 @@ def build_pipeline():
     from treasury_db.db import load_dotenv  # noqa: PLC0415
 
     load_dotenv()
-    from agents import AgentPipeline  # noqa: PLC0415
-
     from backend.knowledge.knowledge_base import KnowledgeBase  # noqa: PLC0415
     from backend.providers.base import make_data_provider  # noqa: PLC0415
 
-    return AgentPipeline(KnowledgeBase(), make_data_provider())
+    from agents import get_network  # noqa: PLC0415
+
+    return get_network(KnowledgeBase(), make_data_provider())
 
 
 def run_case(pipeline, case: Case) -> dict[str, Any]:

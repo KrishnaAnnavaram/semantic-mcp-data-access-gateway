@@ -187,3 +187,50 @@ def test_synthetic_and_real_stay_distinguishable(risk):
     out = risk.price_portfolio(DEMO_PORTFOLIO)
     assert "SYNTHETIC_DEMO" in out["data_classification"]
     assert "REAL_MARKET_DATA" in out["data_classification"]
+
+
+# -- the elicitation relay, against the real servers --------------------------
+#
+# The MCP layer's own primitives are verified by `tools/verify_mcp.py`. What is
+# checked here is the *relay*: that a question the data server raises mid-call
+# is reported to the caller instead of being silently declined or asked on some
+# terminal, and that an answer supplied from above resolves it. That is the
+# mechanism the orchestrator-mediated elicitation rests on, and it is worth
+# proving against a real server rather than only against a stub.
+
+
+def test_an_unanswered_server_question_is_reported_not_swallowed(provider):
+    """'30 year' matches BC_30YEAR and TC_30YEAR; nobody here can choose."""
+    out = provider.call_tool_with_input("search_series",
+                                        {"query": "30 year", "limit": 10})
+
+    pending = out["pending_input"]
+    assert pending is not None, "the server's question was lost"
+    assert pending["tool"] == "search_series"
+    assert pending["fields"] == ["rate_kind"]
+    assert pending["schema"]["properties"]["rate_kind"]["enum"] == ["nominal", "real"]
+    # The tool still returned - on its declined path, labelled as such. Guessing
+    # a side is precisely the error elicitation exists to prevent.
+    assert out["result"]["ambiguous"] is True
+    assert out["result"]["resolution"] == "declined"
+    assert out["result"]["resolved_rate_kind"] is None
+
+
+def test_an_answer_relayed_from_above_resolves_the_same_question(provider):
+    """The return leg: the user's choice reaches the server and the call finishes."""
+    out = provider.call_tool_with_input("search_series",
+                                        {"query": "30 year", "limit": 10},
+                                        answers={"rate_kind": "real"})
+
+    assert out["pending_input"] is None, "it asked again despite being answered"
+    assert out["result"]["resolution"] == "elicited"
+    assert out["result"]["resolved_rate_kind"] == "real"
+    assert [m["series_code"] for m in out["result"]["matches"]] == ["TC_30YEAR"]
+
+
+def test_a_scope_collects_a_question_raised_several_frames_down(provider):
+    """A question raised inside a block of work belongs to whoever opened it."""
+    with provider.input_scope() as relay:
+        provider.call_tool("search_series", {"query": "30 year", "limit": 10})
+    assert relay.pending is not None
+    assert relay.pending["tool"] == "search_series"

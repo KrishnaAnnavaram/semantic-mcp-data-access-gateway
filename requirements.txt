@@ -13,6 +13,15 @@ psycopg2-binary>=2.9    # PostgreSQL driver for migrate.py / load_us_treasury.py
 # floor, not a preference.
 mcp>=2.0.0
 
+# --- A2A: agent-to-agent communication ---
+# The official SDK. 1.x implements protocol revision 1.0 with proto-derived
+# types, the task lifecycle (submitted/working/input-required/completed/failed/
+# cancelled) and the JSON-RPC server bindings each agent is mounted behind.
+# 0.3.x is a different (pydantic) type system, so the pin is a floor, not a
+# preference. A2A carries agent-to-agent traffic; MCP still carries tools and
+# data. They are not alternatives.
+a2a-sdk>=1.1.2
+
 # --- model layer (the ModelProvider seam) ---
 # Two engines behind one interface, chosen by LLM_BACKEND. Both SDKs are
 # declared here because either may be the configured backend; only the selected

@@ -4,42 +4,61 @@ Vendor-neutral description of the agents in this project: what they are, how the
 reason, what they can call, and how the pieces fit. (`CLAUDE.md` holds
 Claude-Code-specific repo instructions; this file describes the runtime agents.)
 
-## Three runtime agents, in one order
+## Three runtime agents, in one order, over A2A
 
-Everything the UI asks for goes through [`agents/pipeline.py`](agents/pipeline.py).
-There is no other path: `POST /chat` calls `AgentPipeline.handle()` and nothing else.
+Each of the three is an independently addressable **A2A agent**: an Agent Card,
+a set of skills, a JSON-RPC endpoint, and a task lifecycle. Every arrow below is
+an A2A task, not a Python method call. Full design: [`docs/a2a.md`](docs/a2a.md).
+
+`POST /chat` sends one A2A message to the orchestrator and nothing else. It is
+the only agent whose card admits the user boundary; the other two reject a
+request from it by name.
 
 ```
     User question
-       │
-       ▼
-    ORCHESTRATOR  classify
+       │  FastAPI, acting for the user  ──A2A: handle_user_turn──┐
+       ▼                                                         │
+    ORCHESTRATOR  classify  ◄────────────────────────────────────┘
        ├─ normal question ─────────────────────► reply, stop
+       ├─ missing detail ──A2A──► MCP AGENT: list_data_choices ──► ask once
        └─ data request
             │
+            │ A2A: derive_data_requirement
             ▼
        DOMAIN EXPERT  Qdrant vector search → requirement
             │
-            ├──► MCP AGENT: what tools and data do you have?
-            │◄── catalogue
+            ├──A2A──► MCP AGENT: describe_data_capabilities
+            │◄──────  catalogue
             │
-            │  ╔════════════ DISCUSSION (bounded, 3 rounds) ═══╗
-            │  ║  domain proposes  ⇄  mcp says what it serves ║
-            │  ║  domain revises   ⇄  ...                     ║
-            │  ╚══════════════════════════════════════════════╝
+            │  ╔═══════ NEGOTIATION (bounded, 5 rounds, over A2A) ══════╗
+            │  ║  domain proposes  ⇄  assess_data_requirement           ║
+            │  ║  domain revises   ⇄  ...                               ║
+            │  ╚════════════════════════════════════════════════════════╝
             │
-            ▼  final requirement
-       MCP AGENT  fetch + calculate
-            │
+            ▼  requirement · negotiation · catalogue · citations (artifacts)
+    ORCHESTRATOR
+            │ A2A: execute_data_plan
             ▼
-    ORCHESTRATOR  reflect → reply
+       MCP AGENT  fetch + calculate  ──► dataset · calculation · summary
+            │                        └─► or task state: input-required
+            ▼
+    ORCHESTRATOR  reflect → reply    (or relay the question to the user)
 ```
 
-| Agent | Module | Job | Model is |
-|---|---|---|---|
-| **Orchestrator** | `agents/orchestrator_agent.py` | Routing. Runs on *every* turn, including "hi". | configuration |
-| **Domain Expert** | `agents/domain_expert_agent.py` | The thinking. Retrieval, requirement, citation. | configuration |
-| **MCP Agent** | `agents/mcp_agent.py` | Judging what a source can serve. | configuration |
+**A2A carries agents; MCP carries data.** Neither replaced the other. The MCP
+agent still reaches PostgreSQL and the risk engine through the two MCP servers
+as `mcp_reader`, and no other agent has a road to the database at all.
+
+| Agent | Module | A2A address | Job | Model is |
+|---|---|---|---|---|
+| **Orchestrator** | `agents/orchestrator_agent.py` | `/a2a/orchestrator` | Routing, and the only agent a user reaches. Runs on *every* turn, including "hi". | configuration |
+| **Domain Expert** | `agents/domain_expert_agent.py` | `/a2a/domain-expert` | The thinking. Retrieval, requirement, citation, and the discussion. | configuration |
+| **MCP Agent** | `agents/mcp_agent.py` | `/a2a/mcp-agent` | Judging what a source can serve, and serving it. | configuration |
+
+There are **three**, and a fourth would be a design change rather than a
+convenience. `mcp_servers/host/agent.py`, `RiskWorkflows`, `KnowledgeBase`, the
+`DataProvider` implementations, the sampling callback and `McpHost` are
+services, adapters and helpers — none of them has a card, and none should.
 
 **No agent names a model.** Each declares a *call site*; which model serves it
 is decided by `LLM_BACKEND` and the per-call-site variables, exactly as
@@ -112,10 +131,57 @@ A one-way handoff produces requirements nobody can serve (six fields, three of
 which do not exist) or fetches nobody asked for. Each round is a real model call
 and a real trace span, so the negotiation is auditable rather than implied.
 
-**Why it is bounded.** Two agents that can always reply will always reply. The loop
-stops when the MCP agent reports the requirement feasible, or after `MAX_ROUNDS = 3`
-— and if it never converges, that fact is recorded and reported instead of hidden
-behind a last-ditch answer.
+**Why it is bounded.** Two agents that can always reply will always reply. The
+loop stops when a **decision** is reached, or after
+`MAX_NEGOTIATION_ROUNDS = 5`. There are four decisions, and which one it was
+decides what the user is told:
+
+| Decision | Meaning | The user gets |
+|---|---|---|
+| `AGREED` | An executable plan both agents accept. | The answer. |
+| `NEEDS_USER_INPUT` | A choice neither agent may make. | One clarifying question. |
+| `UNSUPPORTED` | The data layer genuinely cannot serve this. | A plain refusal and what it *can* do. |
+| `CANNOT_REACH_AGREEMENT` | Five rounds, no convergence. | That fact, and no number. |
+
+A boolean `converged` could not distinguish the last three, so all three
+arrived as the same flat "declined" — including the case where one more
+sentence from the user would have unblocked it. `converged` is now derived
+(`decision == "AGREED"`), so the flag cannot drift from the decision.
+
+**A revision is verified, not claimed.** The planner diffs the two requirements
+rather than trusting the expert's account of what it changed. A round that
+reports a revision and produces an identical requirement is a round that did
+nothing, and the loop should not spend another one on it.
+
+Under A2A the discussion crosses a real agent boundary, so it carries three
+further bounds that do not depend on either agent behaving: the **call chain**
+(`A2A_MAX_CHAIN=8` steps, with `A2A_MAX_REENTRY=3` repeats of one agent+skill
+on the same path — the pair is what refuses A→B→A→B while still permitting a
+long honest negotiation), **budget** (`A2A_MAX_HANDOFFS=20` calls per user
+turn), and **duplicate suppression** (the same skill with the same input twice
+in one turn is answered from the first result). Each is enforced by the
+receiving agent against its own configuration, never against the number the
+caller declared.
+
+Time is bounded on the **turn**, not on each call: `A2A_TURN_TIMEOUT_SECONDS`
+(900s), with every call granted whatever remains of it. A flat per-call
+deadline made the outermost call the tightest bound in the system and killed
+negotiations that were running normally.
+
+### Elicitation belongs to the orchestrator
+
+When the MCP servers raise a question only a human can answer — `'30 year'`
+matches a nominal *and* a real series — the MCP agent does not ask. It stops its
+task in `input-required`, carrying the required field names and the allowed
+answers as structured data. The orchestrator turns that into one clarifying
+question with clickable options, and the user's reply is relayed back into the
+**same task id**, which resumes rather than restarting.
+
+A reply that settles nothing — "30 year Treasury" to "nominal or real?" — is
+neither an answer nor a refusal, so the task stays `input-required` and the
+question is put again, up to `A2A_MAX_CLARIFICATIONS` times before the plan runs
+on the tool's own labelled declined path. An explicit "cancel" ends the task
+immediately. See [`docs/a2a.md`](docs/a2a.md).
 
 ### Scope and honesty rules
 
@@ -140,6 +206,12 @@ an agent.
 | `VectorStore` | `QdrantVectorStore` (embedded for dev, or Docker via `QDRANT_URL`) | `QDRANT_URL` |
 | `DataProvider` | `McpDataProvider` · `PostgresDataProvider` · `MockDataProvider` | `DATA_BACKEND` |
 | `ModelProvider` | `AnthropicProvider` · `ZaiProvider` | `LLM_BACKEND` |
+| `DataLayerPort` | `A2ADataLayer` — the MCP agent, over A2A | — |
+| A2A transport | in-process ASGI · HTTP | `A2A_TRANSPORT` |
+
+`DataLayerPort` is what keeps the discussion's *rules* apart from the transport
+that carries it: `agents/planning.py` holds the round limit and the convergence
+test and knows nothing about tasks, cards or protobufs.
 
 **Structured output is validated, never trusted.** A provider returns an object
 only after it has passed strict schema and type checking, because valid JSON is
@@ -170,13 +242,24 @@ call, not how to reshape a payload.
 ```
 POST /chat      {query, session_id}
   -> {answer, sources, trace, awaiting_clarification, elicitation, route,
-      tables, data_plan, negotiation, catalogue, calculation, langsmith_url}
+      tables, data_plan, negotiation, catalogue, calculation, langsmith_url,
+      handoffs}
 POST /summarise {messages} -> {title}
-GET  /health
+GET  /health    -> {..., a2a: {transport, protocol_version, agents, limits}}
+
+GET  /a2a/<agent>/.well-known/agent-card.json     discovery
+POST /a2a/<agent>/                                JSON-RPC (agents only)
 ```
 
-The pipeline is stateless; **the service owns session memory** — the last twelve
-turns plus a `clarified` flag, which is what stops a second consecutive question.
+The service reaches the agents only by sending an A2A message to the
+orchestrator. The three agent endpoints are mounted here so each agent is
+genuinely addressable and discoverable; they are not a second route to the data,
+because the specialists' caller allow-lists reject the user boundary.
+
+The agents are stateless between turns; **the service owns session memory** —
+the last twelve turns, a `clarified` flag that stops a second consecutive
+question, and the id of any specialist task left waiting on a human, which is
+the correlation a resumed A2A task needs.
 
 `awaiting_clarification` follows the **route**, never the prose. Inferring it from
 the text was a real defect: a finished 2,302-character answer ending "Want me to
@@ -249,6 +332,9 @@ boundaries between tiers are the part worth protecting.
 
 ## Built and wired
 
+- **A2A layer** — `a2a-sdk` 1.1.2, protocol 1.0. Three cards, nine skills, real
+  JSON-RPC endpoints, the full task lifecycle including `input-required`, and
+  guardrails on depth, budget, duplicates, timeout and cancellation.
 - **Data layer** — PostgreSQL with the real Treasury rates (267,517 rows), verified.
 - **Knowledge layer** — Qdrant with 71 chunks, running in Docker.
 - **MCP layer** — two stdio servers plus the host, on protocol revision 2026-07-28,

@@ -38,6 +38,7 @@ from __future__ import annotations
 import functools
 import logging
 import os
+import threading
 from typing import Any, Callable, TypeVar
 
 LOGGER = logging.getLogger("agents.observability")
@@ -175,6 +176,24 @@ def model_provider():
     return _PROVIDER
 
 
+#: Why the last structured call failed, per thread. Thread-local because the
+#: A2A executors run agent work on worker threads and two turns must never read
+#: each other's failure. Cleared at the start of every call, so a stale kind can
+#: never describe a later success.
+_FAILURE = threading.local()
+
+
+def last_failure_kind() -> str:
+    """The kind of the most recent structured-call failure on this thread."""
+    return getattr(_FAILURE, "kind", "") or ""
+
+
+#: Failures no retry can fix. The account is empty or the key is wrong; the
+#: same request in ten seconds gets the same answer, so inviting one is worse
+#: than useless — it sends the user in a circle instead of to the fix.
+TERMINAL_FAILURES = frozenset({"balance", "auth"})
+
+
 def structured_call(*, call_site, system: str, prompt: str, schema: dict[str, Any],
                     max_tokens: int | None = None,
                     result_name: str = "emit_result") -> dict[str, Any] | None:
@@ -190,11 +209,19 @@ def structured_call(*, call_site, system: str, prompt: str, schema: dict[str, An
     wrong* answer produces — a renamed field or a float where an integer was
     required no longer flows on as a half-populated dict whose missing keys
     quietly become `None` three layers later.
+
+    The *reason* it failed is recorded in `last_failure_kind()` rather than
+    thrown away with the exception. `None` alone cannot distinguish a blip from
+    a wall, and the difference is the whole content of what the user should be
+    told: a schema violation is worth retrying and an exhausted account is not.
+    Telling someone "asking again usually works" when the provider has answered
+    `Insufficient balance` is advice that cannot come true.
     """
     from llm import ProviderError, SchemaViolation  # noqa: PLC0415
 
     provider = model_provider()
     model = provider.model_for(call_site)
+    _FAILURE.kind = ""
     try:
         payload = provider.structured_call(
             call_site=call_site, system=system, prompt=prompt, schema=schema,
@@ -204,15 +231,18 @@ def structured_call(*, call_site, system: str, prompt: str, schema: dict[str, An
         LOGGER.error("structured call rejected | provider=%s model=%s "
                      "call_site=%s | %s", provider.name, model,
                      getattr(call_site, "value", call_site), exc)
+        _FAILURE.kind = "schema"
         return None
     except ProviderError as exc:
         LOGGER.warning("structured call failed | provider=%s model=%s "
                        "call_site=%s kind=%s | %s", provider.name, model,
                        getattr(call_site, "value", call_site), exc.kind, exc)
+        _FAILURE.kind = exc.kind or "provider"
         return None
     except Exception as exc:  # noqa: BLE001 - never take a request down
         LOGGER.warning("structured call errored | provider=%s model=%s | %s",
                        provider.name, model, exc)
+        _FAILURE.kind = "unknown"
         return None
 
     LOGGER.debug("structured call ok | provider=%s model=%s call_site=%s",

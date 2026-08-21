@@ -19,10 +19,12 @@ boundaries between tiers are the part worth protecting.
   user ─► frontend/          React (Vite + TS + Tailwind)     VITE_AGENT_BACKEND=rest
             │ POST /chat
             ▼
-          agents/            orchestrator → domain expert ⇄ mcp agent
-            │                              (Qdrant knowledge)
-            │ ModelProvider seam                        LLM_BACKEND=zai (default)|anthropic
           backend/           /chat service, seams, workflows
+            │ A2A: handle_user_turn                     A2A_TRANSPORT=inprocess
+            ▼
+          agents/            orchestrator ─A2A─► domain expert ─A2A─► mcp agent
+            │                                (Qdrant knowledge)
+            │ ModelProvider seam                        LLM_BACKEND=zai (default)|anthropic
             │ DataProvider seam                             DATA_BACKEND=mcp
             ▼
           mcp/               market-risk-data-mcp ──┐   as mcp_reader
@@ -31,12 +33,20 @@ boundaries between tiers are the part worth protecting.
           postgres/ + data/  PostgreSQL 17, Treasury rates
 ```
 
+**A2A carries agents; MCP carries data.** Two protocols, two jobs, and neither
+replaced the other. Each of the three agents is an independently addressable A2A
+service — Agent Card, skills, JSON-RPC endpoint, task lifecycle — mounted on the
+existing FastAPI app at `/a2a/<agent>`. Only the orchestrator accepts a request
+from the user boundary; the specialists reject one by name. Design and
+guardrails: `docs/a2a.md`.
+
 One directory per runtime tier, dependencies strictly downward. Four are installable
 Python distributions; the frontend is an npm package (React) run in place.
 
 | Directory | Distribution | Import package |
 |---|---|---|
 | `llm/` | `gateway-llm` | `llm` — the `ModelProvider` seam; imports nothing above it |
+| `agents/` | `gateway-agents` | `agents` — the three runtime agents, plus `agents.a2a` (protocol, transport, cards, guardrails) |
 | `postgres/` | `treasury-db` | `treasury_db` — migrations, loader, DB access |
 | `mcp/` | `mcp-servers` | `mcp_servers` — `.data`, `.risk`, `.host` |
 | `backend/` | `gateway-backend` | `backend` — `.api`, `.agent`, `.knowledge`, `.providers` |
@@ -73,6 +83,10 @@ Or by hand:
 pip install -r requirements.txt
 pip install -e ./llm -e ./postgres -e ./mcp -e ./backend -e ./agents
 ```
+
+`requirements.txt` now pins **`a2a-sdk>=1.1.2`** — protocol revision 1.0, the
+proto-derived types and the JSON-RPC server bindings each agent is mounted
+behind. 0.3.x is a different (pydantic) type system, so the pin is a floor.
 
 All five must be installed — they import each other (`backend` uses `mcp_servers`, the
 data server uses `treasury_db`, and everything that reasons uses `llm`). **There are no
@@ -166,9 +180,22 @@ cd frontend && npm install && npm run dev                         # :5173
 python -m evaluation.run                     # 13 cases x 11 scorers, offline table
 ```
 
-There is no CLI for the agents. `/chat` is the only entry point, deliberately —
-a second path is a second thing to keep in step, and the first one to drift.
-Use `python -m mcp_servers.host --ask "..."` to exercise the MCP layer alone.
+**A2A layer** — three addressable agents on the same service
+
+```bash
+curl -s localhost:8000/health | jq .a2a                    # transport, limits, mounts
+curl -s localhost:8000/a2a/mcp-agent/.well-known/agent-card.json
+curl -s localhost:8000/a2a/domain-expert/.well-known/agent-card.json
+pytest tests/test_a2a.py                     # 30 checks, offline, no key needed
+A2A_LOG_LEVEL=INFO python -m backend.api.service   # one turn=<id> per handoff
+```
+
+There is no CLI for the agents, and no second way in. `/chat` sends one A2A
+message to the orchestrator; the evaluation harness calls the same endpoint. The
+mounted `/a2a/<agent>` endpoints exist for discovery and for agent-to-agent
+traffic — a specialist rejects a request from the user boundary by name, so they
+are not a back door. Use `python -m mcp_servers.host --ask "..."` to exercise the
+MCP layer alone.
 
 Re-ingest after editing any knowledge doc:
 
@@ -222,6 +249,15 @@ in `treasury.series.placeholder_zero_before`, as data, not code.
   contain proves nothing.
 - **Keep the seams.** The agent talks only to interfaces — `VectorStore` and `DataProvider` must
   stay swappable. Never let it import a concrete engine directly.
+- **An agent never imports another agent.** Specialists are addressed by A2A
+  agent id through `AgentNetwork`. `agents/pipeline.py` importing
+  `DomainExpertAgent` or `McpAgent` would make the protocol decorative, and a
+  test asserts against the parsed import graph that it does not.
+- **Protocol stays out of behaviour.** Only `agents/a2a/` imports `a2a.types`.
+  An agent takes and returns the dataclasses in `agents/contracts.py`.
+- **Only the orchestrator speaks to a user.** A specialist that needs a decision
+  returns `input-required` with the field names and allowed answers; it never
+  asks, and never writes to the terminal.
 - **Never name a model in an agent.** Agents declare a *call site*; the model is
   configuration (`LLM_BACKEND` + `ORCHESTRATOR_MODEL` and friends). A pinned model
   string is how a cheap routing path quietly becomes an expensive one.
@@ -249,7 +285,9 @@ its history — neither is cleanly recoverable once pushed.
 2. `python -m treasury_db.load`
 3. `python tools/verify_load.py --self-test` — 74/74
 4. `python tools/verify_mcp.py --self-test` — 48/48 (spawns real child processes)
-5. `pytest` — 68 passed (plus `cd frontend && npm test` — 21 passed)
+5. `pytest` — includes `tests/test_a2a.py` (30 A2A checks, offline; cards,
+   agent-to-agent routing, artifacts, elicitation relay, guardrails, failures).
+   Plus `cd frontend && npm test`.
 6. `git status` shows no `adaptive-legacy-code-complexity-harness/`, no `.env`
 7. **`git grep -nE '^(<<<<<<<|=======|>>>>>>>)' -- ':!data/'` returns nothing.** Conflict markers
    have reached `main` once already, in four files, breaking `pip install` for everyone.
