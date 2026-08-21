@@ -291,6 +291,9 @@ const PROVENANCE_LABELS: Record<string, string> = {
   dataset_snapshot_id: 'Snapshot id',
   source_file: 'Source file',
   curve_date: 'Observation date',
+  observed_from: 'Observed from',
+  observed_to: 'Observed to',
+  rate_kind: 'Curve',
   quote_basis: 'Quoting basis',
   classification: 'Classification',
 }

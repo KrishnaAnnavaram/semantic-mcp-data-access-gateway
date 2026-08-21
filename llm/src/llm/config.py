@@ -108,9 +108,23 @@ _MIN_TOKENS: dict[CallSite, int] = {
     # "[no briefing returned by the client's model]". 2048 leaves room for the
     # observed reasoning burn plus the prose. Re-measure before lowering it.
     CallSite.SAMPLING:      2_048,
-    CallSite.MCP_AGENT:     3_000,
+    #
+    # The two negotiating agents are the expensive ones, and both were sized
+    # before the negotiation existed. Measured on glm-5.2 with the *derive*
+    # schema and a short prompt:
+    #
+    #   prompt 1,926 -> 3,869 reasoning + 1,076 visible = 4,945 of 6,000
+    #
+    # That is a pass with 1,055 tokens to spare on the smallest prompt this
+    # call site ever sees. The real one carries retrieved knowledge excerpts
+    # and the tool catalogue, reasoning scales with it, and the completion is
+    # then truncated mid-thought — returning neither prose nor the forced call,
+    # which surfaces as `no_tool_call` and reads like the model refusing. It is
+    # not refusing; it is being cut off. Doubled, with the measurement recorded
+    # so the next person does not have to rediscover it.
+    CallSite.MCP_AGENT:     6_000,
     CallSite.HOST_AGENT:    8_000,
-    CallSite.DOMAIN_EXPERT: 6_000,
+    CallSite.DOMAIN_EXPERT: 12_000,
 }
 
 

@@ -162,7 +162,7 @@ sequenceDiagram
     DOM-->>ORC: rows=250 ✓grounded<br/>3 fields refused
 
     rect rgb(255, 249, 219)
-    Note over DOM,MCP: DISCUSSION — bounded at 3 rounds
+    Note over DOM,MCP: NEGOTIATION — bounded at 5 rounds
     DOM->>MCP: assess(requirement)
     MCP-->>DOM: feasible · cusip/issuer/settlement<br/>do not exist here
     Note over DOM,MCP: ✓ converged, round 1
@@ -718,7 +718,7 @@ flowchart TB
     O -->|"clarify — ask ONE question"| R
     O -->|"data_request"| D
     D <--> QD
-    D <==>|"<b>DISCUSSION</b><br/>max 3 rounds"| M
+    D <==>|"<b>NEGOTIATION</b><br/>max 5 rounds"| M
     M -->|"fetch + calculate"| O
     O --> R
 
@@ -767,7 +767,7 @@ round 1  mcp_agent     → "I can serve the full daily par-curve history for all
          ✓ converged
 ```
 
-**Bounded at 3 rounds.** Two agents that can always reply will always reply. If they never
+**Bounded at 5 rounds.** Two agents that can always reply will always reply. If they never
 converge, that fact is *recorded and reported* rather than hidden behind a last-ditch answer.
 
 ## 8.2 Two guarantees that live in code, not in a prompt

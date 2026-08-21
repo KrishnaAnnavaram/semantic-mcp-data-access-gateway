@@ -12,9 +12,15 @@ import json
 import urllib.error
 import urllib.request
 
+import os
+
 import pytest
 
-API_BASE = "http://localhost:8000"
+# Overridable so the tier can be pointed at a second instance — a branch running
+# on another port, say — without editing the suite. A hard-coded port silently
+# tests whatever happens to be listening, which is how a green tier 6 can
+# describe code that is not the code under review.
+API_BASE = os.environ.get("QA_API_BASE", "http://localhost:8000").rstrip("/")
 
 
 @pytest.fixture(scope="session")

@@ -58,7 +58,37 @@ _PHRASES = {
     "get_portfolio": "the portfolio contents",
     "get_scenario": "a scenario definition",
     "brief_dataset_caveat": "a dataset caveat briefing",
+    # Not tools — these are the keys of the structures the agents exchange, and
+    # a model that has been shown a JSON payload will happily quote its field
+    # names back at the user. A real decline read "...and available_calculations
+    # is empty", which is both an internal identifier and, as it happens, false.
+    "available_calculations": "the calculations this system can run",
+    "retrieval_always_available": "the data it can retrieve",
+    "unsupported_fields": "the fields it cannot supply",
+    "unnecessary_fields": "the fields the tool does not read",
+    "available_fields": "the fields it can supply",
+    "candidate_fields": "the inputs the method asks for",
+    "executable_tools": "the calculations this system can run",
+    "temporal_constraints": "the period it covers",
+    "curve_family": "the curve",
+    "calculation_params": "the calculation's settings",
+    "open_questions": "what is still undecided",
+    "row_quote": "the quoted window",
+    "data_key": "the dataset",
 }
+
+#: Field and structure names the agents pass between themselves. Scrubbed from
+#: prose alongside tool names: both are this repository's vocabulary rather
+#: than a market-risk one, and neither means anything to a reader.
+CONTRACT_KEYS: tuple[str, ...] = (
+    "available_calculations", "retrieval_always_available", "executable_tools",
+    "unsupported_fields", "unnecessary_fields", "available_fields",
+    "candidate_fields", "temporal_constraints", "calculation_params",
+    "open_questions", "curve_family", "row_quote", "data_key",
+    "how_to_read_this", "can_calculate", "max_rows_available",
+    "counter_proposal", "answered_questions", "unanswerable_reason",
+    "is_hypothesis", "blocked_by",
+)
 
 
 def humanise(name: str) -> str:

@@ -169,6 +169,7 @@ does not state a window - do not present a number as authoritative.
 - If you state a rate, a curve or a risk figure, give its observation date. A \
 rate without a date is not an answer - it is a number that was true once.
 - Never state a figure that is not in the material you were given.
+- A risk figure's parameters are whatever the calculation reports - `confidence_level`, `horizon_days`, the observation window. State those, not the ones the user asked for, and if they differ say so plainly. Describing a 1-day figure as 10-day because the question said 10-day is the worst kind of wrong: it is a true number under a false label.
 - Never name an internal tool, function or column identifier (get_curve_slope, \
 compute_var, plan_and_fetch_dataset...). The user did not ask which function \
 ran. Say "the curve slope", not "get_curve_slope". Real data field names the \

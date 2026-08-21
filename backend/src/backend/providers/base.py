@@ -59,7 +59,9 @@ class DataProvider(Protocol):
     def list_series(self) -> list[dict]: ...
     def get_latest_rates(self) -> list[dict]: ...
     def get_yield_curve(self, curve_date: str | None = None, kind: str = "nominal") -> dict: ...
-    def get_rate_history(self, tenor: str, start: str | None = None, end: str | None = None) -> list[dict]: ...
+    def get_rate_history(self, tenor: str, start: str | None = None,
+                         end: str | None = None,
+                         kind: str = "nominal") -> list[dict]: ...
     def get_curve_slope(self, short: str = "y2", long: str = "y10", curve_date: str | None = None) -> dict: ...
 
 
@@ -140,9 +142,10 @@ class MockDataProvider:
         return {"curve_date": date.isoformat(), "kind": kind, "points": points}
 
     def get_rate_history(self, tenor: str, start: str | None = None,
-                         end: str | None = None) -> list[dict]:
+                         end: str | None = None,
+                         kind: str = "nominal") -> list[dict]:
         """Daily history for one tenor (mirrors analytics.v_observation)."""
-        base = self._NOMINAL_BASE.get(tenor) or self._REAL_BASE.get(tenor)
+        base = self._base(kind).get(tenor)
         if base is None:
             return []
         end_date = _dt.date.fromisoformat(end) if end else _LATEST_DATE

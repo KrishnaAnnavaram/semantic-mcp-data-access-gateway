@@ -445,3 +445,120 @@ def test_a_transport_failure_is_never_retried_by_the_provider(monkeypatch):
         provider.structured_call(call_site=CallSite.DOMAIN_EXPERT, system="s",
                                  prompt="p", schema=SCHEMA)
     assert caught.value.kind == "timeout"
+
+
+def test_no_schema_pairs_a_union_type_with_an_enum():
+    """The seam is only swappable if the schemas cross it.
+
+    `{"type": ["string", "null"], "enum": [...]}` is valid JSON Schema, and
+    Z.AI accepts it. Anthropic rejects the whole request:
+
+        Invalid schema: Enum value 'AGREED' does not match declared type
+        '['string', 'null']'
+
+    So `LLM_BACKEND=anthropic` — documented as fully maintained — could not
+    plan a single data request, and nothing caught it because the default
+    backend was happy. Express a nullable enum as `enum` alone with `null`
+    among its members.
+    """
+    from agents.domain_expert_agent import REVISE_SCHEMA, SCHEMA
+    from agents.mcp_agent import ASSESS_SCHEMA
+    from agents.orchestrator_agent import CLASSIFY_SCHEMA, REFLECT_SCHEMA
+
+    def offenders(node, path="$"):
+        found = []
+        if isinstance(node, dict):
+            if "enum" in node and isinstance(node.get("type"), list):
+                found.append(f"{path}: type={node['type']} with enum")
+            for key, value in node.items():
+                found += offenders(value, f"{path}.{key}")
+        elif isinstance(node, list):
+            for i, value in enumerate(node):
+                found += offenders(value, f"{path}[{i}]")
+        return found
+
+    for name, schema in (("derive", SCHEMA), ("revise", REVISE_SCHEMA),
+                         ("assess", ASSESS_SCHEMA), ("classify", CLASSIFY_SCHEMA),
+                         ("reflect", REFLECT_SCHEMA)):
+        assert not offenders(schema), (name, offenders(schema))
+
+
+def test_a_truncated_call_retries_without_reasoning_rather_than_re_rolling():
+    """GLM expands its reasoning to fill whatever ceiling it is given.
+
+    Measured on one prompt: 5,241 reasoning tokens under a 12,000 ceiling,
+    9,576 under 20,000. A bigger budget therefore relocates the truncation
+    instead of removing it, and a plain retry re-rolls dice that just came up
+    short. With thinking off the same call returns the same validated object in
+    1,220 tokens, so the escalation is deterministic — and what it produces is
+    still schema-checked.
+    """
+    from llm.contracts import CallSite, ProviderError
+    from llm.zai_provider import ZaiProvider
+
+    provider = ZaiProvider.__new__(ZaiProvider)
+    provider.config = _StubConfig()
+    attempts: list[bool] = []
+
+    def fake(model, call_site, messages, schema, budget, result_name,
+             thinking=True):
+        attempts.append(thinking)
+        if thinking:
+            raise ProviderError("ran out of output budget",
+                                kind="budget_exhausted")
+        return {"decision": None}
+
+    provider._forced_call = fake
+    result = provider.structured_call(call_site=CallSite.DOMAIN_EXPERT,
+                                      system="s", prompt="p",
+                                      schema={"type": "object"})
+
+    assert result == {"decision": None}
+    assert attempts == [True, False], (
+        "the retry must turn reasoning off, not repeat the same request")
+
+
+def test_a_transport_failure_is_not_retried_here():
+    """The SDK already retries those; a second expensive reasoning request on a
+    timeout is how a retry storm starts."""
+    import pytest
+
+    from llm.contracts import CallSite, ProviderError
+    from llm.zai_provider import ZaiProvider
+
+    provider = ZaiProvider.__new__(ZaiProvider)
+    provider.config = _StubConfig()
+    attempts: list[bool] = []
+
+    def fake(*args, thinking=True, **kwargs):
+        attempts.append(thinking)
+        raise ProviderError("connection reset", kind="transport")
+
+    provider._forced_call = fake
+    with pytest.raises(ProviderError):
+        provider.structured_call(call_site=CallSite.DOMAIN_EXPERT, system="s",
+                                 prompt="p", schema={"type": "object"})
+    assert attempts == [True]
+
+
+class _StubConfig:
+    def tokens_for(self, call_site, requested):
+        return requested or 4096
+
+    def model_for(self, call_site):
+        return "glm-5.2"
+
+
+def test_a_string_null_is_read_as_a_json_null():
+    """glm-5.2 returns `"decision": "null"` and the corrective retry does not
+    fix it — the model meant null and typed it. Absorbed at the provider, where
+    a vendor's habits belong, so no agent above learns that one backend spells
+    null differently."""
+    from llm.zai_provider import _unstring_nulls
+
+    assert _unstring_nulls({"decision": "null"}) == {"decision": None}
+    assert _unstring_nulls({"a": {"b": "None"}}) == {"a": {"b": None}}
+    assert _unstring_nulls(["null", "AGREED"]) == [None, "AGREED"]
+    # A real value that merely contains the word is untouched.
+    assert _unstring_nulls({"note": "null hypothesis"}) == {"note": "null hypothesis"}
+    assert _unstring_nulls({"rows": 250}) == {"rows": 250}
