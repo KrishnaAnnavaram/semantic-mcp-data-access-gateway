@@ -1,8 +1,7 @@
-# Vantage
+# SMCP Gateway — UI
 
-Market Risk Intelligence — the React frontend for the
-semantic-mcp-data-access-gateway. Grounded answers on U.S. Treasury rates,
-every figure cited. Replaces the earlier Streamlit app; talks to the FastAPI
+The React frontend for `semantic-mcp-data-access-gateway`. Grounded answers on
+U.S. Treasury rates, every figure cited. Replaces the earlier Streamlit app; talks to the FastAPI
 backend over the same `/chat` contract.
 
 ## Run

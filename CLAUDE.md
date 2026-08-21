@@ -50,7 +50,7 @@ Python distributions; the frontend is an npm package (React) run in place.
 | `postgres/` | `treasury-db` | `treasury_db` — migrations, loader, DB access |
 | `mcp/` | `mcp-servers` | `mcp_servers` — `.data`, `.risk`, `.host` |
 | `backend/` | `gateway-backend` | `backend` — `.api`, `.agent`, `.knowledge`, `.providers` |
-| `frontend/` | `vantage-ui` (npm) | React + TypeScript + Tailwind, talks to `/chat` over REST |
+| `frontend/` | `smcp-gateway-ui` (npm) | React + TypeScript + Tailwind, talks to `/chat` over REST |
 | `data/` | — | source of record, plus the `acquisition/` that fills it |
 | `knowledge/` | — | RAG corpus the vector store ingests |
 

@@ -68,7 +68,7 @@ Six components. Dependencies run strictly downward — nothing ever reaches back
 ```mermaid
 flowchart TB
     U(["👤 User"])
-    F["<b>Vantage (React UI)</b><br/>frontend/"]
+    F["<b>SMCP Gateway UI</b><br/>frontend/"]
     B["<b>FastAPI service</b><br/>backend/ · POST /chat"]
     A["<b>Three AI agents</b><br/>agents/"]
     M["<b>MCP host + 2 servers</b><br/>mcp/ · protocol 2026-07-28"]
@@ -135,7 +135,7 @@ The complete path of one real question:
 sequenceDiagram
     autonumber
     actor User
-    participant UI as Vantage (React)
+    participant UI as SMCP Gateway UI (React)
     participant API as FastAPI<br/>/chat
     participant ORC as 1️⃣ Orchestrator<br/>routing model
     participant DOM as 2️⃣ Domain Expert<br/>reasoning model
@@ -1098,7 +1098,7 @@ Ten minutes, in this order.
 | `backend/` | `gateway-backend` | `backend` | `/chat` service, seams, KnowledgeBase, workflows |
 | `mcp/` | `mcp-servers` | `mcp_servers` | Both servers, the host, risk maths |
 | `postgres/` | `treasury-db` | `treasury_db` | Migrations, loader, DB access |
-| `frontend/` | `vantage-ui` (npm) | — | React + TypeScript + Tailwind UI, run in place |
+| `frontend/` | `smcp-gateway-ui` (npm) | — | React + TypeScript + Tailwind UI, run in place |
 | `evaluation/` | — | — | Dataset, evaluators, runner |
 | `knowledge/` | — | — | The RAG corpus — 4 domains, 11 docs |
 | `data/` | — | — | Source of record + `acquisition/` |

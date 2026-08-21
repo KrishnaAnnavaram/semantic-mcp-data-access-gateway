@@ -2,17 +2,29 @@ import { Radio } from 'lucide-react'
 import { isMockMode } from '../api/client'
 import { ThemeToggle } from './ThemeToggle'
 
+// Two brackets closing on a single point: a gateway, and the one road through
+// it. The mark this replaces was a yield curve, which described the demo
+// domain rather than the system — the subject is Treasury rates today and
+// something else tomorrow, while the gateway is the part that stays.
 function Logomark() {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
       <rect width="24" height="24" rx="5" fill="rgb(var(--color-accent))" />
       <path
-        d="M5 16C6.8 16 6.8 8 9 8C11.2 8 11.2 13.5 13.4 13.5C15.6 13.5 15.6 8 19 8"
+        d="M9.5 7L6 12L9.5 17"
         stroke="white"
-        strokeWidth="1.5"
+        strokeWidth="1.6"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+      <path
+        d="M14.5 7L18 12L14.5 17"
+        stroke="white"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12" r="1.4" fill="white" />
     </svg>
   )
 }
@@ -25,10 +37,10 @@ export function Header() {
         <Logomark />
         <div className="flex items-baseline gap-2.5">
           <span className="font-serif text-[16px] font-semibold tracking-tight text-text">
-            VANTAGE
+            SMCP GATEWAY
           </span>
-          <span className="hidden text-xs text-text-muted md:inline">
-            Market Risk Intelligence
+          <span className="hidden font-mono text-xs text-text-muted md:inline">
+            semantic-mcp-data-access-gateway
           </span>
         </div>
       </div>

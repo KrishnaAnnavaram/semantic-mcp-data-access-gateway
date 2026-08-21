@@ -39,7 +39,7 @@ function downloadCsv(table: Table) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = 'vantage-export.csv'
+  a.download = 'smcp-gateway-export.csv'
   a.click()
   URL.revokeObjectURL(url)
 }
