@@ -1,4 +1,4 @@
-# frontend/ — Vantage
+# frontend/ — SMCP Gateway UI
 
 React + TypeScript + Tailwind, replacing the earlier Streamlit app. This is
 the only thing a human sees, and it talks to the backend over exactly one

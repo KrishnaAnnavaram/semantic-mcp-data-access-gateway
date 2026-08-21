@@ -22,7 +22,7 @@ describe('App', () => {
 
   it('renders the shell with the empty state and suggested prompts', () => {
     render(<App />)
-    expect(screen.getByText('VANTAGE')).toBeInTheDocument()
+    expect(screen.getByText('SMCP GATEWAY')).toBeInTheDocument()
     expect(screen.getByText('Query the desk')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /start new chat/i })).toBeInTheDocument()
     // no curve data yet — the market snapshot strip stays out of the layout entirely
