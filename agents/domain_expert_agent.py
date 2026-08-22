@@ -463,9 +463,16 @@ class DomainExpertAgent:
                requested_rows: int | None,
                requested_fields: list[str] | None = None) -> Requirement:
         """Final requirement, after the data layer said what it can serve."""
+        # The citation list is dropped from the echoed proposal: it is the
+        # labels of the excerpts printed at the bottom of this same prompt, and
+        # sending an index of a document alongside the document is not evidence
+        # twice. Everything the expert reasons *from* — its warnings, its quote,
+        # its own verdicts — stays.
+        proposal_view = {key: value for key, value in proposal.as_dict().items()
+                         if key != "citations"}
         prompt = (
             f"User question:\n{question}\n\nTask:\n{task}\n\n"
-            f"YOUR HYPOTHESIS (or last revision):\n{proposal.as_dict()}\n\n"
+            f"YOUR HYPOTHESIS (or last revision):\n{proposal_view}\n\n"
             f"THE DATA LAYER'S CAPABILITY EVIDENCE:\n{response.as_dict()}\n\n"
             f"Read `unnecessary_fields` first - those are inputs this tool does "
             f"not read, which you had no way of knowing.\n\n"
@@ -813,10 +820,30 @@ class DomainExpertAgent:
 
     def _interpret(self, requirement: Requirement, verdict: str,
                    mismatches: list[str], warnings: list[str]) -> str:
-        """One sentence on what the result means, once the checks have spoken."""
+        """One sentence on what the result means, once the checks have spoken.
+
+        **Deterministic first, and a model only where judgement is left.** The
+        checks above are the safety, and they are arithmetic. When every one of
+        them passed and nothing was flagged, there is no analytical judgement
+        remaining — the sentence is a restatement of a contract that has just
+        been proven to hold, and it can be written from the plan's own fields.
+
+        That matters more than it sounds. This call declares `max_tokens=800`
+        and the DOMAIN_EXPERT floor raises it to 12,000 — the same ceiling as
+        deriving a whole requirement — and GLM expands its reasoning to fill
+        whatever ceiling it is given (5,241 tokens under 12,000; see
+        `llm/config.py`). So two sentences of prose were costing a full
+        requirement-grade reasoning burn on every risk turn that passed.
+
+        A warning is different: something *did* diverge from the plan without
+        being fatal, and saying what that means for reading the figure is
+        genuine interpretation. That case still asks the model.
+        """
         if verdict == "INVALID":
             return ("The result does not match the agreed plan: "
                     + "; ".join(mismatches) + ".")
+        if verdict == "VALID":
+            return self._agreed_reading(requirement)
         payload = structured_call(
             call_site=CALL_SITE,
             system=("You are a market-risk expert confirming that a computed "
@@ -833,6 +860,39 @@ class DomainExpertAgent:
             max_tokens=800)
         return ((payload or {}).get("interpretation")
                 or "The result matches the agreed plan.")
+
+    @staticmethod
+    def _agreed_reading(requirement: Requirement) -> str:
+        """What the figure is, written from the contract the checks just proved.
+
+        Every clause is copied from a field the expert itself produced and the
+        mechanical checks have just confirmed the result honours. Nothing is
+        generated, so nothing can be invented — and the limitation quoted is the
+        expert's own grounded one rather than a fresh opinion about a plan it
+        can no longer see the corpus for.
+        """
+        detail: list[str] = []
+        params = requirement.calculation_params or {}
+        confidence = params.get("confidence_level")
+        horizon = params.get("horizon_days")
+        if confidence is not None:
+            detail.append(f"at {float(confidence) * 100:g}% confidence")
+        if horizon is not None:
+            detail.append(f"over a {int(horizon)}-day horizon")
+        if requirement.rows:
+            detail.append(f"from {requirement.rows:,} observations")
+        period = requirement.temporal.describe()
+        if period:
+            detail.append(period)
+
+        opening = (f"The result answers the agreed plan: "
+                   f"{requirement.task or 'the stated objective'}")
+        body = f"{opening}, {', '.join(detail)}." if detail else f"{opening}."
+        # The expert's own stated limitation, not a new one. Its absence is not
+        # papered over with an invented caveat — silence is reported as silence.
+        if requirement.limitations:
+            return f"{body} Limitation: {requirement.limitations[0].rstrip('.')}."
+        return body
 
     @staticmethod
     def _blocked(task: str, reason: str, blocked_by: str = "data") -> Requirement:

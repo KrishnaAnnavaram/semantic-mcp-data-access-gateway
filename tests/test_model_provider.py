@@ -178,6 +178,24 @@ def test_a_server_set_ceiling_is_raised_to_the_floor_never_lowered(monkeypatch):
     assert config.tokens_for(CallSite.SAMPLING, None) >= 1024  # defaulted
 
 
+def test_the_assessment_ceiling_clears_its_measured_reasoning_burn(monkeypatch):
+    """Sized from measurement, so lowering it needs a new measurement.
+
+    Ten `assess` calls on glm-5.2 spent 2,116-6,490 tokens reasoning. A 6,000
+    ceiling truncated one in four, and each truncation cost a wasted 73-81s
+    call before the `thinking=False` fallback answered — with the discarded
+    reasoning meaning the data layer's half of the negotiation was, in effect,
+    running with its thinking switched off.
+    """
+    monkeypatch.setenv("LLM_BACKEND", "zai")
+    monkeypatch.setenv("ZAI_API_KEY", "placeholder-not-a-real-key")
+    config = load_config()
+    # The largest burn actually observed, plus room for the answer itself.
+    assert config.tokens_for(CallSite.MCP_AGENT, 3000) >= 6_490
+    # Still a floor, never a cap on a caller that asks for more.
+    assert config.tokens_for(CallSite.MCP_AGENT, 20_000) == 20_000
+
+
 # --- forced tool calling, not response_format --------------------------------
 
 class _FakeCompletions:
@@ -313,6 +331,108 @@ def test_one_corrective_retry_is_attempted_and_only_one(monkeypatch):
     # The retry must tell the model what was actually wrong.
     correction = completions.requests[1]["messages"][-1]["content"]
     assert "output contract" in correction and "250.5" in correction
+
+
+def test_a_forced_call_written_as_template_text_is_recovered(monkeypatch):
+    """Observed verbatim on glm-5.2: the call was made, just not emitted.
+
+    The decision was correct and complete; only the encoding was wrong. Buying
+    a whole corrective round to re-derive an answer the model already gave is
+    paying twice for the expensive half.
+    """
+    leaked = ("emit_result<arg_key>rows</arg_key><arg_value>250</arg_value>"
+              "<arg_key>grounded</arg_key><arg_value>true</arg_value>"
+              "<arg_key>quote</arg_key>"
+              "<arg_value>250 trading days</arg_value>")
+    provider, completions = _zai_with([_reply(None, content=leaked)], monkeypatch)
+
+    result = provider.structured_call(call_site=CallSite.DOMAIN_EXPERT,
+                                      system="s", prompt="p", schema=SCHEMA)
+
+    # A flat template carries no types, so each value is read as JSON where it
+    # parses and kept as text where it does not. The strict validator then has
+    # the same final say it always has.
+    assert result == {"rows": 250, "grounded": True, "quote": "250 trading days"}
+    assert isinstance(result["rows"], int)
+    assert len(completions.requests) == 1, "recovery must cost no extra call"
+
+
+def test_a_recovered_template_is_still_validated(monkeypatch):
+    """Recovery is structure only. A wrong answer stays wrong."""
+    leaked = ("emit_result<arg_key>route</arg_key><arg_value>quant</arg_value>"
+              "<arg_key>reasoning</arg_key><arg_value>because</arg_value>")
+    provider, _ = _zai_with([_reply(None, content=leaked),
+                             _reply(None, content=leaked)], monkeypatch)
+    with pytest.raises(SchemaViolation):
+        provider.structured_call(call_site=CallSite.ORCHESTRATOR, system="s",
+                                 prompt="p", schema=ROUTE_SCHEMA)
+
+
+def test_genuine_prose_is_never_scraped(monkeypatch):
+    """The rule that recovery must not weaken: no pairs, no recovery."""
+    prose = _reply(None, content="The 10-year yield history returned 250 rows.")
+    provider, completions = _zai_with([prose, prose], monkeypatch)
+    with pytest.raises(ProviderError) as caught:
+        provider.structured_call(call_site=CallSite.DOMAIN_EXPERT, system="s",
+                                 prompt="p", schema=SCHEMA)
+    assert caught.value.kind == "no_tool_call"
+    assert len(completions.requests) == 2, "prose must still earn its retry"
+
+
+def test_the_prose_travels_back_on_the_retry(monkeypatch):
+    """A re-encoding, not a re-derivation: the model sees what it wrote."""
+    prose = _reply(None, content="The 10-year yield history returned 250 rows.")
+    good = json.dumps({"rows": 250, "grounded": True, "quote": "q"})
+    provider, completions = _zai_with([prose, _reply(good)], monkeypatch)
+
+    provider.structured_call(call_site=CallSite.DOMAIN_EXPERT, system="s",
+                             prompt="p", schema=SCHEMA)
+    correction = completions.requests[1]["messages"][-1]["content"]
+    assert "returned 250 rows" in correction
+
+
+def test_the_correction_quotes_the_broken_object_back(monkeypatch):
+    """A repair, not a re-derivation.
+
+    Without the model's own output in the retry it has only a complaint, so it
+    must think the whole answer out again — the expensive half of the call,
+    paid twice, to fix an encoding fault it had already reasoned past.
+    """
+    bad = '{"rows": 250, "grounded": true, "quote": "q", "extra": 1}'
+    good = json.dumps({"rows": 250, "grounded": True, "quote": "q"})
+    provider, completions = _zai_with([_reply(bad), _reply(good)], monkeypatch)
+
+    provider.structured_call(call_site=CallSite.DOMAIN_EXPERT, system="s",
+                             prompt="p", schema=SCHEMA)
+    correction = completions.requests[1]["messages"][-1]["content"]
+    assert "verbatim" in correction
+    assert '"extra": 1' in correction, "the broken object must be quoted back"
+    assert "SAME analysis" in correction
+
+
+def test_a_malformed_payload_is_also_quoted_back(monkeypatch):
+    """Unparseable arguments are the case most worth repairing rather than redoing."""
+    good = json.dumps({"rows": 250, "grounded": True, "quote": "q"})
+    provider, completions = _zai_with(
+        [_reply('{"rows": 250, "grounded": tru'), _reply(good)], monkeypatch)
+
+    provider.structured_call(call_site=CallSite.DOMAIN_EXPERT, system="s",
+                             prompt="p", schema=SCHEMA)
+    correction = completions.requests[1]["messages"][-1]["content"]
+    assert '"rows": 250' in correction
+
+
+def test_a_correction_with_nothing_to_quote_still_asks_cleanly(monkeypatch):
+    """An empty completion leaves nothing to quote; the round must still work."""
+    empty = _reply(None, content="")
+    good = json.dumps({"rows": 250, "grounded": True, "quote": "q"})
+    provider, completions = _zai_with([empty, _reply(good)], monkeypatch)
+
+    provider.structured_call(call_site=CallSite.DOMAIN_EXPERT, system="s",
+                             prompt="p", schema=SCHEMA)
+    correction = completions.requests[1]["messages"][-1]["content"]
+    assert "verbatim" not in correction
+    assert "output contract" in correction
 
 
 def test_a_persistent_violation_is_not_retried_forever(monkeypatch):

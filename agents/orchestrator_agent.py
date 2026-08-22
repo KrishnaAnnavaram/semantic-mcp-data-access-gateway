@@ -186,6 +186,38 @@ REFLECT_SCHEMA: dict[str, Any] = {
 }
 
 
+def _observed_window(table: Any) -> str | None:
+    """When the returned rows were observed, as a phrase the reply can state.
+
+    Provenance was reaching this agent only by accident. A *snapshot* names its
+    day in the table title — "Nominal par curve — 2026-08-11" — so the reply
+    could repeat it. A *history* table deliberately carries no `curve_date`
+    (borrowing the latest curve's date once put "as of 2026-08-11" on a table
+    of 2008 observations), and its title says only "most recent 250 rows". So
+    on that path the orchestrator had no date at all, and the honest reply it
+    could write was "the observation date is in the table above" — true, and
+    not what a reader asked for.
+
+    The date was never missing from the *system*; it was missing from the one
+    payload that writes the sentence. Read here from the same provenance the
+    panel already shows, so a curve answer can state when it was observed
+    whichever path produced it. Returns `None` when the table genuinely has no
+    dates, because inventing one is the failure this whole layer guards.
+    """
+    if not isinstance(table, dict):
+        return None
+    provenance = table.get("provenance") or {}
+    if not isinstance(provenance, dict):
+        return None
+    single = provenance.get("curve_date")
+    if single:
+        return str(single)
+    first, last = provenance.get("observed_from"), provenance.get("observed_to")
+    if first and last:
+        return str(first) if str(first) == str(last) else f"{first} to {last}"
+    return str(first or last) if (first or last) else None
+
+
 def _catalogue_options(choices: dict[str, Any]) -> list[dict[str, str]]:
     """Real, clickable options straight from what the data layer advertises.
 
@@ -353,6 +385,7 @@ class OrchestratorAgent:
             "discussion_outcome": negotiation.outcome if negotiation else "",
             "calculation": (result or {}).get("calculation"),
             "table_title": ((result or {}).get("table") or {}).get("title"),
+            "observed": _observed_window((result or {}).get("table")),
         }
         payload = structured_call(
             call_site=CALL_SITE, system=REFLECT_SYSTEM,

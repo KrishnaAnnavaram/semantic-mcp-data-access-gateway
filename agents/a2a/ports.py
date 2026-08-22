@@ -78,9 +78,15 @@ class A2ADataLayer:
 
     def assess(self, requirement: Requirement,
                catalogue: ToolCatalogue) -> ServeResponse:
+        # The capability-relevant projection, not the whole requirement. The
+        # excluded fields are the expert's own bookkeeping and its accumulating
+        # warnings, which the assessor never reads — and which changed on every
+        # round, so an identical capability question never fingerprinted as one
+        # and the skill's `idempotent` tag could never take effect.
         result = self._call(
             "assess_data_requirement",
-            {"requirement": requirement.as_dict(), "catalogue": catalogue.as_dict()},
+            {"requirement": requirement.as_capability_request(),
+             "catalogue": catalogue.as_dict()},
             intent="can this requirement be served as proposed")
         if result.completed and result.artifact(ARTIFACT_SERVE_RESPONSE) is not None:
             return serve_response_from_dict(result.artifact(ARTIFACT_SERVE_RESPONSE))

@@ -75,6 +75,26 @@ MAX_NEGOTIATION_ROUNDS = 5
 #: Kept as the historical name so existing imports and docs still resolve.
 MAX_ROUNDS = MAX_NEGOTIATION_ROUNDS
 
+#: How many consecutive rounds may change nothing at all before the
+#: conversation is declared stalled.
+#:
+#: A round is worth its cost when the expert *reassesses*. `_describe_changes`
+#: already computes whether it did, by diffing the two requirements rather than
+#: believing the model's account of itself — and until now nothing read the
+#: answer. A conversation that changed nothing therefore ran its full five
+#: rounds and ended exactly where round one left it, having spent eight further
+#: model calls to get there.
+#:
+#: Two rather than one, deliberately. The first no-change round can still be
+#: followed by a genuine convergence, and refusing on it would throw away a
+#: plan the next round would have settled. By the second the data layer is
+#: answering the identical capability question — the input fingerprints the
+#: same, so the assessment is the turn's own cached reply — and the expert is
+#: being handed evidence it has already read and already declined to act on.
+#: There is no new information left in the loop, and further rounds are a
+#: lottery on sampling noise charged at reasoning rates.
+MAX_UNCHANGED_ROUNDS = 2
+
 
 class DataLayerPort(Protocol):
     """What the domain expert needs from whoever represents the data layer."""
@@ -162,6 +182,7 @@ class DataPlanner:
             0, "domain_expert", self._hypothesis_summary(hypothesis),
             phase="INITIAL_HYPOTHESIS", payload=hypothesis.as_dict())
 
+        unchanged = 0
         for round_ in range(1, MAX_NEGOTIATION_ROUNDS + 1):
             negotiation.rounds_used = round_
 
@@ -191,6 +212,24 @@ class DataPlanner:
                                                          requirement, changes)
                 LOGGER.info("negotiation %s after %d round(s); changes=%s",
                             decision, round_, changes or "none")
+                return requirement, negotiation
+
+            # Did this round do anything? Diffed, not claimed — "I have revised
+            # my plan" is exactly the sentence a model produces when it has not.
+            unchanged = unchanged + 1 if not changes else 0
+            if unchanged >= MAX_UNCHANGED_ROUNDS:
+                negotiation.decision = "CANNOT_REACH_AGREEMENT"
+                negotiation.outcome = (
+                    f"Stopped after {round_} round(s): the last "
+                    f"{MAX_UNCHANGED_ROUNDS} exchanges changed nothing in the "
+                    "plan and reached no decision, so the conversation had "
+                    "stopped making progress. The remaining rounds were not "
+                    "spent re-asking a question the data layer had already "
+                    "answered.")
+                requirement.warnings.append(negotiation.outcome)
+                LOGGER.info("negotiation stalled after %d round(s): %d "
+                            "consecutive rounds with no change",
+                            round_, unchanged)
                 return requirement, negotiation
 
         # Ran out of rounds without the expert committing. Say so rather than

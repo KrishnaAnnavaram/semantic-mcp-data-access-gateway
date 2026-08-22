@@ -331,6 +331,47 @@ class Requirement:
                 "blocked_by": self.blocked_by,
                 "citations": self.citations, "warnings": self.warnings}
 
+    #: Fields a capability assessment does not read: the expert's own
+    #: bookkeeping about itself (`decision`, `blocked_by`,
+    #: `unanswerable_reason`, `row_reason`) and its accumulating narrative
+    #: (`warnings`, `citations`). The data layer is asked what it can serve;
+    #: none of these changes that answer.
+    #:
+    #: **Omission has to stay honest.** The receiving side rebuilds a
+    #: `Requirement` from this dict and prints `as_dict()` into its prompt, so a
+    #: dropped field does not go missing — it comes back as its *default*.
+    #: `warnings` reappearing as `[]` says "none shown", which is merely
+    #: incomplete. `grounded` reappearing as `False` would say the expert failed
+    #: to ground a citation it had in fact grounded, and `row_quote` as `null`
+    #: would deny a quote that exists. Those are not omissions, they are
+    #: assertions, and false ones — so both stay. They also cost nothing in
+    #: stability: a citation only moves when the row count it supports moves,
+    #: and the row count is assessable anyway.
+    _NOT_A_CAPABILITY_QUESTION = frozenset({
+        "decision", "blocked_by", "unanswerable_reason",
+        "row_reason", "warnings", "citations"})
+
+    def as_capability_request(self) -> dict[str, Any]:
+        """What the data layer needs in order to say what it can serve.
+
+        Two things at once, and the second is the one that matters.
+
+        It is a smaller prompt — the excluded fields are prose the assessor has
+        no use for. More importantly it is a **stable** one: duplicate
+        suppression fingerprints a handoff by its input, and `warnings` grows on
+        every round while `decision` flips as the expert thinks. Sending the
+        whole requirement meant two rounds asking the identical capability
+        question never looked identical, so the `idempotent` tag on
+        `assess_data_requirement` could never actually fire and every round paid
+        a full model call.
+
+        Everything the assessment genuinely reads stays: the candidate inputs it
+        judges, the calculation, the tenors, the period, the curve family and
+        the open questions it is being asked to answer.
+        """
+        return {key: value for key, value in self.as_dict().items()
+                if key not in self._NOT_A_CAPABILITY_QUESTION}
+
 
 @dataclass
 class ServeResponse:

@@ -122,7 +122,29 @@ _MIN_TOKENS: dict[CallSite, int] = {
     # which surfaces as `no_tool_call` and reads like the model refusing. It is
     # not refusing; it is being cut off. Doubled, with the measurement recorded
     # so the next person does not have to rediscover it.
-    CallSite.MCP_AGENT:     6_000,
+    #
+    # Raised again from 6,000, and this one is measured rather than reasoned.
+    # Ten `assess` calls on glm-5.2 against a 1,894-token prompt:
+    #
+    #   ceiling  6,000 -> reasoning 4,883 · 4,659 · 2,798 · 6,000 TRUNCATED
+    #   ceiling  9,000 -> 4,680
+    #   ceiling 10,000 -> 5,129 · 6,490 · 3,300
+    #   ceiling 12,000 -> 2,418
+    #   ceiling 16,000 -> 2,116
+    #
+    # Two things follow. The distribution genuinely reaches past 6,000 — the
+    # 6,490 sample is a call that truncates under the old ceiling — and one in
+    # four truncated outright, each costing a wasted 73-81s call before the
+    # `thinking=False` fallback produced the answer. And, for *this* call site,
+    # reasoning does **not** expand to fill the ceiling: the two largest
+    # ceilings drew the two smallest burns. The warning above still holds where
+    # it was measured (the domain expert, 12,000 -> 20,000); it does not
+    # generalise here, so the headroom is free.
+    #
+    # It buys single-call assessments, and it stops the negotiation's data-layer
+    # half from silently running with its reasoning discarded — which is what a
+    # truncation followed by a `thinking=False` retry actually is.
+    CallSite.MCP_AGENT:     10_000,
     CallSite.HOST_AGENT:    8_000,
     CallSite.DOMAIN_EXPERT: 12_000,
 }

@@ -1018,7 +1018,7 @@ cd frontend && npm install && npm run dev         # :5173
 | `QDRANT_URL` | a URL, or unset | Docker server vs embedded |
 | `CORS_ALLOWED_ORIGINS` | comma-separated origins | Backend must list the frontend's origin, or the browser blocks `/chat` |
 | `VITE_AGENT_BACKEND` | `rest` | **Required** (in `frontend/.env`), or the UI serves mock answers |
-| `VITE_AGENT_TIMEOUT_SECONDS` | raise from 60 | One turn runs several MCP round trips |
+| `VITE_AGENT_TIMEOUT_SECONDS` | `960` (default) | Matches the backend's own turn bound, so a failure arrives as a stated reason rather than a browser abort |
 | `LANGSMITH_TRACING` | `true` | Turn tracing on |
 
 ---

@@ -214,9 +214,12 @@ asks for data the system does not have**: a concept with no mapping is marked
 *Unavailable* and the agent explains rather than fabricates. Full convention:
 `.claude/skills/risk-analysis/SKILL.md`.
 
-Set `VITE_AGENT_BACKEND=rest` in `frontend/.env` or the UI silently serves canned mock answers,
-and raise `VITE_AGENT_TIMEOUT_SECONDS` — one turn runs several MCP round trips behind an Opus
-loop, and the 30s-scale default expires mid-answer. The backend must also list the frontend's
+Set `VITE_AGENT_BACKEND=rest` in `frontend/.env` or the UI silently serves canned mock answers.
+`VITE_AGENT_TIMEOUT_SECONDS` now defaults to **960** — the backend's own turn bound
+(`A2A_TURN_TIMEOUT_SECONDS=900`) plus the 60s the A2A bridge adds — because a measured turn runs
+110–370s and the old 60s default aborted every one of them in the browser while the backend went
+on to answer correctly. Waiting for the backend's bound is what lets a genuine failure arrive as
+a stated reason instead of a blank network error. The backend must also list the frontend's
 origin in `CORS_ALLOWED_ORIGINS` (defaults already cover Vite's `:5173`) or the browser blocks
 the response even though the request reached the service.
 
