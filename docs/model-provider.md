@@ -154,6 +154,15 @@ failures are never retried here; the SDK already does that, and retrying an
 expensive reasoning request on a timeout is how a retry storm starts. If the
 second attempt fails, the violation stands and the caller degrades visibly.
 
+**The retry is a repair, not a re-derivation.** It carries the model's own
+output back — `ProviderError.payload_text` holds whatever was emitted, the
+broken object or the prose — with an instruction to return the same analysis
+and change only what the contract requires. Without it the model has the
+complaint and nothing else, so it must think the whole answer out again: a
+second full reasoning burn to fix an encoding fault it had already reasoned
+its way past. Every failure of this kind that has been measured here was a
+serialisation fault, never a wrong answer.
+
 ### The serialisation defect that is repaired
 
 `glm-4.5-air` was observed leaking its own stop token into the arguments string
@@ -168,6 +177,30 @@ and losing the closing brace:
 respecting string literals so a `}` inside a string is not mistaken for a
 closer. It repairs **structure only and can never add a value**; a repaired
 object that is still wrong is rejected by the validator like any other.
+
+The same defect has an outer form, measured verbatim on **glm-5.2** at the
+orchestrator call site: not a sentinel leaking *into* the arguments, but the
+entire forced call rendered as chat-template text in the **content** channel,
+with no `tool_calls` on the message at all.
+
+```
+emit_result<arg_key>route</arg_key><arg_value>data_request</arg_value>
+<arg_key>reasoning</arg_key><arg_value>Compute request names a clear target…
+```
+
+The decision was correct and complete; only the encoding was wrong, and the
+provider discarded the lot and bought a corrective round.
+`_recover_templated_call()` reads the key/value pairs back into an arguments
+object. The template is flat text and carries no types, so each value is read
+as JSON where it parses and kept as a string where it does not — the only
+reading available, since a template has no way to say `250` rather than
+`"250"`. The strict validator still decides, exactly as before.
+
+What it deliberately cannot do is rescue genuine prose. No `<arg_key>` pairs
+means no recovery and the corrective round happens as it always did; scraping
+an answer out of a paragraph is the unvalidated shape this whole design
+rejects. In production it fired once and recovered eight fields, saving a full
+orchestrator round.
 
 ## Three defects this migration exposed
 
@@ -243,11 +276,20 @@ nowhere in `llm/`, and parameterises the carry-through test over
 ## Timeouts and token budgets
 
 `LLM_TIMEOUT_SECONDS` (default **300**) is the wall clock for **one model
-call**. It is not the same thing as `AGENT_TIMEOUT_SECONDS`, which lives in the
-frontend and bounds the **entire** `/chat` request — orchestrator, retrieval,
-the bounded discussion and execution together. Raising the per-call timeout to
-300s is safe because the call is still bounded, the discussion is still capped
-at three rounds, and the host loop is still capped at `MAX_STEPS`.
+call**. It is not the same thing as `VITE_AGENT_TIMEOUT_SECONDS`, which lives in
+the frontend and bounds the **entire** `/chat` request — orchestrator,
+retrieval, the bounded discussion and execution together. Raising the per-call
+timeout to 300s is safe because the call is still bounded, the discussion is
+still capped at `MAX_NEGOTIATION_ROUNDS` (five) *and* at two consecutive rounds
+that change nothing, and the host loop is still capped at `MAX_STEPS`.
+
+The frontend bound is **960s**, not a guess: it is the service's own turn
+ceiling (`A2A_TURN_TIMEOUT_SECONDS=900`) plus the 60s the A2A bridge adds, so
+`/chat` always answers within it — with a stated reason when something failed.
+A client that gives up sooner aborts a turn the backend was about to explain,
+and the user gets a blank network error instead of the cause. Measured turns run
+110–370s, so the previous 60s default could not complete a single real data
+question.
 
 `max_tokens` has a per-call-site **floor**, raised toward but never lowered from
 what a caller asks for. Reasoning models bill thinking against the same budget:
@@ -255,6 +297,30 @@ what a caller asks for. Reasoning models bill thinking against the same budget:
 ceiling returns an *empty* completion rather than a short one. This matters most
 for MCP sampling, where the **server** sets the ceiling (400) and cannot know
 what the client's model costs to think.
+
+### The MCP agent's floor is measured, not guessed
+
+`_MIN_TOKENS[MCP_AGENT]` is **10,000**, raised from 6,000. Ten `assess` calls on
+glm-5.2 against a 1,894-token prompt:
+
+| Ceiling | Reasoning tokens observed |
+|---|---|
+| 6,000 | 4,883 · 4,659 · 2,798 · **6,000 (truncated)** |
+| 9,000 | 4,680 |
+| 10,000 | 5,129 · **6,490** · 3,300 |
+| 12,000 | 2,418 |
+| 16,000 | 2,116 |
+
+Two things follow. The distribution genuinely reaches past 6,000 — the 6,490
+sample truncates under the old ceiling — and one in four truncated outright,
+each costing a wasted 73–81s call before the `thinking=False` fallback answered.
+And for *this* call site reasoning does **not** expand to fill the ceiling: the
+two largest ceilings drew the two smallest burns, so the headroom is free.
+
+The quality argument matters more than the latency one. A truncation followed by
+a thinking-disabled retry means the data layer's half of the negotiation was
+running with its reasoning discarded — computed, paid for, and thrown away — on
+a quarter of all assessments.
 
 ## Adding a third provider
 

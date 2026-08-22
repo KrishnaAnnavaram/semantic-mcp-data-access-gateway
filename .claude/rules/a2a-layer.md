@@ -75,10 +75,16 @@ bound with it.
 ## Bounds are code, not prompts
 
 Chain length, re-entry, handoff budget, duplicate suppression, clarification
-retries, negotiation rounds, turn deadline. Each is checked by the
-*receiving* agent against its own configuration, never against a number the
-caller supplied — a caller is not a trustworthy source for the limit it is
-being held to.
+retries, negotiation rounds, consecutive no-change rounds, turn deadline. Each
+is checked by the *receiving* agent against its own configuration, never
+against a number the caller supplied — a caller is not a trustworthy source for
+the limit it is being held to.
+
+**Bound progress, not only length.** `MAX_NEGOTIATION_ROUNDS` caps how long a
+conversation may run; `MAX_UNCHANGED_ROUNDS` caps how long it may run *without
+getting anywhere*. `_describe_changes` already diffs each revision to prove a
+round did something — read that answer rather than only recording it, or a
+stalled negotiation spends its full ceiling to end where it began.
 
 **Do not collapse chain length and re-entry back into one depth counter.** They
 stop different faults. Length bounds how far a collaboration goes; re-entry
@@ -99,6 +105,18 @@ the `TurnLedger` and dies with the turn, and only skills tagged `idempotent` on
 their own card are eligible. Tagging a data fetch or a calculation idempotent to
 save a call is the moment it becomes a cache and starts serving one user's
 numbers to another.
+
+**Send a skill only what it reads.** The digest covers the whole input, so a
+field the callee ignores still breaks the match — `assess_data_requirement` was
+tagged idempotent and never once fired, because it was handed the full
+requirement including `warnings`, which grows every round. Add a projection
+(`Requirement.as_capability_request`) rather than widening the digest.
+
+Projections must stay honest: the receiver rebuilds the dataclass, so a dropped
+field comes back as its **default**, not as absent. Omitting `warnings` says
+"none shown"; omitting `grounded` would assert `False` about an expert that had
+grounded its citation. Drop what is unread *and* harmless as a default; keep
+the rest.
 
 Caller allow-lists are **internal caller authorization** — a logical boundary
 inside one trusted process, from caller-supplied metadata. Do not describe them

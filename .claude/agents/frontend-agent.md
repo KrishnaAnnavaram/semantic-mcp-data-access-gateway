@@ -51,8 +51,10 @@ work, not a port of something that existed before.
   giving wrong numbers, which is worse than an error. The header's
   "Mock backend" badge (`src/components/Header.tsx`) is the visible signal —
   check it before debugging anything else.
-- **Raise `VITE_AGENT_TIMEOUT_SECONDS`.** One turn runs several MCP round
-  trips behind an Opus loop; a short timeout expires mid-answer.
+- **`VITE_AGENT_TIMEOUT_SECONDS` defaults to 960** — the backend's turn ceiling
+  (900) plus the 60s the A2A bridge adds. Measured turns run 110–370s. A client
+  that gives up before the backend does turns an explainable error into a blank
+  network failure, so do not lower it; check `frontend/.env` for an override.
 - **CORS.** The backend needs this app's origin in `CORS_ALLOWED_ORIGINS`
   (root `.env.example`) or the browser blocks the response even though the
   request reached the service — this looks identical to a network failure in

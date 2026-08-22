@@ -828,8 +828,11 @@ while the chat stays live, and the two panes scroll independently.
 | **Source** | The knowledge chunks behind the plan |
 
 > ⚠️ Set `VITE_AGENT_BACKEND=rest` in `frontend/.env` or the UI silently serves canned mock
-> answers. Raise `VITE_AGENT_TIMEOUT_SECONDS` too — one turn runs several MCP round trips behind
-> an Opus loop, and a short timeout expires mid-answer. The backend also needs this app's origin
+> answers. `VITE_AGENT_TIMEOUT_SECONDS` defaults to **960** — the backend's own turn ceiling
+> (900) plus the 60s the A2A bridge adds — because a measured turn runs 110–370s and a client
+> that gives up first turns an explainable backend error into a blank network failure. Check
+> `frontend/.env` for an override; only `VITE_`-prefixed names reach the browser, so a plain
+> `AGENT_TIMEOUT_SECONDS=…` line there does nothing. The backend also needs this app's origin
 > in `CORS_ALLOWED_ORIGINS` (defaults already cover Vite's `:5173`).
 
 ---

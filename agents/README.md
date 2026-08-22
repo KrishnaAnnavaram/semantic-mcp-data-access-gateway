@@ -3,11 +3,17 @@
 This is where the system's intelligence lives. Three agents, each with a model, a
 job, and a traced boundary.
 
-| Agent | Model | Why that model | Job |
-|---|---|---|---|
-| **Orchestrator** | `claude-haiku-4-5` | Runs on *every* turn, including "hi". Routing does not need frontier reasoning. | Classify the question; reply directly, or delegate. Then write the final reply. |
-| **Domain Expert** | `claude-opus-5` | This is where the thinking is. | Vector-search Qdrant, decide what the task requires, defend it in discussion. |
-| **MCP Agent** | `claude-opus-5` | Judging what a source can serve needs reading, not a set lookup. | Advertise tools, negotiate, fetch, calculate. |
+**No agent names a model.** Each declares a *call site*; which model serves it is
+configuration (`LLM_BACKEND` plus the per-call-site variables). The shipped
+default is `zai`, running **glm-5.2 at every call site**; `LLM_BACKEND=anthropic`
+returns to `claude-haiku-4-5` for routing and `claude-opus-5` elsewhere. See
+[`docs/model-provider.md`](../docs/model-provider.md).
+
+| Agent | Call site | Job |
+|---|---|---|
+| **Orchestrator** | `ORCHESTRATOR` | Runs on *every* turn, including "hi". Classify the question; reply directly, or delegate. Then write the final reply. |
+| **Domain Expert** | `DOMAIN_EXPERT` | Vector-search Qdrant, decide what the task requires, defend it in discussion. |
+| **MCP Agent** | `MCP_AGENT` | Advertise tools, negotiate, fetch, calculate. |
 
 ---
 
@@ -16,12 +22,12 @@ job, and a traced boundary.
 ```mermaid
 flowchart TD
     U([User question])
-    O["🧭 ORCHESTRATOR — Haiku<br/>classify the question"]
-    D["🧠 DOMAIN EXPERT — Opus<br/>Qdrant vector search"]
-    M["🔌 MCP AGENT — Opus<br/>tools + execution"]
+    O["🧭 ORCHESTRATOR<br/>classify the question"]
+    D["🧠 DOMAIN EXPERT<br/>Qdrant vector search"]
+    M["🔌 MCP AGENT<br/>tools + execution"]
     Q[("Qdrant<br/>71 knowledge chunks")]
     PG[("PostgreSQL<br/>via MCP servers")]
-    R["🧭 ORCHESTRATOR — Haiku<br/>reflect → reply"]
+    R["🧭 ORCHESTRATOR<br/>reflect → reply"]
     A([Answer + table + reasoning])
 
     U --> O
@@ -30,7 +36,7 @@ flowchart TD
     D <-->|"semantic search"| Q
     D -->|"what tools do you have?"| M
     M -->|"tool catalogue"| D
-    D <==>|"NEGOTIATION<br/>max 5 rounds"| M
+    D <==>|"NEGOTIATION<br/>max 5 rounds<br/>stop after 2 no-change"| M
     D -->|"final requirement"| M
     M <-->|"fetch + calculate"| PG
     M --> R
@@ -64,9 +70,12 @@ round 1  mcp_agent     → "I can serve the full daily par-curve history for all
          ✓ converged
 ```
 
-The loop is **bounded at 5 rounds**. Two agents that can always reply will
-always reply; if they never converge, that fact is recorded and reported rather
-than hidden behind a last-ditch answer.
+The loop is **bounded at 5 rounds, and at 2 consecutive rounds that change
+nothing**. Two agents that can always reply will always reply; if they never
+converge, that fact is recorded and reported rather than hidden behind a
+last-ditch answer. The second bound stops a conversation that is still talking
+but no longer moving — the planner diffs each revision to prove a round did
+something, so a stall is a fact rather than a guess.
 
 ---
 
@@ -106,15 +115,15 @@ Every agent boundary is a run, so a trace shows the shape of the system:
 
 ```
 agent_pipeline
-├── orchestrator.classify          (llm, Haiku)
+├── orchestrator.classify          (llm)
 ├── mcp_agent.catalogue            (tool)
 ├── knowledge_retrieval            (retriever, Qdrant)
-├── domain_expert.derive           (llm, Opus)
+├── domain_expert.derive           (llm)
 ├── discussion
-│   ├── mcp_agent.assess           (llm, Opus)
-│   └── domain_expert.revise       (llm, Opus)
+│   ├── mcp_agent.assess           (llm)
+│   └── domain_expert.revise       (llm)
 ├── mcp_agent.execute              (tool)
-└── orchestrator.reflect           (llm, Haiku)
+└── orchestrator.reflect           (llm)
 ```
 
 That nesting is what makes the system **evaluable** — an evaluator can score the
