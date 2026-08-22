@@ -291,6 +291,92 @@ def test_the_request_digest_ignores_key_order_but_not_content():
     assert a.digest() != c.digest()
 
 
+def test_an_identical_capability_question_fingerprints_as_one():
+    """`assess_data_requirement` is tagged idempotent; that has to be reachable.
+
+    The whole requirement never fingerprinted twice the same way — `warnings`
+    grows on every round and `decision` moves as the expert thinks — so the tag
+    was decorative and each round paid a full model call to ask a question the
+    data layer had already answered.
+    """
+    from agents.contracts import Requirement
+
+    def ask(**changes):
+        base = dict(task="10-day 99% VaR", answerable=True,
+                    fields=["rate_percent"], candidate_fields=["rate_percent"],
+                    rows=250, tenors=["y2", "y10"], calculation="compute_var",
+                    is_hypothesis=True, open_questions=["is cusip available?"])
+        base.update(changes)
+        return SkillRequest(
+            skill="assess_data_requirement",
+            input={"requirement": Requirement(**base).as_capability_request()})
+
+    round_one = ask()
+    # A round in which the expert restated itself: more warnings, still no
+    # decision, nothing the data layer judges has moved.
+    round_two = ask(warnings=["the corpus states no window", "and again"],
+                    citations=[{"label": "var.md"}], row_reason="restated")
+    assert round_one.digest() == round_two.digest()
+
+    # Anything the assessment actually reads must still break the match.
+    for change in ({"fields": ["rate_percent", "cusip"]},
+                   {"candidate_fields": ["cusip"]},
+                   {"calculation": "compute_dv01"},
+                   {"tenors": ["y30"]},
+                   {"rows": 500},
+                   {"curve_family": "real"},
+                   {"open_questions": []},
+                   {"temporal": TemporalScope(as_of_date="2008-09-15")}):
+        assert ask(**change).digest() != round_one.digest(), change
+
+
+def test_the_capability_projection_keeps_everything_the_assessor_reads():
+    """Shrinking the prompt must not remove evidence the MCP agent judges on."""
+    from agents.contracts import Requirement
+
+    sent = Requirement(
+        task="t", answerable=True, fields=["rate_percent"],
+        candidate_fields=["rate_percent", "cusip"], rows=250,
+        tenors=["y10"], calculation="compute_var",
+        calculation_params={"horizon_days": 10}, curve_family="nominal",
+        temporal=TemporalScope(start_date="2020-01-01"),
+        open_questions=["is cusip available?"], assumptions=["a"],
+        limitations=["l"], is_hypothesis=True,
+        warnings=["w"], citations=[{"label": "x"}], decision="AGREED",
+    ).as_capability_request()
+
+    for key in ("task", "answerable", "fields", "candidate_fields", "rows",
+                "tenors", "calculation", "calculation_params", "curve_family",
+                "temporal", "open_questions", "assumptions", "limitations",
+                "is_hypothesis", "field_notes"):
+        assert key in sent, key
+    for key in ("warnings", "citations", "decision", "row_reason"):
+        assert key not in sent, key
+
+
+def test_the_projection_never_asserts_something_false():
+    """A dropped field returns as its default, so omission must stay honest.
+
+    The receiver rebuilds a `Requirement` from this dict and prints it into a
+    model prompt. `warnings: []` merely says "none shown". `grounded: False`
+    for an expert that *did* ground its citation is a different thing entirely:
+    a fabricated field value, in the one system whose whole rule is that
+    nothing unsupported gets asserted.
+    """
+    from agents.contracts import Requirement
+
+    original = Requirement(
+        task="10-day 99% VaR", answerable=True, fields=["rate_percent"],
+        candidate_fields=["rate_percent"], rows=250,
+        row_quote="250 trading days", grounded=True,
+        calculation="compute_var", is_hypothesis=True)
+    rebuilt = requirement_from_dict(original.as_capability_request())
+
+    assert rebuilt.grounded is True
+    assert rebuilt.row_quote == "250 trading days"
+    assert rebuilt.rows == 250
+
+
 # --- orchestrator -> specialists, over A2A ----------------------------------
 
 

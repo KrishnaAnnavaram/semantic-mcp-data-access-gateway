@@ -48,7 +48,26 @@ def api():
     return API_BASE
 
 
-def post_chat(base: str, query: str, session_id: str, timeout: float = 300.0) -> dict:
+#: How long a test client waits for /chat.
+#:
+#: Matched to the service's own bound, not to a typical turn: it caps a turn at
+#: A2A_TURN_TIMEOUT_SECONDS (900s) and the A2A bridge waits that plus 60s, so
+#: /chat answers within ~960s either way — with a stated reason when it failed.
+#:
+#: 300s was shorter than a legitimate turn and it made this suite lie. The
+#: clarification-continuation flow measures 340-369s end to end, so the client
+#: aborted a negotiation that was proceeding normally and the failure read as
+#: `TimeoutError`, which looks like a hung gateway rather than an impatient
+#: test. A red tier 6 has to mean the gateway is wrong.
+#:
+#: This is the harness, not an assertion: no test's expectations changed with
+#: it. If a turn really does hang, the backend's own bound still ends it and
+#: the reply says so.
+CHAT_TIMEOUT_S = 960.0
+
+
+def post_chat(base: str, query: str, session_id: str,
+              timeout: float = CHAT_TIMEOUT_S) -> dict:
     """One /chat turn. Kept here so tier 6 reads as behaviour, not plumbing."""
     body = json.dumps({"query": query, "session_id": session_id}).encode("utf-8")
     request = urllib.request.Request(
@@ -72,7 +91,7 @@ def failing_tool():
 @pytest.fixture(scope="session")
 def chat(api):
     """One /chat turn against the live service."""
-    def _chat(query: str, session_id: str, timeout: float = 300.0) -> dict:
+    def _chat(query: str, session_id: str, timeout: float = CHAT_TIMEOUT_S) -> dict:
         return post_chat(api, query, session_id, timeout)
     return _chat
 

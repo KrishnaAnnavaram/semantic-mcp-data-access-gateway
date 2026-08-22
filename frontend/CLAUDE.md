@@ -44,8 +44,12 @@ how components compose, not just a pure function.
   giving wrong numbers, which is worse than an error. The header shows a
   "Mock backend" badge when this is the case — check it before debugging
   anything else.
-- **Raise `VITE_AGENT_TIMEOUT_SECONDS`.** One turn runs several MCP round
-  trips behind an Opus loop; a short timeout expires mid-answer.
+- **`VITE_AGENT_TIMEOUT_SECONDS` defaults to 960** — the backend's own turn
+  ceiling (900) plus the 60s the A2A bridge adds, so `/chat` always answers
+  first, with a stated reason when it failed. Measured turns run 110–370s. Do
+  not lower it to a "typical" turn: a client that gives up first turns a
+  backend error the user could act on into a blank network failure. Check
+  `frontend/.env` for an override before believing the default.
 - **CORS.** The backend must list this app's origin in `CORS_ALLOWED_ORIGINS`
   (see root `.env.example`) — defaults already cover Vite's `:5173`. Without
   it the browser blocks the response even though the request reached the

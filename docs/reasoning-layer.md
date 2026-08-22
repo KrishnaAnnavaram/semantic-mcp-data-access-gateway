@@ -26,7 +26,7 @@ seams, the service and the knowledge base underneath them.
           ▼  Requirement — fields, rows, citations, verified quote
           │
           │  ⇄  MCP AGENT: what can you serve?  agents/mcp_agent.py
-          │     (bounded negotiation, 5 rounds)
+          │     (bounded negotiation: 5 rounds, or 2 no-change)
           ▼
   MCP AGENT (Opus)  execute
      └─► DataProvider ─► MCP servers ─► PostgreSQL   backend/providers/base.py

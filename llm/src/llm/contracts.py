@@ -77,12 +77,21 @@ class ProviderError(RuntimeError):
     whole system is built on.
     """
 
-    def __init__(self, message: str, *, kind: str = "error") -> None:
+    def __init__(self, message: str, *, kind: str = "error",
+                 payload_text: str = "") -> None:
         super().__init__(message)
         #: "timeout" | "auth" | "rate_limit" | "balance" | "transport"
         #: | "empty" | "no_tool_call" | "malformed_arguments" | "schema"
         #: | "refusal" | "error"
         self.kind = kind
+        #: What the model actually produced, verbatim, when it is known.
+        #:
+        #: Carried so a corrective round can quote it back instead of asking
+        #: for the whole analysis again. Without it the model has only the
+        #: complaint and must re-derive from scratch — the same expensive
+        #: reasoning a second time, to fix an encoding fault it had already
+        #: reasoned its way past.
+        self.payload_text = payload_text
 
 
 class SchemaViolation(ProviderError):
@@ -94,5 +103,5 @@ class SchemaViolation(ProviderError):
     silently become `None` three layers downstream.
     """
 
-    def __init__(self, message: str) -> None:
-        super().__init__(message, kind="schema")
+    def __init__(self, message: str, *, payload_text: str = "") -> None:
+        super().__init__(message, kind="schema", payload_text=payload_text)

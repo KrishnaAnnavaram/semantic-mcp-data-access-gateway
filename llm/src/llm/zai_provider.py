@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 from typing import Any
 
@@ -50,6 +51,25 @@ _BALANCE_CODES = {"1113"}
 # sentinel and closing the structure is deterministic and cannot invent a
 # value, and the schema validator still has the final say on the result.
 _SENTINELS = ("</tool_call>", "<tool_call>", "</function_call>", "<|")
+
+#: The same defect one level out: not a sentinel leaking *into* the arguments,
+#: but the whole forced call rendered as chat-template text in the **content**
+#: channel, with no `tool_calls` on the message at all. Measured verbatim on
+#: glm-5.2 at the orchestrator call site:
+#:
+#:     emit_result<arg_key>route</arg_key><arg_value>data_request</arg_value>
+#:     <arg_key>reasoning</arg_key><arg_value>Compute request names a clear…
+#:
+#: The routing decision was correct and complete. Only the encoding was wrong,
+#: and the provider threw the whole thing away and bought a corrective round.
+#:
+#: Recovering it is the same deal `sanitise_arguments` already makes: structure
+#: only, no value invented, and the strict validator still decides. What it
+#: cannot do is rescue genuine prose — a model that answered in sentences
+#: produces no pairs here, and falls through to the retry exactly as before.
+_ARG_PAIR = re.compile(
+    r"<arg_key>(?P<key>.*?)</arg_key>\s*<arg_value>(?P<value>.*?)</arg_value>",
+    re.DOTALL)
 
 
 class ZaiProvider:
@@ -167,14 +187,32 @@ class ZaiProvider:
         can be *told* about and fix. Quoting the failure back is what makes the
         retry worth its cost; repeating the original request unchanged would
         mostly reproduce the original answer.
+
+        **It is a repair, not a re-derivation.** The model's own broken object
+        goes back with the complaint, so the round is spent fixing a
+        serialisation fault rather than thinking the whole answer out again —
+        and these faults are serialisation faults. The measured cases were a
+        correct routing decision truncated at a leaked stop token, and a
+        correct answer whose nullable enum arrived as the string `"null"`: the
+        reasoning was right both times and only the encoding was wrong. Asking
+        for the analysis again is paying twice for work already done.
+
+        Nothing is loosened. The repaired object is validated by the same
+        strict validator, which remains the only authority on whether it is
+        acceptable.
         """
         LOGGER.warning("output contract broken on %s (%s); one corrective "
                        "retry | %s", model, call_site.value, first)
+        emitted = (getattr(first, "payload_text", "") or "")[:4_000]
+        quoted = (f"This is exactly what you emitted, verbatim:\n\n{emitted}\n\n"
+                  f"Return the SAME analysis. Change only what the contract "
+                  f"requires - do not reconsider the answer itself.\n\n"
+                  if emitted.strip() else "")
         messages = messages + [{
             "role": "user",
             "content": (
                 f"Your previous reply did not satisfy the output contract:\n\n"
-                f"{first}\n\nRespond by calling the {result_name} function "
+                f"{first}\n\n{quoted}Respond by calling the {result_name} function "
                 f"and nothing else - no prose outside the call. Emit every "
                 f"required field, use the exact field names from the schema, "
                 f"respect each declared type, and use JSON null - the bare "
@@ -226,44 +264,66 @@ class ZaiProvider:
             raise ProviderError(f"{model} returned no choices", kind="empty")
 
         calls = getattr(choice.message, "tool_calls", None) or []
+        raw = calls[0].function.arguments or "" if calls else ""
         if not calls:
             text = (getattr(choice.message, "content", None) or "").strip()
             usage = self._usage(response)
-            if getattr(choice, "finish_reason", None) == "length":
-                # Not a refusal and not a broken contract: the completion was
-                # cut off mid-thought. Worth its own message, because the two
-                # look identical from here and have opposite fixes — one is
-                # "raise the budget", the other is "fix the prompt" — and a
-                # reasoning model spends the budget on thinking before it
-                # writes anything, so this is the *likely* cause, not the
-                # exotic one. Retrying it unchanged only burns it again.
+            # Did it make the call and merely fail to *emit* it? A leaked chat
+            # template carries the whole answer, so recovering it costs nothing
+            # and saves a full corrective round. Genuine prose yields nothing
+            # here and falls straight through to the paths below.
+            recovered = _recover_templated_call(text)
+            if recovered is None:
+                if getattr(choice, "finish_reason", None) == "length":
+                    # Not a refusal and not a broken contract: the completion
+                    # was cut off mid-thought. Worth its own message, because
+                    # the two look identical from here and have opposite fixes
+                    # — one is "raise the budget", the other is "fix the
+                    # prompt" — and a reasoning model spends the budget on
+                    # thinking before it writes anything, so this is the
+                    # *likely* cause, not the exotic one. Retrying it unchanged
+                    # only burns it again.
+                    raise ProviderError(
+                        f"{model} ran out of output budget before it could call "
+                        f"{result_name!r} ({budget} max_tokens, "
+                        f"{usage.get('reasoning_tokens', 0)} of "
+                        f"{usage.get('completion_tokens', 0)} spent on reasoning). "
+                        f"Raise the floor for this call site in llm/config.py.",
+                        kind="budget_exhausted")
+                # The model answered in prose despite the call being forced. Say
+                # so rather than trying to scrape JSON out of the text - a
+                # scraped object is exactly the unvalidated shape this design
+                # rejects. The prose travels on the error so the corrective
+                # round can quote it back and ask only for a re-encoding.
                 raise ProviderError(
-                    f"{model} ran out of output budget before it could call "
-                    f"{result_name!r} ({budget} max_tokens, "
-                    f"{usage.get('reasoning_tokens', 0)} of "
-                    f"{usage.get('completion_tokens', 0)} spent on reasoning). "
-                    f"Raise the floor for this call site in llm/config.py.",
-                    kind="budget_exhausted")
-            # The model answered in prose despite the call being forced. Say so
-            # rather than trying to scrape JSON out of the text - a scraped
-            # object is exactly the unvalidated shape this design rejects.
-            raise ProviderError(
-                f"{model} did not produce the forced call {result_name!r}"
-                + (f"; it replied with prose: {text[:160]!r}" if text else ""),
-                kind="no_tool_call")
+                    f"{model} did not produce the forced call {result_name!r}"
+                    + (f"; it replied with prose: {text[:160]!r}" if text else ""),
+                    kind="no_tool_call", payload_text=text)
+            LOGGER.warning(
+                "%s (%s) wrote its forced call as chat-template text instead of "
+                "emitting it; %d field(s) recovered deterministically rather "
+                "than re-asked", model, call_site.value, text.count("<arg_key>"))
+            raw = recovered
 
-        raw = calls[0].function.arguments or ""
         try:
             payload = _unstring_nulls(json.loads(sanitise_arguments(raw)))
         except json.JSONDecodeError as exc:
             raise SchemaViolation(
-                f"{model} produced malformed function arguments: {exc}") from exc
+                f"{model} produced malformed function arguments: {exc}",
+                payload_text=raw) from exc
 
         LOGGER.debug("structured_call provider=%s model=%s call_site=%s "
                      "%.1fs usage=%s", self.name, model, call_site.value,
                      time.time() - started, self._usage(response))
-        return validate_against_schema(payload, schema,
-                                       context=f"{model} ({call_site.value})")
+        try:
+            return validate_against_schema(payload, schema,
+                                           context=f"{model} ({call_site.value})")
+        except SchemaViolation as exc:
+            # Keep what it emitted. The correction round quotes this back so the
+            # model repairs its own object rather than reasoning the whole
+            # answer out a second time.
+            exc.payload_text = raw
+            raise
 
     def tool_turn(self, *, call_site: CallSite, system: str,
                   messages: list[Any], tools: list[ToolSpec],
@@ -355,6 +415,39 @@ def sanitise_arguments(raw: str) -> str:
         if cut != -1:
             text = text[:cut]
     return _close_unbalanced(text.rstrip().rstrip(","))
+
+
+def _recover_templated_call(text: str) -> str | None:
+    """A forced call written as chat-template text, turned back into arguments.
+
+    Returns a JSON object string, or `None` when there is nothing to recover —
+    which is every case of the model genuinely answering in prose, so the
+    corrective round still happens exactly where it should.
+
+    The template is flat text and carries no types, so each value is read as
+    JSON where it parses as JSON and kept as a string where it does not. That
+    is the only reading available: `250` in a template is not "the string
+    250", it is a template with no way to say `250`. It is also the whole
+    extent of the interpretation — no field is added, renamed or defaulted, and
+    the strict validator downstream is still the only thing that decides
+    whether the result is acceptable.
+    """
+    if not text or "<arg_key>" not in text:
+        return None
+    pairs = _ARG_PAIR.findall(text)
+    if not pairs:
+        return None
+    recovered: dict[str, Any] = {}
+    for key, value in pairs:
+        name = key.strip()
+        if not name:
+            continue
+        body = value.strip()
+        try:
+            recovered[name] = json.loads(body)
+        except (json.JSONDecodeError, ValueError):
+            recovered[name] = body
+    return json.dumps(recovered) if recovered else None
 
 
 #: What a model writes when it means JSON `null` and produces a string instead.

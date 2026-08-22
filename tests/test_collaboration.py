@@ -192,15 +192,50 @@ def test_an_unresolved_question_earns_another_round():
 
 
 def test_a_negotiation_that_never_settles_ends_as_cannot_reach_agreement():
+    """It must never fabricate agreement — and it must not filibuster either.
+
+    The expert here restates itself unchanged. `_describe_changes` has always
+    been able to see that; now the loop acts on it, so the conversation ends
+    when it stops making progress instead of burning the full ceiling to arrive
+    exactly where round one left it.
+    """
     never = hypothesis(open_questions=["still unresolved"])
     expert = ScriptedExpert(hypothesis(), never)
     layer = ScriptedDataLayer(EVIDENCE)
 
     plan = DataPlanner(expert, layer).plan("…", "VaR")
 
-    assert plan.negotiation.rounds_used == MAX_NEGOTIATION_ROUNDS
     assert plan.negotiation.decision == "CANNOT_REACH_AGREEMENT"
     assert plan.negotiation.converged is False
+    assert plan.negotiation.rounds_used < MAX_NEGOTIATION_ROUNDS
+    assert "changed nothing" in plan.negotiation.outcome
+    # The stall is on the record, not silently swallowed.
+    assert any("changed nothing" in w for w in plan.requirement.warnings)
+
+
+def test_one_unproductive_round_is_forgiven_but_two_are_not():
+    """The first no-change round can still be followed by a real convergence."""
+    stalled = hypothesis(open_questions=["still unresolved"])
+    settled = hypothesis(open_questions=[], is_hypothesis=False,
+                         decision="AGREED")
+    expert = ScriptedExpert(hypothesis(), stalled, stalled, settled)
+    plan = DataPlanner(expert, ScriptedDataLayer(EVIDENCE)).plan("…", "VaR")
+
+    # Round 1 resolved the opening questions (a change), round 2 changed
+    # nothing, round 3 agreed. The single dead round must not have ended it.
+    assert plan.negotiation.decision == "AGREED"
+    assert plan.negotiation.rounds_used == 3
+
+
+def test_a_negotiation_that_keeps_moving_still_stops_at_the_round_ceiling():
+    """The stall guard replaces nothing: the hard ceiling is still the ceiling."""
+    moving = [hypothesis(open_questions=[f"question {n}"], rows=250 + n)
+              for n in range(1, MAX_NEGOTIATION_ROUNDS + 1)]
+    expert = ScriptedExpert(hypothesis(), *moving)
+    plan = DataPlanner(expert, ScriptedDataLayer(EVIDENCE)).plan("…", "VaR")
+
+    assert plan.negotiation.rounds_used == MAX_NEGOTIATION_ROUNDS
+    assert plan.negotiation.decision == "CANNOT_REACH_AGREEMENT"
     assert "No agreement" in plan.negotiation.outcome
 
 
@@ -562,6 +597,72 @@ def test_a_result_matching_the_agreed_plan_is_valid():
 
     assert validation.verdict in {"VALID", "VALID_WITH_WARNINGS"}
     assert not validation.mismatches
+
+
+def test_a_clean_verdict_is_written_without_spending_a_reasoning_call(monkeypatch):
+    """The checks are arithmetic; a proven contract needs no second opinion.
+
+    This call declares 800 tokens and the domain-expert floor raises it to
+    12,000 — the same ceiling as deriving a whole requirement — so a sentence
+    of prose was costing a requirement-grade reasoning burn on every risk turn
+    that passed. Nothing is lost: every clause below is copied from a field the
+    mechanical checks have just confirmed the result honours.
+    """
+    import agents.domain_expert_agent as module
+
+    calls = []
+    monkeypatch.setattr(module, "structured_call",
+                        lambda **kw: calls.append(kw) or {"interpretation": "x"})
+
+    expert = _expert()
+    requirement = hypothesis(
+        calculation="compute_var",
+        calculation_params={"confidence_level": 0.99, "horizon_days": 10},
+        limitations=["A par-curve VaR is not a full-revaluation VaR."])
+    validation = expert.validate_result(
+        requirement,
+        {"tool": "compute_var",
+         "result": {"var": 494556.09, "horizon_days": 10,
+                    "confidence_level": 0.99, "units": "USD"}}, {})
+
+    assert validation.verdict == "VALID"
+    assert calls == [], "a clean verdict must not call the model"
+    assert "99%" in validation.interpretation
+    assert "10-day" in validation.interpretation
+    assert "250" in validation.interpretation
+    # The expert's own grounded limitation, not a freshly invented one.
+    assert "full-revaluation" in validation.interpretation
+
+
+def test_a_warned_verdict_still_asks_the_expert_what_it_means(monkeypatch):
+    """A non-fatal divergence is genuine interpretation, so the model stays."""
+    import agents.domain_expert_agent as module
+
+    calls = []
+    monkeypatch.setattr(
+        module, "structured_call",
+        lambda **kw: calls.append(kw) or {"interpretation": "Read it with care."})
+
+    expert = _expert()
+    requirement = hypothesis(calculation="compute_dv01")
+    # No units on the result: a warning, not a mismatch.
+    validation = expert.validate_result(
+        requirement, {"tool": "compute_dv01", "result": {"dv01": 20653.25}}, {})
+
+    assert validation.verdict == "VALID_WITH_WARNINGS"
+    assert len(calls) == 1
+    assert validation.interpretation == "Read it with care."
+
+
+def test_the_deterministic_reading_invents_no_limitation():
+    """Silence about limitations is reported as silence, never papered over."""
+    expert = _expert()
+    requirement = hypothesis(calculation="compute_var", limitations=[],
+                             calculation_params={})
+    reading = expert._agreed_reading(requirement)
+
+    assert "Limitation" not in reading
+    assert requirement.task in reading
 
 
 def test_a_ten_day_plan_returning_a_one_day_figure_is_rejected():

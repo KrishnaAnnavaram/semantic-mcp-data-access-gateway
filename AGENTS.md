@@ -132,7 +132,8 @@ which do not exist) or fetches nobody asked for. Each round is a real model call
 and a real trace span, so the negotiation is auditable rather than implied.
 
 **Why it is bounded.** Two agents that can always reply will always reply. The
-loop stops when a **decision** is reached, or after
+loop stops when a **decision** is reached, after `MAX_UNCHANGED_ROUNDS = 2`
+consecutive rounds that change nothing (see below), or after
 `MAX_NEGOTIATION_ROUNDS = 5`. There are four decisions, and which one it was
 decides what the user is told:
 
@@ -141,7 +142,7 @@ decides what the user is told:
 | `AGREED` | An executable plan both agents accept. | The answer. |
 | `NEEDS_USER_INPUT` | A choice neither agent may make. | One clarifying question. |
 | `UNSUPPORTED` | The data layer genuinely cannot serve this. | A plain refusal and what it *can* do. |
-| `CANNOT_REACH_AGREEMENT` | Five rounds, no convergence. | That fact, and no number. |
+| `CANNOT_REACH_AGREEMENT` | The rounds ran out, or the conversation stalled. | That fact, and no number. |
 
 A boolean `converged` could not distinguish the last three, so all three
 arrived as the same flat "declined" — including the case where one more
@@ -151,7 +152,17 @@ sentence from the user would have unblocked it. `converged` is now derived
 **A revision is verified, not claimed.** The planner diffs the two requirements
 rather than trusting the expert's account of what it changed. A round that
 reports a revision and produces an identical requirement is a round that did
-nothing, and the loop should not spend another one on it.
+nothing, and the loop does not spend another one on it: two consecutive
+no-change rounds end the conversation as `CANNOT_REACH_AGREEMENT`, naming the
+stall.
+
+That diff was computed and written into the transcript for a long time before
+anything *read* it, so a stalled conversation ran its full five rounds to
+finish exactly where round one left it — eight further model calls for nothing.
+Two rather than one, because the first dead round can still be followed by a
+genuine convergence; by the second the data layer is answering the identical
+capability question (the input fingerprints the same, so the assessment is the
+turn's own cached reply) and there is no new information left in the loop.
 
 Under A2A the discussion crosses a real agent boundary, so it carries three
 further bounds that do not depend on either agent behaving: the **call chain**

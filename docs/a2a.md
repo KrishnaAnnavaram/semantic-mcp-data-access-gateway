@@ -188,7 +188,7 @@ terminal genuinely is the user.
 
 ## Guardrails
 
-Five independent bounds, because five different things run away.
+Six independent bounds, because six different things run away.
 
 | Bound | Default | Variable |
 |---|---|---|
@@ -197,6 +197,12 @@ Five independent bounds, because five different things run away.
 | A2A calls per user turn | 20 | `A2A_MAX_HANDOFFS` |
 | Whole-turn deadline | 900s | `A2A_TURN_TIMEOUT_SECONDS` |
 | Negotiation rounds | 5 | `agents/planning.py: MAX_NEGOTIATION_ROUNDS` |
+| Consecutive rounds changing nothing | 2 | `agents/planning.py: MAX_UNCHANGED_ROUNDS` |
+
+The last one bounds *progress* rather than length. The round limit alone let a
+stalled conversation spend its full five rounds to arrive exactly where round
+one left it; the planner already diffed each revision to prove a round had done
+something, and now that answer is read rather than merely recorded.
 
 ### Why a turn budget and not a per-call deadline
 
@@ -267,6 +273,22 @@ what the guardrail enforces cannot drift apart.
 
 Suppressing a repeat is also the cheapest detector for a negotiation that has
 stopped converging: a revision that changes nothing produces the same digest.
+
+**Send a skill only what it reads, or the tag cannot fire.** The digest is over
+the whole input, so `assess_data_requirement` — tagged `idempotent` above —
+never once matched in practice: it was being handed the entire
+`requirement.as_dict()`, including `warnings`, which grows on every round, and
+`decision`, which moves as the expert thinks. Two rounds asking the identical
+capability question therefore fingerprinted differently and each paid a full
+model call. `Requirement.as_capability_request()` sends the projection the
+assessor actually reads, which shrank that prompt by 56% and made the tag real.
+
+Projecting has one rule. The receiver rebuilds a `Requirement` from the dict, so
+a dropped field does not go missing — it returns as its **default**.
+`warnings: []` merely says "none shown". `grounded: False` for an expert that
+did ground its citation would be a fabricated value in a model prompt, so
+`grounded` and `row_quote` are sent even though they are not read. Omission is
+allowed; assertion is not.
 
 A call that overruns is cancelled (`tasks/cancel`) and reported. An unreachable
 agent, a malformed reply, a rejected request and a failed task all arrive as the
