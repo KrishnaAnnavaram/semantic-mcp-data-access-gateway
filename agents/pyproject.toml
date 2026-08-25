@@ -19,6 +19,7 @@ dependencies = [
     # dials it, in-process or over a socket, with no change in the client code.
     "httpx>=0.27",
     "starlette>=0.37",
+    "redis>=8.0.1,<9",
 ]
 
 # Deliberately flat and at the repository root. These are the components a
@@ -28,5 +29,5 @@ dependencies = [
 # `agents.a2a` is listed explicitly: the protocol boundary is a subpackage of
 # the agents distribution rather than a distribution of its own, because it has
 # no life apart from the three agents it carries.
-packages = ["agents", "agents.a2a"]
+packages = ["agents", "agents.a2a", "agents.cache"]
 package-dir = { "agents" = "." }

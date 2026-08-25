@@ -46,8 +46,7 @@ LLM_BACKEND=anthropic to run on Claude. `/health` reports which one is live.
 from __future__ import annotations
 
 import os
-import sys
-from pathlib import Path
+import time
 from typing import Any
 
 from a2a.utils.constants import PROTOCOL_VERSION_CURRENT
@@ -106,12 +105,16 @@ def get_network():
     if _network is None:
         from agents import get_network as build_network  # noqa: PLC0415
         from agents import log_status  # noqa: PLC0415
-
         from backend.knowledge.knowledge_base import KnowledgeBase  # noqa: PLC0415
+        from backend.knowledge.market_risk_kb import (  # noqa: PLC0415
+            MarketRiskKnowledgeBase,
+        )
         from backend.providers.base import make_data_provider  # noqa: PLC0415
 
         log_status()
-        _network = build_network(KnowledgeBase(), make_data_provider())
+        _network = build_network(
+            KnowledgeBase(), make_data_provider(),
+            market_risk_knowledge=MarketRiskKnowledgeBase())
     return _network
 
 
@@ -206,7 +209,7 @@ class ChatResponse(BaseModel):
 
 
 @app.get("/health")
-def health() -> dict:
+def health(analytics: bool = False) -> dict:
     """Liveness, plus which engines are actually answering.
 
     The model backend is reported here rather than only logged. `log_status()`
@@ -216,6 +219,11 @@ def health() -> dict:
     settle without reading source or restarting anything.
 
     `redacted()` reports whether a key is present, never the key.
+
+    Redis analytics (top questions, latency percentiles, a stream length scan)
+    cost more than a liveness probe should pay on every call, so they are
+    opt-in via `?analytics=true` rather than gathered on the default path that
+    a monitor or load balancer polls every few seconds.
     """
     status: dict[str, Any] = {"status": "ok"}
     try:
@@ -244,6 +252,13 @@ def health() -> dict:
     except Exception as exc:  # noqa: BLE001 - health must answer even when broken
         status["langsmith"] = {"enabled": False, "error": str(exc),
                                "reason": "observability layer unavailable"}
+    try:
+        from agents.cache import get_intelligence  # noqa: PLC0415
+
+        status["redis"] = get_intelligence().health(include_analytics=analytics)
+    except Exception as exc:  # noqa: BLE001 - health still reports the failure
+        status["redis"] = {"enabled": True, "connected": False,
+                           "error": str(exc)}
     # Configuration only — deliberately not a probe. `/health` must answer
     # before Qdrant or the MCP children are up, and building the network to
     # report on it would make the liveness check the thing most likely to fail.
@@ -362,6 +377,7 @@ def chat(req: ChatRequest) -> ChatResponse:
     classified as a new question.
     """
     network = get_network()
+    started = time.perf_counter()
     session = _sessions.get(req.session_id) or {} if req.session_id else {}
     history = session.get("turns")
     try:
@@ -371,6 +387,21 @@ def chat(req: ChatRequest) -> ChatResponse:
                                  waiting=session.get("waiting"))
     except Exception as exc:  # surface a clean error to the chatbot client
         raise HTTPException(status_code=502, detail=f"agent error: {exc}") from exc
+
+    try:
+        request_id = str((outcome.handoffs or {}).get("user_request_id") or "")
+        decision = (outcome.negotiation.decision
+                    if outcome.negotiation is not None else None)
+        result_status = decision or (
+            "input_required" if outcome.route == "clarify" else "completed")
+        network.intelligence.complete_run(
+            request_id, question=req.query, route=outcome.route,
+            result_status=result_status,
+            total_latency_ms=round((time.perf_counter() - started) * 1000),
+            negotiation_rounds=(outcome.negotiation.rounds_used
+                                if outcome.negotiation is not None else 0))
+    except Exception:  # noqa: BLE001 - analytics never changes the response
+        pass
 
     if req.session_id:
         # The agents are stateless between turns; the service owns session

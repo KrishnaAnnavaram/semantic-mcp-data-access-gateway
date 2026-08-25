@@ -157,16 +157,36 @@ class DataPlanner:
                        if hypothesis.blocked_by == "model" else
                        "No negotiation: the task was declined before there was "
                        "anything to negotiate.")
-            return DataPlan(
+            plan = DataPlan(
                 requirement=hypothesis, catalogue=catalogue, chunks=chunks,
                 negotiation=Negotiation(held=False, decision="UNSUPPORTED",
                                         outcome=outcome))
+            self._record_negotiation(plan.negotiation)
+            return plan
 
         requirement, negotiation = self._negotiate(
             question, task, catalogue, hypothesis, chunks, requested_rows,
             requested_fields)
-        return DataPlan(requirement=requirement, catalogue=catalogue,
+        plan = DataPlan(requirement=requirement, catalogue=catalogue,
                         negotiation=negotiation, chunks=chunks)
+        self._record_negotiation(negotiation)
+        return plan
+
+    def _record_negotiation(self, negotiation: Negotiation) -> None:
+        intelligence = getattr(self.expert, "intelligence", None)
+        recorder = getattr(intelligence, "record_negotiation", None)
+        if not callable(recorder):
+            return
+        try:
+            from agents.a2a.executors import active_execution  # noqa: PLC0415
+
+            context = active_execution()
+            request_id = context.user_request_id if context is not None else ""
+            recorder(rounds=negotiation.rounds_used,
+                     decision=negotiation.decision or "NOT_HELD",
+                     request_id=request_id)
+        except Exception as exc:  # noqa: BLE001 - telemetry cannot alter a plan
+            LOGGER.debug("could not record negotiation metrics: %s", exc)
 
     # -- the conversation ----------------------------------------------------
 

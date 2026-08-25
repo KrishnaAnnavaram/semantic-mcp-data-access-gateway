@@ -17,8 +17,8 @@ from __future__ import annotations
 
 import datetime as dt
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Sequence
 
 from .curves import ParCurve, build_discount_curve
 from .pricing import Position, price_portfolio

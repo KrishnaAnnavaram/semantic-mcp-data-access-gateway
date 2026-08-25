@@ -461,6 +461,30 @@ def last_failure_kind() -> str:
     return getattr(_FAILURE, "kind", "") or ""
 
 
+def last_call_stats() -> dict[str, Any]:
+    """Measured usage for the latest structured call on this worker thread."""
+    value = getattr(_FAILURE, "stats", {})
+    return dict(value) if isinstance(value, dict) else {}
+
+
+def clear_call_stats() -> None:
+    """Clear provider-call evidence before a potentially cached operation."""
+    _FAILURE.kind = ""
+    _FAILURE.stats = {}
+
+
+def _record_non_specialist_call(site: str, model: str,
+                                stats: dict[str, Any]) -> None:
+    if site in {"domain_expert", "mcp_agent"}:
+        return
+    try:
+        from agents.cache import get_intelligence
+
+        get_intelligence().record_llm_call(agent=site, model=model, stats=stats)
+    except Exception as exc:  # noqa: BLE001 - analytics is never on the answer path
+        LOGGER.debug("could not record Redis LLM analytics: %s", exc)
+
+
 #: Failures no retry can fix. The account is empty or the key is wrong; the
 #: same request in ten seconds gets the same answer, so inviting one is worse
 #: than useless — it sends the user in a circle instead of to the fix.
@@ -494,6 +518,21 @@ def structured_call(*, call_site, system: str, prompt: str, schema: dict[str, An
 
     from llm import ProviderError, SchemaViolation  # noqa: PLC0415
 
+    _FAILURE.kind = ""
+    _FAILURE.stats = {}
+    site = getattr(call_site, "value", str(call_site))
+    try:
+        from agents.cache import get_intelligence  # noqa: PLC0415
+
+        if not get_intelligence().allow_llm(site):
+            LOGGER.warning("structured call rate-limited | call_site=%s", site)
+            _FAILURE.kind = "rate_limit"
+            _FAILURE.stats = {"calls": 0, "failure_kind": "rate_limit"}
+            _record_non_specialist_call(site, "", _FAILURE.stats)
+            return None
+    except Exception as exc:  # noqa: BLE001 - Redis guardrail is fail-open
+        LOGGER.debug("Redis LLM rate limiter unavailable: %s", exc)
+
     provider = model_provider()
     model = provider.model_for(call_site)
     _FAILURE.kind = ""
@@ -504,9 +543,8 @@ def structured_call(*, call_site, system: str, prompt: str, schema: dict[str, An
     # only — the provider's token usage is not surfaced through this seam — so
     # token counts are deliberately not invented here; duration is recorded
     # because it is measured honestly.
-    _site = getattr(call_site, "value", call_site)
     set_run_metadata(ls_provider=provider.name, ls_model_name=model,
-                     call_site=_site)
+                     call_site=site)
     started = _time.perf_counter()
     try:
         payload = provider.structured_call(
@@ -518,20 +556,44 @@ def structured_call(*, call_site, system: str, prompt: str, schema: dict[str, An
                      "call_site=%s | %s", provider.name, model,
                      getattr(call_site, "value", call_site), exc)
         _FAILURE.kind = "schema"
+        _FAILURE.stats = _provider_stats(provider, started, "schema")
+        _record_non_specialist_call(site, model, _FAILURE.stats)
         return None
     except ProviderError as exc:
         LOGGER.warning("structured call failed | provider=%s model=%s "
                        "call_site=%s kind=%s | %s", provider.name, model,
                        getattr(call_site, "value", call_site), exc.kind, exc)
         _FAILURE.kind = exc.kind or "provider"
+        _FAILURE.stats = _provider_stats(provider, started, _FAILURE.kind)
+        _record_non_specialist_call(site, model, _FAILURE.stats)
         return None
     except Exception as exc:  # noqa: BLE001 - never take a request down
         LOGGER.warning("structured call errored | provider=%s model=%s | %s",
                        provider.name, model, exc)
         _FAILURE.kind = "unknown"
+        _FAILURE.stats = _provider_stats(provider, started, "unknown")
+        _record_non_specialist_call(site, model, _FAILURE.stats)
         return None
 
     set_run_metadata(model_call_seconds=round(_time.perf_counter() - started, 3))
+    _FAILURE.stats = _provider_stats(provider, started, "")
+    _record_non_specialist_call(site, model, _FAILURE.stats)
     LOGGER.debug("structured call ok | provider=%s model=%s call_site=%s",
                  provider.name, model, getattr(call_site, "value", call_site))
     return payload
+
+
+def _provider_stats(provider: Any, started: float,
+                    failure_kind: str) -> dict[str, Any]:
+    """Read an optional provider-neutral measurement hook without requiring it."""
+    try:
+        hook = getattr(provider, "last_call_stats", None)
+        stats = dict(hook()) if callable(hook) else {}
+    except Exception:  # noqa: BLE001 - observability cannot change behavior
+        stats = {}
+    stats.setdefault("calls", 1)
+    stats.setdefault("duration_ms", round(
+        (__import__("time").perf_counter() - started) * 1000))
+    if failure_kind:
+        stats["failure_kind"] = failure_kind
+    return stats

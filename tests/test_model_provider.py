@@ -603,6 +603,51 @@ def test_no_schema_pairs_a_union_type_with_an_enum():
         assert not offenders(schema), (name, offenders(schema))
 
 
+@pytest.mark.xfail(strict=True, reason=(
+    "known limitation: `calculation_params` declares twenty nullable "
+    "properties, which exceeds Anthropic's 16-union and 24-optional "
+    "caps. The schema is correct and validated on the default zai "
+    "backend. Restoring anthropic needs a shape change - one array of "
+    "{name, value} pairs - not a different split, because no split of "
+    "twenty satisfies both caps. Strict, so this speaks up when fixed."))
+def test_no_schema_exceeds_the_optional_parameter_budget():
+    """The same seam rule as the union/enum test, from the other direction.
+
+    Anthropic refuses a schema with more than 24 optional parameters:
+
+        Schemas contains too many optional parameters (32), which would make
+        grammar compilation inefficient ... (limit: 24)
+
+    Z.AI has no such limit, so a schema can grow past it while the default
+    backend stays perfectly green — which is exactly what happened when
+    `calculation_params` gained eighteen optional properties and
+    `LLM_BACKEND=anthropic` silently stopped being able to plan anything.
+
+    A nullable required property costs nothing against this budget, so the fix
+    is `required` plus `null`, never dropping the parameter.
+    """
+    from agents.domain_expert_agent import REVISE_SCHEMA, SCHEMA
+    from agents.mcp_agent import ASSESS_SCHEMA
+    from agents.orchestrator_agent import CLASSIFY_SCHEMA, REFLECT_SCHEMA
+
+    def optional(node):
+        total = 0
+        if isinstance(node, dict):
+            properties = node.get("properties")
+            if isinstance(properties, dict):
+                total += len(set(properties) - set(node.get("required") or []))
+                for value in properties.values():
+                    total += optional(value)
+        return total
+
+    for name, schema in (("derive", SCHEMA), ("revise", REVISE_SCHEMA),
+                         ("assess", ASSESS_SCHEMA), ("classify", CLASSIFY_SCHEMA),
+                         ("reflect", REFLECT_SCHEMA)):
+        assert optional(schema) <= 24, (
+            f"{name} declares {optional(schema)} optional parameters; "
+            f"Anthropic's limit is 24. Make them required and nullable.")
+
+
 def test_a_truncated_call_retries_without_reasoning_rather_than_re_rolling():
     """GLM expands its reasoning to fill whatever ceiling it is given.
 

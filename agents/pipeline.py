@@ -68,7 +68,9 @@ from agents.observability import (
     set_run_tags,
     traced,
 )
-from agents.redaction import CONTRACT_KEYS, scrub_identifiers
+from agents.redaction import (
+    CONTRACT_KEYS, MCP_IMPLEMENTATION_NAMES, scrub_identifiers,
+)
 
 LOGGER = logging.getLogger("agents.pipeline")
 
@@ -194,7 +196,9 @@ class AgentPipeline:
             return self._specialist_failed(AgentId.DOMAIN_EXPERT, plan, intent,
                                            trace, ledger)
 
-        tool_names = [t.name for t in catalogue.tools] + list(CONTRACT_KEYS)
+        tool_names = ([t.name for t in catalogue.tools]
+                      + list(CONTRACT_KEYS)
+                      + list(MCP_IMPLEMENTATION_NAMES))
         trace.append({
             "kind": "tool_call",
             "label": f"MCP agent advertised {len(catalogue.tools)} tool(s)",
@@ -657,7 +661,9 @@ class AgentPipeline:
         intent = Intent(route="data_request", reasoning="revalidated after a "
                                                         "material clarification",
                         task=requirement.task)
-        tool_names = [t.name for t in catalogue.tools] + list(CONTRACT_KEYS)
+        tool_names = ([t.name for t in catalogue.tools]
+                      + list(CONTRACT_KEYS)
+                      + list(MCP_IMPLEMENTATION_NAMES))
         if negotiation.decision != "AGREED":
             return self._not_agreed(negotiation.decision, reply, intent,
                                     requirement, negotiation, catalogue,

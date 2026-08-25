@@ -126,21 +126,49 @@ class Intent:
 
 @dataclass
 class KnowledgeChunk:
-    """One retrieved passage. `text` is kept so a citation can be verified."""
+    """One retrieved passage. `text` is kept so a citation can be verified.
+
+    The first five fields are the original contract.  The optional provenance
+    fields make a citation auditable across multiple collections without
+    breaking callers that construct a chunk positionally in tests or adapters.
+    `collection` is especially important now that the domain expert reads a
+    broad reference library as well as the executable grounding corpus.
+    """
 
     domain: str
     source: str
     heading: str
     text: str
     distance: float
+    collection: str = "quant_knowledge"
+    chunk_id: str = ""
+    score: float | None = None
+    document_path: str = ""
+    line_start: int | None = None
+    line_end: int | None = None
+    retrieval_query: str = ""
 
     @property
     def label(self) -> str:
         return f"{self.domain}/{self.source} — {self.heading}"
 
     def as_dict(self) -> dict[str, Any]:
-        return {"domain": self.domain, "source": self.source, "heading": self.heading,
-                "distance": self.distance, "label": self.label}
+        return {
+            "domain": self.domain,
+            "source": self.source,
+            "heading": self.heading,
+            "distance": self.distance,
+            "score": (self.score if self.score is not None
+                      else round(1.0 - self.distance, 4)),
+            "label": self.label,
+            "collection": self.collection,
+            "corpus": self.collection,
+            "chunk_id": self.chunk_id,
+            "document_path": self.document_path,
+            "line_start": self.line_start,
+            "line_end": self.line_end,
+            "retrieval_query": self.retrieval_query,
+        }
 
 
 @dataclass

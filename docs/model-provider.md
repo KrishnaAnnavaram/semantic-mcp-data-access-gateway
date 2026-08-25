@@ -252,6 +252,44 @@ strips emphasis from both sides, which leaves the check exactly as strict: a
 paraphrase still does not appear in the source. `tests/test_grounding_guard.py`
 pins both halves.
 
+## Known limitation: `anthropic` cannot plan a data request
+
+`LLM_BACKEND=anthropic` is documented as fully maintained and is not, today.
+Two schema rules break it, and both are invisible under the default backend
+because Z.AI enforces neither.
+
+| Where | Rule Anthropic enforces | Current value |
+|---|---|---|
+| `domain_expert` — `calculation_params` | at most 16 union-typed parameters | 25 |
+| `domain_expert` — `calculation_params` | at most 24 optional parameters | 32 |
+| `orchestrator` — clarify options | `minItems` must be 0 or 1 | `minItems: 2` |
+
+The first two arrived with the capability expansion: `calculation_params` grew
+from two declared properties to twenty so that a planner asked for a bear
+steepener would have somewhere legal to put `scenario`. Every one of the twenty
+is nullable, which is what lets them stay optional without the planner
+inventing values — and each nullable property costs against *both* caps.
+
+**No split of twenty satisfies both.** The arithmetic allows seven nullable and
+ten optional, seventeen in all. Restoring Anthropic therefore means changing
+the schema's *shape*, not the required/optional split — one array of
+`{name, value}` pairs with the names as a closed enum costs roughly one union
+and one optional, and leaves room to grow. That change is not made here; the
+schema as it stands is correct and validated on `zai`, which is the default.
+
+The third predates the expansion. `minItems: 2` on the clarifying-options array
+is a deliberate contract — one option is a statement, not a choice — and
+Anthropic supports only 0 or 1, so the clarify path fails there independently.
+
+`tests/test_model_provider.py::test_no_schema_exceeds_the_optional_parameter_budget`
+records the budget as a **strict** xfail: it fails if the limitation is ever
+fixed without the marker being removed, so the record cannot go stale.
+
+The lesson generalises, and the file already contains its twin: a schema that
+one provider accepts and another rejects will pass every test you have, because
+the tests run on the provider that accepts it. See
+`test_no_schema_pairs_a_union_type_with_an_enum`.
+
 ## Grounding is a separate layer
 
 Structural validity and semantic grounding are different questions, and

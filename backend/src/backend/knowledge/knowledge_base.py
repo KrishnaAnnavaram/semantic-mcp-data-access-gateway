@@ -15,6 +15,7 @@ import pathlib
 import re
 
 from backend.knowledge.vector_store import VectorStore, make_vector_store
+from backend.knowledge.versioning import corpus_version
 
 # Resolved by walking up for a repository marker, never by stepping relative to
 # this file. `parent.parent / "knowledge"` used to be correct and silently became
@@ -55,6 +56,7 @@ def _iter_chunks(knowledge_dir: pathlib.Path):
 class KnowledgeBase:
     def __init__(self, store: VectorStore | None = None, rebuild: bool = False):
         self.store = store or make_vector_store()
+        self._version = corpus_version(KNOWLEDGE_DIR)
         if rebuild:
             self.store.reset()
         if self.store.count() == 0:
@@ -67,6 +69,7 @@ class KnowledgeBase:
             docs.append(text)
             metas.append(meta)
         self.store.upsert(ids, docs, metas)
+        self._version = corpus_version(KNOWLEDGE_DIR)
         return len(ids)
 
     def retrieve(self, query: str, n_results: int = 3, domain: str | None = None) -> list[dict]:
@@ -79,12 +82,21 @@ class KnowledgeBase:
                 "heading": h.metadata.get("heading"),
                 "text": h.document,
                 "distance": round(h.distance, 4),
+                "score": round(1.0 - h.distance, 4),
+                "collection": "quant_knowledge",
+                "chunk_id": h.id,
+                "metadata": h.metadata,
             }
             for h in hits
         ]
 
     def count(self) -> int:
         return self.store.count()
+
+    @property
+    def version(self) -> str:
+        """Content identity carried into every derived cache key."""
+        return self._version
 
 
 if __name__ == "__main__":
