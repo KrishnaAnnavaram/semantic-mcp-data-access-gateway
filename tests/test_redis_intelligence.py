@@ -107,6 +107,42 @@ def test_disabled_redis_is_a_true_noop():
     assert intelligence.health()["mode"] == "no-op"
 
 
+def test_cache_outcome_reaches_langsmith_as_run_metadata_and_a_tag(monkeypatch):
+    """A hit skips the traced method's body, so the span needs its own marker.
+
+    Without this, a `domain_expert.derive` run served from Redis would show up
+    in LangSmith indistinguishable from an empty/failed `llm` run — no model,
+    no duration. `cache_status` and a `cache:<status>` tag are what let a
+    reader (and a filter) tell the two apart.
+    """
+    metadata_calls: list[dict] = []
+    tag_calls: list[tuple] = []
+    monkeypatch.setattr(
+        "agents.observability.set_run_metadata",
+        lambda **kw: metadata_calls.append(kw),
+    )
+    monkeypatch.setattr(
+        "agents.observability.set_run_tags",
+        lambda *tags: tag_calls.append(tags),
+    )
+    config = replace(
+        RedisConfig(enabled=True, url="redis://127.0.0.1:6398/0"),
+        socket_connect_timeout=0.05,
+        socket_timeout=0.05,
+        lock_wait_seconds=2.0,
+    )
+    intelligence = build_intelligence(config=config)
+    try:
+        intelligence.cached(
+            _choices_request(identity="trace-miss"), lambda: _choice_payload("trace-miss")
+        )
+    finally:
+        intelligence.close()
+
+    assert any(call.get("cache_status") == "miss" for call in metadata_calls)
+    assert ("cache:miss",) in tag_calls
+
+
 def test_unreachable_optional_redis_fails_open_without_waiting_for_a_lock():
     config = replace(
         RedisConfig(enabled=True, url="redis://127.0.0.1:6398/0"),

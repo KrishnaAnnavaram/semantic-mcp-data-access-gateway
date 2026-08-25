@@ -82,6 +82,24 @@ def _clear_call_stats() -> None:
         return
 
 
+def _trace_cache_status(status: str, **metadata: Any) -> None:
+    """Attach the cache outcome to the enclosing LangSmith run, if any.
+
+    `@traced` wraps the *agent* method (`domain_expert.derive`, ...); a hit
+    here means that method's body never runs, so without this the span would
+    show as a bare `llm`/`retriever` run with no model and near-zero duration
+    — indistinguishable from a real failure. Fail-open like every other
+    observability call: a broken tracer must never affect the cache.
+    """
+    try:
+        from agents.observability import set_run_metadata, set_run_tags
+
+        set_run_metadata(cache_status=status, **metadata)
+        set_run_tags(f"cache:{status}")
+    except Exception:  # noqa: BLE001 - tracing must not affect the task
+        return
+
+
 def _embedding_values(raw: Any) -> list[float]:
     if hasattr(raw, "tolist"):
         raw = raw.tolist()
@@ -694,6 +712,13 @@ class RedisIntelligence:
         if similarity is not None:
             event["semantic_similarity"] = round(similarity, 8)
         self.telemetry.record_operation(event)
+        trace_meta: dict[str, Any] = {
+            "cache_type": event["cache_type"],
+            "redis_latency_ms": redis_latency_ms,
+        }
+        if similarity is not None:
+            trace_meta["semantic_similarity"] = event["semantic_similarity"]
+        _trace_cache_status(status, **trace_meta)
 
     def _record_compute_event(
         self, request: CacheRequest, duration_ms: int, stats: dict[str, Any], *, cache_status: str
@@ -715,6 +740,7 @@ class RedisIntelligence:
                 **_usage(stats),
             }
         )
+        _trace_cache_status(cache_status)
 
     def record_negotiation(self, *, rounds: int, decision: str, request_id: str = "") -> None:
         self.telemetry.record_negotiation(rounds=rounds, decision=decision, request_id=request_id)

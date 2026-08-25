@@ -94,6 +94,42 @@ def test_workspace_recognised_when_set(clean_env):
     assert obs.langsmith_status()["workspace_configured"] is True
 
 
+# --- Redis rate limiting is visible in the trace ----------------------------
+
+
+def test_rate_limited_call_is_tagged_for_langsmith(monkeypatch):
+    """A call the native rate limiter rejects still marks the open span.
+
+    Without this, a call the limiter blocked returns `None` exactly like a
+    schema violation or a provider outage — nothing in the trace could tell a
+    reader which of the three actually happened.
+    """
+    metadata_calls: list[dict] = []
+    tag_calls: list[tuple] = []
+    monkeypatch.setattr(obs, "set_run_metadata", lambda **kw: metadata_calls.append(kw))
+    monkeypatch.setattr(obs, "set_run_tags", lambda *tags: tag_calls.append(tags))
+
+    class _Blocked:
+        def allow_llm(self, agent):
+            del agent
+            return False
+
+    import agents.cache as cache_module
+
+    monkeypatch.setattr(cache_module, "get_intelligence", lambda: _Blocked())
+
+    from llm import CallSite
+
+    result = obs.structured_call(
+        call_site=CallSite.DOMAIN_EXPERT, system="s", prompt="p", schema={}
+    )
+
+    assert result is None
+    assert obs.last_failure_kind() == "rate_limit"
+    assert any(call.get("failure_kind") == "rate_limit" for call in metadata_calls)
+    assert ("call_site:domain_expert", "rate_limited") in tag_calls
+
+
 def test_legacy_langchain_variables_still_work(clean_env):
     clean_env.setenv("LANGCHAIN_TRACING_V2", "true")
     clean_env.setenv("LANGCHAIN_API_KEY", "lsv2_legacy")

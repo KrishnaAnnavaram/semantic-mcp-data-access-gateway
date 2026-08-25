@@ -529,6 +529,8 @@ def structured_call(*, call_site, system: str, prompt: str, schema: dict[str, An
             _FAILURE.kind = "rate_limit"
             _FAILURE.stats = {"calls": 0, "failure_kind": "rate_limit"}
             _record_non_specialist_call(site, "", _FAILURE.stats)
+            set_run_metadata(call_site=site, failure_kind="rate_limit")
+            set_run_tags(f"call_site:{site}", "rate_limited")
             return None
     except Exception as exc:  # noqa: BLE001 - Redis guardrail is fail-open
         LOGGER.debug("Redis LLM rate limiter unavailable: %s", exc)
