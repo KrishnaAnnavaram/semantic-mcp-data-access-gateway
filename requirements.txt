@@ -38,7 +38,13 @@ fastapi>=0.110
 uvicorn[standard]>=0.29
 
 # --- LangSmith tracing (used by agents/observability.py) ---
-langsmith>=0.1
+# Floor raised to 0.2: distributed tracing across the A2A boundary uses
+# RunTree.to_headers() on the caller and tracing_context(parent=<headers>) on
+# the callee, so a single user turn is one connected trace across the three
+# agents. Both are present and stable from 0.2 onward. Everything degrades to a
+# no-op if the package is absent, so this is a floor for the full feature, not a
+# hard requirement for the app to run.
+langsmith>=0.2
 
 # --- dev / test ---
 pytest>=8.0

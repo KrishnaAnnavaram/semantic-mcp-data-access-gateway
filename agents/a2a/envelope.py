@@ -49,6 +49,7 @@ from a2a.types.a2a_pb2 import Role
 from agents.a2a.cards import skill_ids
 from agents.a2a.guardrails import CallChain
 from agents.a2a.identity import AgentId
+from agents.observability import TRACE_HEADER_KEY
 from agents.contracts import (
     AgentOutcome,
     FieldNote,
@@ -107,6 +108,13 @@ class SkillRequest:
     #: the handoff trail readable as a conversation.
     negotiation_round: int = 0
     negotiation_phase: str = ""
+    #: LangSmith trace-continuation headers, so the specialist's spans nest
+    #: under the caller's root instead of starting a second disconnected trace.
+    #: Purely observability: it is never read by any guardrail or by any domain
+    #: logic, and its absence changes nothing but where the spans land. Excluded
+    #: from `digest()` on purpose — two otherwise-identical calls are still
+    #: duplicates whatever trace they belong to.
+    trace_headers: dict[str, str] | None = None
 
     def digest(self) -> str:
         """A stable fingerprint of *what was asked, of whom* — not of who asked.
@@ -128,7 +136,7 @@ class SkillRequest:
         return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:16]
 
     def as_metadata(self) -> dict[str, Any]:
-        return {
+        meta: dict[str, Any] = {
             "requesting_agent": self.requesting_agent,
             "target_agent": self.target_agent,
             "intent": self.intent,
@@ -141,6 +149,11 @@ class SkillRequest:
             "request_digest": self.digest(),
             "envelope_version": ENVELOPE_VERSION,
         }
+        # Attached only when tracing produced headers, so a message carries no
+        # empty tracing key when tracing is off.
+        if self.trace_headers:
+            meta[TRACE_HEADER_KEY] = self.trace_headers
+        return meta
 
 
 def build_request_message(request: SkillRequest, *, context_id: str,
@@ -206,6 +219,7 @@ def read_request_message(message: Message, target: AgentId) -> SkillRequest:
         user_request_id=str(meta.get("user_request_id") or ""),
         negotiation_round=_int(meta.get("negotiation_round"), 0) or 0,
         negotiation_phase=str(meta.get("negotiation_phase") or ""),
+        trace_headers=_trace_headers(meta.get(TRACE_HEADER_KEY)),
     )
 
 
@@ -363,6 +377,20 @@ def _int(value: Any, default: int | None = None) -> int | None:
 
 def _strs(value: Any) -> list[str]:
     return [str(v) for v in (value or []) if v is not None]
+
+
+def _trace_headers(value: Any) -> dict[str, str] | None:
+    """The LangSmith continuation headers, as a clean str->str dict or None.
+
+    Advisory metadata only: a malformed value degrades to None (the far side
+    starts a fresh trace) rather than raising, exactly like every other
+    non-load-bearing field rebuilt here.
+    """
+    if not isinstance(value, dict):
+        return None
+    headers = {str(k): str(v) for k, v in value.items()
+               if k in ("langsmith-trace", "baggage") and v}
+    return headers or None
 
 
 def requirement_from_dict(data: dict[str, Any] | None) -> Requirement | None:
@@ -574,6 +602,7 @@ def outcome_from_dict(data: dict[str, Any]) -> AgentOutcome:
         trace=list(data.get("trace") or []),
         citations=list(data.get("citations") or []),
         langsmith_url=data.get("langsmith_url"),
+        langsmith_trace_id=data.get("langsmith_trace_id"),
         validation=validation_from_dict(data.get("validation")),
         waiting=data.get("waiting"),
         handoffs=data.get("handoffs"),

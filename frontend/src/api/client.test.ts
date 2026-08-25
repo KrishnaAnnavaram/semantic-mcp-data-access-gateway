@@ -62,4 +62,44 @@ describe('askAgent (rest backend)', () => {
     vi.mocked(fetch).mockReturnValue(jsonResponse({ sources: [] }))
     await expect(askAgent('q', 'session-1')).rejects.toBeInstanceOf(AgentClientError)
   })
+
+  // The bug this whole layer had: the payload carried langsmith_url but the
+  // mapper dropped it, so the "Open trace" link never reached the UI. These
+  // assertions are the regression guard for that.
+  it('preserves the LangSmith url, trace id and project from the payload', async () => {
+    vi.mocked(fetch).mockReturnValue(
+      jsonResponse({
+        answer: 'ok',
+        sources: [],
+        langsmith_url: 'https://smith.langchain.com/o/x/projects/p/r/abc123',
+        langsmith_trace_id: 'abc123',
+        langsmith_project: 'semantic-mcp-data-access-gateway',
+      }),
+    )
+    const result = await askAgent('q', 'session-1')
+    expect(result.langsmithUrl).toBe('https://smith.langchain.com/o/x/projects/p/r/abc123')
+    expect(result.langsmithTraceId).toBe('abc123')
+    expect(result.langsmithProject).toBe('semantic-mcp-data-access-gateway')
+  })
+
+  it('preserves the handoff ledger from the payload', async () => {
+    vi.mocked(fetch).mockReturnValue(
+      jsonResponse({
+        answer: 'ok',
+        sources: [],
+        handoffs: { handoffs_used: 3, handoffs: [{ from: 'orchestrator', to: 'domain-expert' }] },
+      }),
+    )
+    const result = await askAgent('q', 'session-1')
+    expect(result.handoffs?.handoffs_used).toBe(3)
+    expect(result.handoffs?.handoffs?.[0]?.to).toBe('domain-expert')
+  })
+
+  it('degrades to null LangSmith fields when the backend omits them (tracing off)', async () => {
+    vi.mocked(fetch).mockReturnValue(jsonResponse({ answer: 'ok', sources: [] }))
+    const result = await askAgent('q', 'session-1')
+    expect(result.langsmithUrl).toBeNull()
+    expect(result.langsmithTraceId).toBeNull()
+    expect(result.handoffs).toBeNull()
+  })
 })

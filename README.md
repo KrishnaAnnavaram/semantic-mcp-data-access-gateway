@@ -841,20 +841,39 @@ while the chat stays live, and the two panes scroll independently.
 
 ## 10.1 What is traced
 
-**Every agent boundary is a LangSmith run**, so one trace shows the shape of the whole system:
+**Every agent boundary is a LangSmith run, and the whole turn is one trace** — even though
+the three agents talk to each other over A2A. The trace-continuation headers are captured at
+each agent-to-agent hop and re-established on the far side, so what used to fragment into
+several disconnected root traces is now a single tree:
 
 ```
-agent_pipeline                          (chain)
-├── orchestrator.classify               (llm)       ← Haiku
-├── mcp_agent.catalogue                 (tool)
-├── knowledge_retrieval                 (retriever) ← Qdrant
-├── domain_expert.derive                (llm)       ← Opus
-├── discussion                          (chain)
-│   ├── mcp_agent.assess                (llm)       ← Opus
-│   └── domain_expert.revise            (llm)       ← Opus
+agent_pipeline                          (chain)     ← one root per user turn
+├── orchestrator.classify               (llm)
+├── domain_expert.derive                (llm)        ← reached over A2A, still nested
+│   └── knowledge_retrieval             (retriever)
+│       ├── qdrant.search               (retriever)  ← query 1
+│       └── qdrant.search               (retriever)  ← query 2
+├── mcp_agent.assess                    (llm)        ← the discussion, over A2A
+├── domain_expert.revise                (llm)
 ├── mcp_agent.execute                   (tool)
-└── orchestrator.reflect                (llm)       ← Haiku
+│   └── mcp.call:get_curve              (tool)       ← MCP server call
+│       └── postgres.query              (tool)       ← DB read (postgres backend)
+├── domain_expert.validate_result       (llm)
+└── orchestrator.reflect                (llm)
 ```
+
+The exact shape follows the *actual* execution — a greeting is just `orchestrator.classify`,
+and a step that did not run does not appear. Which concrete model serves each `llm` span is
+`LLM_BACKEND` configuration (default `zai`/`glm-5.2`); every model span carries `ls_provider`
+and `ls_model_name` so LangSmith attributes and groups it correctly.
+
+**What each run carries.** Beyond timing and status: every turn's root is stamped with
+`session_id`/`thread_id` (so a multi-turn clarification groups into one LangSmith **thread**),
+the `route`, and process facts (`environment`, `app_version`, `git_commit`, `llm_backend`,
+`data_backend`) as metadata and tags — the fields a dashboard filters and aggregates on.
+Retriever, MCP and DB spans carry bounded, safe metadata (collection, top-k, result count;
+tool name and server; query type, row count) — **never** payloads, embeddings, full result
+sets, or credentials.
 
 ## 10.2 How to turn it on
 
@@ -864,23 +883,41 @@ Add to `.env` (or export):
 LANGSMITH_TRACING=true
 LANGSMITH_API_KEY=lsv2_pt_...
 LANGSMITH_PROJECT=semantic-mcp-data-access-gateway   # optional; this is the default
+
+# Optional — EU / self-hosted endpoint, and multi-workspace keys
+# LANGSMITH_ENDPOINT=https://eu.api.smith.langchain.com
+# LANGSMITH_WORKSPACE_ID=...
 ```
 
-`LANGCHAIN_TRACING_V2` / `LANGCHAIN_API_KEY` / `LANGCHAIN_PROJECT` are accepted as aliases.
+`LANGCHAIN_TRACING_V2` / `LANGCHAIN_API_KEY` / `LANGCHAIN_PROJECT` (and `LANGCHAIN_ENDPOINT`)
+are accepted as aliases.
 
-**Tracing never changes behaviour.** With no key, `traced()` degrades to simply running the
-function — it does not warn on every call and it does not fail.
+**Tracing never changes behaviour, and it is fail-open.** With no key — or if the `langsmith`
+package is absent, the endpoint is wrong, or the service is unreachable — every tracing helper
+degrades to simply running the function. It does not warn on every call, and it never fails a
+request. A LangSmith outage cannot take the gateway down.
+
+**The API key is backend-only.** It is never sent to the browser, never returned by any
+endpoint, and there is deliberately no `VITE_LANGSMITH_*` variable. The frontend learns tracing
+status only from `/health`, which reports whether a key is *present*, never the key itself.
 
 ## 10.3 How to check it is on
 
-The service prints its status at startup:
+At startup the service logs the resolved status. You can also ask it at any time:
 
 ```bash
-python -m backend.api.service
-# LangSmith tracing enabled for project 'semantic-mcp-data-access-gateway'
+curl -s localhost:8000/health | jq .langsmith
+# {
+#   "enabled": true,
+#   "project": "semantic-mcp-data-access-gateway",
+#   "api_key_configured": true,
+#   "workspace_configured": false,
+#   "endpoint": "https://api.smith.langchain.com",
+#   "reason": "runs are being sent to LangSmith"
+# }
 ```
 
-If it is off, it tells you exactly why — one of:
+If it is off, `reason` says exactly why:
 
 | Message | Fix |
 |---|---|
@@ -888,25 +925,42 @@ If it is off, it tells you exactly why — one of:
 | `an API key is set but LANGSMITH_TRACING is not 'true'` | Set `LANGSMITH_TRACING=true` |
 | `set LANGSMITH_TRACING=true and LANGSMITH_API_KEY to enable` | Set both |
 
-## 10.4 How to read the outcomes
+`enabled` means *configured* (a key and the flag are present, so runs will be attempted) — it
+is not a claim that LangSmith accepted the last trace. The header of the React UI shows the same
+status live: an **API** pill (from `/health`) and a **LangSmith** pill (enabled / off).
+
+## 10.4 How to read the outcomes — in LangSmith and in the UI
+
+**In LangSmith:**
 
 1. Go to **https://smith.langchain.com**
 2. Open the project **`semantic-mcp-data-access-gateway`**
-3. Click any **`agent_pipeline`** run — it expands into the tree above
-
-**What to look for, and what it proves:**
+3. Click any **`agent_pipeline`** run — it expands into the tree above. Group a conversation
+   by its **thread** to see every clarification turn together.
 
 | In the trace | What it demonstrates |
 |---|---|
-| `orchestrator.classify` **alone** on a greeting | The cheap path really is cheap — no Qdrant, no Opus |
-| `knowledge_retrieval` showing **two** queries | The two-query retrieval fix, visible |
-| `domain_expert.derive` output containing `grounded: true` + the quote | The number came from the corpus, not the model |
-| `discussion` with **1 round** and `converged` | The agents agreed rather than looping |
-| Token counts per span | Where the cost actually goes — Opus on reasoning, Haiku on routing |
+| One `agent_pipeline` root spanning all three agents | A2A did not split the trace |
+| `orchestrator.classify` **alone** on a greeting | The cheap path really is cheap |
+| `knowledge_retrieval` with **two** `qdrant.search` children | The two-query retrieval, visible |
+| `domain_expert.derive` output with `grounded: true` + the quote | The number came from the corpus |
+| `mcp_agent.execute` → `mcp.call:*` → `postgres.query` | The road to the data, end to end |
+| `ls_model_name` / token counts per `llm` span | Where the cost actually goes |
 
-**Per-request link.** `POST /chat` returns a `langsmith_url` field pointing at that turn's run,
-so you can jump straight to the trace for a specific answer. *(It is returned by the API but
-not yet rendered in the UI — see [known issues](#16-known-issues).)*
+**In the UI (right-hand rail).** Each assistant answer keeps its **own** trace reference, so
+selecting an older turn shows that turn's trace. Four tabs:
+
+- **Reasoning** — the grounded/negotiated pipeline, step by step (unchanged).
+- **Graph** — an interactive React Flow diagram of which agents and services actually ran this
+  turn (Orchestrator → Domain Expert → Qdrant / MCP Agent → MCP Server → PostgreSQL), with
+  per-node status and duration; click a node for details.
+- **Trace** — the real agent-to-agent timeline (durations, states) plus an **Open full trace ↗**
+  button that opens this exact turn in LangSmith. When tracing is off the button is replaced by
+  a plain "not traced" note — never a broken link.
+- **Data** — the existing table / data-plan / discussion / source panel.
+
+`POST /chat` returns `langsmith_url`, `langsmith_trace_id` and `langsmith_project` for this;
+all three are `null` when tracing is off.
 
 ## 10.5 Running the evaluation against LangSmith
 
@@ -1127,8 +1181,7 @@ Recorded rather than hidden.
 |---|---|---|
 | 1 | **The user's scenario choice is ignored.** Clicking "Parallel +100" still runs `FLATTENER_50BP` — the MCP agent resolves a scenario with `_first_scenario()` instead of carrying the pick through. Needs a field threaded from intent → `Requirement` → `execute()`. | 🔴 |
 | 2 | **Repeated market questions may answer from session memory** rather than re-fetching. Intermittent; recorded as an `xfail`. | 🟠 |
-| 3 | **LangSmith is instrumented but unproven.** Every boundary is traced and it degrades cleanly without a key, but no real trace has been observed against a live account. | 🟡 |
-| 4 | **`langsmith_url` is returned by `/chat` but not rendered in the UI.** | 🟡 |
+| 3 | **LangSmith code integration is complete but live ingestion is unverified here.** Distributed tracing across A2A, Qdrant/MCP/Postgres spans, thread grouping, model metadata, `/health` reporting and the UI Graph/Trace tabs are all wired and covered by tests; it degrades cleanly with no key. It has not yet been observed against a live LangSmith account in this environment (no credentials available), so the end-to-end trace tree should be confirmed once on a keyed account. | 🟡 |
 | 5 | Routing runs on a small model and shows run-to-run variance on borderline phrasing. | 🟡 |
 
 ---

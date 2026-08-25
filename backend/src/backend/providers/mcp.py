@@ -46,6 +46,22 @@ from typing import Any
 
 LOGGER = logging.getLogger("mcp_data_provider")
 
+
+def _span(name: str, run_type: str = "tool", **metadata: Any):
+    """LangSmith span helper, resolved defensively.
+
+    `backend` legitimately depends on `agents`, but the data provider must run
+    even if the observability layer cannot be imported (a minimal environment,
+    a partial install). So the import is attempted lazily and falls back to a
+    no-op context manager — tracing is never allowed to break a data fetch.
+    """
+    try:
+        from agents.observability import span as _agent_span  # noqa: PLC0415
+
+        return _agent_span(name, run_type, **metadata)
+    except Exception:  # noqa: BLE001 - tracing is optional
+        return contextlib.nullcontext()
+
 # The agent's tenor vocabulary expressed in months. This is a translation between
 # two naming conventions, not a list of Treasury fields -- series codes are still
 # resolved from the live catalogue, so a maturity Treasury adds needs no edit here.
@@ -238,7 +254,16 @@ class McpDataProvider:
             # Recorded at ask time, so a relayed question names the tool that
             # actually raised it rather than the last one called.
             relay.tool = tool
-        return self._bridge.call_raw(tool, arguments or {}, relay)
+        # Every MCP tool call funnels through here, so this is the one place a
+        # `mcp.call:<tool>` span belongs. It nests under whichever agent method
+        # is running (the MCP agent's execute/calculate hold the trace context),
+        # so the road from agent → MCP server → PostgreSQL is visible end to end.
+        # Bounded on purpose: the argument *keys* are recorded, never the values
+        # or the result, so no bulk array or rate table reaches the trace.
+        with _span(f"mcp.call:{tool}", "tool", tool_name=tool,
+                   server="market-risk-data-mcp",
+                   argument_keys=sorted((arguments or {}).keys()) or None):
+            return self._bridge.call_raw(tool, arguments or {}, relay)
 
     def call_tool(self, tool: str, arguments: dict[str, Any] | None = None) -> dict:
         """Escape hatch to any MCP tool, including the risk engine's five."""

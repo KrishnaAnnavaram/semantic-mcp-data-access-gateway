@@ -49,7 +49,9 @@ export function ArtifactPanel({ table, plan, negotiation, onClose }: Props) {
   const badge = classificationBadge(table.provenance?.classification, isMockMode())
 
   return (
-    <div className="flex h-full flex-col border-l border-border bg-surface">
+    // No left border here: this panel is embedded inside the RightRail's Data
+    // tab, which already provides the rail's left border.
+    <div className="flex h-full flex-col bg-surface">
       <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
         <div className="min-w-0">
           <div className="truncate text-sm font-semibold text-text" title="Table">

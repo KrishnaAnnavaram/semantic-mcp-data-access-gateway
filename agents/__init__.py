@@ -38,7 +38,21 @@ from agents.contracts import (
     ToolCatalogue,
     ToolSpec,
 )
-from agents.observability import langsmith_status, log_status, run_url, traced
+from agents.observability import (
+    app_metadata,
+    continue_trace,
+    current_trace_headers,
+    endpoint,
+    langsmith_status,
+    log_status,
+    run_id,
+    run_url,
+    set_run_metadata,
+    set_run_tags,
+    span,
+    traced,
+    workspace_id,
+)
 from agents.orchestrator_agent import OrchestratorAgent
 from agents.pipeline import AgentPipeline
 from agents.planning import MAX_ROUNDS, DataPlanner
@@ -61,10 +75,19 @@ __all__ = [
     "ToolSpec",
     "agent_card",
     "all_cards",
+    "app_metadata",
+    "continue_trace",
+    "current_trace_headers",
+    "endpoint",
     "get_network",
     "langsmith_status",
     "log_status",
     "reset_network",
+    "run_id",
     "run_url",
+    "set_run_metadata",
+    "set_run_tags",
+    "span",
     "traced",
+    "workspace_id",
 ]

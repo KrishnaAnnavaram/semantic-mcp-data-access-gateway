@@ -57,12 +57,19 @@ class AgentLink:
                    intent: str = "", context_id: str | None = None,
                    task_id: str | None = None,
                    negotiation_round: int = 0,
-                   negotiation_phase: str = "") -> SkillResult:
+                   negotiation_phase: str = "",
+                   trace_headers: dict[str, str] | None = None) -> SkillResult:
         """Ask this agent for one advertised skill, within the turn's budget.
 
         `chain` is the caller's own call path; this call extends it by one. A
         caller that passes nothing is at the user boundary, which is the only
         place a chain legitimately starts empty.
+
+        `trace_headers` are the caller's LangSmith trace-continuation headers,
+        captured on the worker thread where its parent run is active and carried
+        so the callee's spans nest under the same root. Observability only — it
+        is never read by a guardrail and its absence changes nothing but the
+        shape of the trace.
         """
         chain = chain or CallChain()
         request = SkillRequest(
@@ -73,6 +80,7 @@ class AgentLink:
             user_request_id=ledger.user_request_id,
             negotiation_round=negotiation_round,
             negotiation_phase=negotiation_phase,
+            trace_headers=trace_headers,
         )
         digest = request.digest()
         # Read from the target's own card. A skill it does not tag `idempotent`

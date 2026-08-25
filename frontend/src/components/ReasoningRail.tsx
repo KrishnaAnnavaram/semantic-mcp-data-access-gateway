@@ -96,6 +96,9 @@ interface Props {
   trace: TraceStep[] | undefined
   sending: boolean
   hasStarted: boolean
+  // When embedded under the RightRail tab bar the panel's own header would be a
+  // second, redundant title, so it is suppressed there.
+  hideHeader?: boolean
 }
 
 // Always-visible pipeline view for the latest turn — orchestrator classify,
@@ -103,19 +106,21 @@ interface Props {
 // the composed reply. This is the project's actual differentiator (grounded,
 // negotiated, auditable reasoning), so it stays on screen rather than behind
 // a tab click.
-export function ReasoningRail({ trace, sending, hasStarted }: Props) {
+export function ReasoningRail({ trace, sending, hasStarted, hideHeader }: Props) {
   return (
-    <div className="flex h-full flex-col border-l border-border bg-surface">
-      <div className="border-b border-border px-4 py-3">
-        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-text-faint">
-          Reasoning
-          {!sending && trace && trace.length > 0 && (
-            <span className="rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium normal-case tracking-normal text-text-muted">
-              {trace.length} steps
-            </span>
-          )}
+    <div className="flex h-full flex-col bg-surface">
+      {!hideHeader && (
+        <div className="border-b border-border px-4 py-3">
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-text-faint">
+            Reasoning
+            {!sending && trace && trace.length > 0 && (
+              <span className="rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium normal-case tracking-normal text-text-muted">
+                {trace.length} steps
+              </span>
+            )}
+          </div>
         </div>
-      </div>
+      )}
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {sending ? (
           <RunningSkeleton />

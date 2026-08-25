@@ -34,6 +34,7 @@ from agents.a2a.envelope import (
 )
 from agents.a2a.guardrails import CallChain, TurnLedger
 from agents.contracts import Requirement, ServeResponse, ToolCatalogue
+from agents.observability import current_trace_headers
 
 LOGGER = logging.getLogger("agents.a2a.ports")
 
@@ -101,13 +102,16 @@ class A2ADataLayer:
     # -- plumbing ------------------------------------------------------------
 
     def _call(self, skill: str, payload: dict[str, Any], *, intent: str) -> SkillResult:
+        # Captured on this worker thread, where the domain expert's run is
+        # active, so the MCP agent's assessment nests under the same turn.
         return dispatch(
             self._loop,
             self._link.call(skill=skill, payload=payload,
                             requesting_agent=self._requesting_agent,
                             ledger=self._ledger, chain=self._chain, intent=intent,
                             negotiation_round=self._round,
-                            negotiation_phase=self._phase),
+                            negotiation_phase=self._phase,
+                            trace_headers=current_trace_headers()),
             self._ledger.remaining_seconds() + 30)
 
     @staticmethod

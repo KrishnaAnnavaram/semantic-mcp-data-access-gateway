@@ -48,6 +48,12 @@ export function useSend() {
         data_plan: result.dataPlan,
         negotiation: result.negotiation,
         trace: result.trace,
+        // Per-message observability: this answer keeps its own trace + link, so
+        // selecting an older turn shows that turn's trace, not the latest one.
+        handoffs: result.handoffs,
+        langsmith_url: result.langsmithUrl,
+        langsmith_trace_id: result.langsmithTraceId,
+        langsmith_project: result.langsmithProject,
       })
       setPending(result.awaitingClarification ? result.elicitation : null)
       if (wasFirstTurn) setProvisionalTitle(trimmed)
@@ -78,6 +84,12 @@ export function useSend() {
         data_plan: result.dataPlan,
         negotiation: result.negotiation,
         trace: result.trace,
+        // Per-message observability: this answer keeps its own trace + link, so
+        // selecting an older turn shows that turn's trace, not the latest one.
+        handoffs: result.handoffs,
+        langsmith_url: result.langsmithUrl,
+        langsmith_trace_id: result.langsmithTraceId,
+        langsmith_project: result.langsmithProject,
       })
       setPending(result.awaitingClarification ? result.elicitation : null)
     } catch (err) {

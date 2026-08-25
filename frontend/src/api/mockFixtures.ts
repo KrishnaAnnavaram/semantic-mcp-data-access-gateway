@@ -284,6 +284,14 @@ function demoAnswer(opts: {
     negotiation: opts.negotiation,
     awaitingClarification: false,
     trace: opts.trace,
+    // Mock mode has no real backend and therefore no real LangSmith trace or
+    // handoff ledger. These stay null rather than being synthesised — a graph or
+    // timeline of events that never happened would be a lie, which the trace UI
+    // must never tell. The Graph/Trace tabs show their honest empty states.
+    handoffs: null,
+    langsmithUrl: null,
+    langsmithTraceId: null,
+    langsmithProject: null,
   }
 }
 
@@ -300,6 +308,10 @@ export function mockDemoAnswer(query: string, latencyMs: number): AnswerResult {
       negotiation: null,
       awaitingClarification: true,
       trace: THIRTY_YEAR_TRACE,
+      handoffs: null,
+      langsmithUrl: null,
+      langsmithTraceId: null,
+      langsmithProject: null,
     }
   }
 

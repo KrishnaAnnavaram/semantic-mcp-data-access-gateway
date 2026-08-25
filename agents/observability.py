@@ -35,15 +35,21 @@ there is no second copy to drift.
 
 from __future__ import annotations
 
+import contextlib
 import functools
 import logging
 import os
 import threading
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, Iterator, TypeVar
 
 LOGGER = logging.getLogger("agents.observability")
 
 DEFAULT_PROJECT = "semantic-mcp-data-access-gateway"
+
+#: LangSmith's public SaaS ingest endpoint. Reported (never a secret) so a
+#: reader of `/health` can tell a default deployment from an EU or self-hosted
+#: one without guessing.
+DEFAULT_ENDPOINT = "https://api.smith.langchain.com"
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -78,11 +84,36 @@ def project_name() -> str:
             or os.environ.get("LANGCHAIN_PROJECT") or DEFAULT_PROJECT)
 
 
+def endpoint() -> str:
+    """The LangSmith ingest endpoint runs are sent to.
+
+    Reported, not secret. A custom value is how an EU or self-hosted LangSmith
+    is reached, and knowing which one is in effect is the difference between "my
+    traces are missing" and "my traces are in the other region".
+    """
+    _load_env()
+    return (os.environ.get("LANGSMITH_ENDPOINT")
+            or os.environ.get("LANGCHAIN_ENDPOINT") or DEFAULT_ENDPOINT)
+
+
+def workspace_id() -> str | None:
+    """The workspace a multi-workspace key is scoped to, if one is set."""
+    _load_env()
+    return (os.environ.get("LANGSMITH_WORKSPACE_ID")
+            or os.environ.get("LANGCHAIN_WORKSPACE_ID") or None)
+
+
 def langsmith_status() -> dict[str, Any]:
     """What tracing will actually do — reported, not assumed.
 
     A silently disabled tracer is the usual reason an evaluation run comes back
     empty, so the reason is spelled out rather than left to be inferred.
+
+    The distinction that matters: *configured* (a flag and a key are present, so
+    runs will be attempted) is not *verified* (LangSmith has actually accepted a
+    run). This object reports the first — it reads the environment and never
+    makes a network call, because `/health` must answer whether or not LangSmith
+    is reachable. The key itself never appears; only whether one is present.
     """
     _load_env()
     flag = (os.environ.get("LANGSMITH_TRACING")
@@ -97,7 +128,19 @@ def langsmith_status() -> dict[str, Any]:
         reason = "an API key is set but LANGSMITH_TRACING is not 'true'"
     else:
         reason = "set LANGSMITH_TRACING=true and LANGSMITH_API_KEY to enable"
-    return {"enabled": flag and keyed, "project": project_name(), "reason": reason}
+    return {
+        "enabled": flag and keyed,
+        "project": project_name(),
+        # `configured` is a synonym for `enabled` kept explicit: it names the
+        # thing this object actually reports, so a reader is not tempted to read
+        # `enabled` as "verified working".
+        "configured": flag and keyed,
+        "api_key_configured": keyed,
+        "tracing_flag": flag,
+        "endpoint": endpoint(),
+        "workspace_configured": workspace_id() is not None,
+        "reason": reason,
+    }
 
 
 def traced(name: str, run_type: str = "chain", **kwargs: Any) -> Callable[[F], F]:
@@ -135,6 +178,236 @@ def run_url() -> str | None:
         return tree.get_url() if tree is not None else None
     except Exception:  # noqa: BLE001 - a missing link is cosmetic
         return None
+
+
+def run_id() -> str | None:
+    """The id of the current run's *trace* (its root), for correlation.
+
+    This is the id a user can paste into LangSmith to find the exact request,
+    and the one the frontend stores per message. It is the trace id, not the
+    span id, so every span in the turn resolves to the same value.
+    """
+    if not tracing_enabled():
+        return None
+    try:
+        from langsmith.run_helpers import get_current_run_tree  # noqa: PLC0415
+
+        tree = get_current_run_tree()
+        if tree is None:
+            return None
+        # `trace_id` is the root of the whole turn; `id` would be this span.
+        return str(getattr(tree, "trace_id", None) or getattr(tree, "id", None) or "") or None
+    except Exception:  # noqa: BLE001 - a missing id is cosmetic
+        return None
+
+
+#: The A2A message-metadata key under which the LangSmith trace-continuation
+#: headers travel. One key, so a reader of a captured message can tell the
+#: tracing baggage from the domain metadata beside it.
+TRACE_HEADER_KEY = "langsmith_trace"
+
+
+def current_trace_headers() -> dict[str, str] | None:
+    """The headers that let another execution continue *this* trace.
+
+    This is the whole of distributed tracing across A2A. Captured on the worker
+    thread where the parent run is active, carried in A2A message metadata, and
+    handed to `continue_trace` on the far side so the specialist's spans nest
+    under the same root instead of starting a second disconnected trace.
+
+    Returns `None` when tracing is off or there is no active run — in which case
+    the far side simply starts fresh, exactly as it does today. Never raises.
+    """
+    if not tracing_enabled():
+        return None
+    try:
+        from langsmith.run_helpers import get_current_run_tree  # noqa: PLC0415
+
+        tree = get_current_run_tree()
+        if tree is None:
+            return None
+        headers = tree.to_headers()
+        # Only the two continuation headers, as plain strings — nothing that
+        # could carry a secret, and nothing a protobuf Struct cannot hold.
+        return {k: str(v) for k, v in headers.items()
+                if k in ("langsmith-trace", "baggage") and v}
+    except Exception:  # noqa: BLE001 - propagation is best effort
+        return None
+
+
+@contextlib.contextmanager
+def continue_trace(headers: dict[str, str] | None) -> Iterator[None]:
+    """Re-establish a parent trace from headers captured across an A2A hop.
+
+    Wrap the specialist's work in this on the *receiving* side. Because the
+    executor hands its work to a worker thread with `asyncio.to_thread`, and
+    that copies the current context, entering this context manager before the
+    hand-off is what makes the copied context carry the parent — so the traced
+    functions on the worker thread nest under the caller's run.
+
+    A no-op when there are no headers or tracing is off, and it never raises:
+    tracing must not be able to fail a request.
+    """
+    if not headers or not tracing_enabled():
+        yield
+        return
+    try:
+        from langsmith.run_helpers import tracing_context  # noqa: PLC0415
+
+        with tracing_context(parent=headers):
+            yield
+    except Exception as exc:  # noqa: BLE001 - a broken parent must not fail work
+        LOGGER.debug("could not continue trace from headers: %s", exc)
+        yield
+
+
+@contextlib.contextmanager
+def span(name: str, run_type: str = "tool", **metadata: Any) -> Iterator[None]:
+    """An ad-hoc child span with a runtime name, for MCP and DB operations.
+
+    The `@traced` decorator needs a static name; a per-tool span
+    (`mcp.call:get_curve`, `postgres.query`) needs a dynamic one, so this wraps
+    LangSmith's `trace` context manager. Nests under whatever run is active, so
+    called from inside a traced agent method it lands in the right place.
+
+    Fail-open in every direction: tracing off, langsmith absent, or `trace`
+    raising all degrade to running the block untraced. It never suppresses an
+    exception from *inside* the block — that is the caller's own error.
+    """
+    if not tracing_enabled():
+        yield
+        return
+    try:
+        from langsmith import trace as _ls_trace  # noqa: PLC0415
+    except Exception:  # noqa: BLE001 - langsmith absent
+        yield
+        return
+    clean = {k: v for k, v in metadata.items() if v is not None}
+    try:
+        cm = _ls_trace(name=name, run_type=run_type, metadata=clean or None)
+    except Exception as exc:  # noqa: BLE001 - could not open a span
+        LOGGER.debug("could not open span %s: %s", name, exc)
+        yield
+        return
+    with cm:
+        yield
+
+
+def set_run_metadata(**metadata: Any) -> None:
+    """Attach metadata to the current run, for dashboards and filtering.
+
+    Fail-open and best effort: unknown keys, a missing run tree, or a langsmith
+    that will not accept the update all degrade to doing nothing. Values should
+    be small scalars — this is for grouping and filtering (route, model,
+    session), never for payloads.
+    """
+    if not tracing_enabled() or not metadata:
+        return
+    try:
+        from langsmith.run_helpers import get_current_run_tree  # noqa: PLC0415
+
+        tree = get_current_run_tree()
+        if tree is None:
+            return
+        extra = tree.extra if isinstance(getattr(tree, "extra", None), dict) else {}
+        existing = extra.get("metadata") if isinstance(extra.get("metadata"), dict) else {}
+        existing.update({k: v for k, v in metadata.items() if v is not None})
+        extra["metadata"] = existing
+        tree.extra = extra
+    except Exception as exc:  # noqa: BLE001 - metadata is never load-bearing
+        LOGGER.debug("could not set run metadata: %s", exc)
+
+
+def set_run_tags(*tags: str) -> None:
+    """Add tags to the current run. Fail-open, like `set_run_metadata`."""
+    clean = [t for t in tags if t]
+    if not tracing_enabled() or not clean:
+        return
+    try:
+        from langsmith.run_helpers import get_current_run_tree  # noqa: PLC0415
+
+        tree = get_current_run_tree()
+        if tree is None:
+            return
+        current = list(getattr(tree, "tags", None) or [])
+        for tag in clean:
+            if tag not in current:
+                current.append(tag)
+        tree.tags = current
+    except Exception as exc:  # noqa: BLE001 - tags are never load-bearing
+        LOGGER.debug("could not set run tags: %s", exc)
+
+
+_APP_METADATA: dict[str, Any] | None = None
+
+
+def app_metadata() -> dict[str, Any]:
+    """Process-wide facts worth stamping on every trace, resolved once.
+
+    Environment, application name and version, the git commit, and which model
+    backend and data backend are live. All safe to expose; none is a secret. A
+    dashboard filters on these — "P95 latency on this commit", "error rate under
+    the zai backend" — so they are attached to the root of every turn.
+    """
+    global _APP_METADATA  # noqa: PLW0603 - resolved once, then cached
+    if _APP_METADATA is not None:
+        return dict(_APP_METADATA)
+    _load_env()
+    meta: dict[str, Any] = {
+        "application": "smcp-gateway",
+        "environment": os.environ.get("SMCP_ENV") or os.environ.get("ENVIRONMENT") or "local",
+        "app_version": os.environ.get("APP_VERSION") or _read_version(),
+        "git_commit": os.environ.get("GIT_COMMIT") or _read_git_commit(),
+        "llm_backend": os.environ.get("LLM_BACKEND") or "zai",
+        "data_backend": os.environ.get("DATA_BACKEND") or "mock",
+    }
+    _APP_METADATA = {k: v for k, v in meta.items() if v}
+    return dict(_APP_METADATA)
+
+
+def _repo_root():
+    """Walk up for a repository marker. Never counts directory levels.
+
+    Resolved locally rather than importing `backend.paths`: `agents` sits below
+    `backend` in the dependency order, and an upward import to read a version
+    string would invert it. Same marker discipline as `paths.py`.
+    """
+    from pathlib import Path  # noqa: PLC0415
+
+    here = Path(__file__).resolve()
+    for candidate in (here, *here.parents):
+        if (candidate / ".git").exists() or (candidate / "docker-compose.yml").exists():
+            return candidate
+    return None
+
+
+def _read_version() -> str:
+    try:
+        root = _repo_root()
+        if root is None:
+            return ""
+        for line in (root / "pyproject.toml").read_text(encoding="utf-8").splitlines():
+            if line.strip().startswith("version"):
+                return line.split("=", 1)[1].strip().strip('"').strip("'")
+    except Exception:  # noqa: BLE001 - version is cosmetic
+        pass
+    return ""
+
+
+def _read_git_commit() -> str:
+    """The short commit, read from `.git` without shelling out at request time."""
+    try:
+        root = _repo_root()
+        if root is None:
+            return ""
+        git = root / ".git"
+        head = (git / "HEAD").read_text(encoding="utf-8").strip()
+        if head.startswith("ref:"):
+            ref = head.split(" ", 1)[1].strip()
+            return (git / ref).read_text(encoding="utf-8").strip()[:12]
+        return head[:12]
+    except Exception:  # noqa: BLE001 - commit is cosmetic
+        return ""
 
 
 def log_status(logger: logging.Logger | None = None) -> None:
@@ -217,11 +490,24 @@ def structured_call(*, call_site, system: str, prompt: str, schema: dict[str, An
     Telling someone "asking again usually works" when the provider has answered
     `Insufficient balance` is advice that cannot come true.
     """
+    import time as _time  # noqa: PLC0415
+
     from llm import ProviderError, SchemaViolation  # noqa: PLC0415
 
     provider = model_provider()
     model = provider.model_for(call_site)
     _FAILURE.kind = ""
+    # LangSmith model attribution: `ls_provider` and `ls_model_name` are the
+    # conventional keys a run carries so the UI groups by model and can price a
+    # call. Attached to the enclosing llm span (this call runs inside one), so it
+    # costs nothing when tracing is off. `structured_call` returns the payload
+    # only — the provider's token usage is not surfaced through this seam — so
+    # token counts are deliberately not invented here; duration is recorded
+    # because it is measured honestly.
+    _site = getattr(call_site, "value", call_site)
+    set_run_metadata(ls_provider=provider.name, ls_model_name=model,
+                     call_site=_site)
+    started = _time.perf_counter()
     try:
         payload = provider.structured_call(
             call_site=call_site, system=system, prompt=prompt, schema=schema,
@@ -245,6 +531,7 @@ def structured_call(*, call_site, system: str, prompt: str, schema: dict[str, An
         _FAILURE.kind = "unknown"
         return None
 
+    set_run_metadata(model_call_seconds=round(_time.perf_counter() - started, 3))
     LOGGER.debug("structured call ok | provider=%s model=%s call_site=%s",
                  provider.name, model, getattr(call_site, "value", call_site))
     return payload
