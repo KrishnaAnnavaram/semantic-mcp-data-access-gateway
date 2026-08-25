@@ -1,5 +1,11 @@
 <h1>semantic-mcp-data-access-gateway</h1>
 
+> Redis 8.8 provides optional shared intelligence for the Domain Expert and MCP
+> Agent: validated exact caching, strictly gated semantic reuse, single-flight
+> coordination, model rate limits, and Streams/TimeSeries analytics. It remains
+> a derived, fail-open layer; PostgreSQL, Qdrant, MCP, and A2A keep their existing
+> authority and boundaries. See [the Redis architecture and operations guide](docs/redis.md).
+
 **Ask a market-risk question in plain English. Three specialist AI agents work out what data the
 task actually needs — grounded in a vector database, never in a hardcoded constant — negotiate
 what the data layer can honestly serve, fetch exactly that, and show their working.**
@@ -520,15 +526,37 @@ python -m mcp_servers.host --isolation   # proves the risk engine cannot reach t
 | `export_curve_csv` | Write a curve to a client-granted directory | *"Export today's curve to CSV"* |
 | `brief_dataset_caveat` | Terse caveat → desk-ready guidance | *"Explain the caveats on the par curve"* |
 
-### `risk-engine-mcp` — 5 tools
+### `risk-engine-mcp` — 42 tools
 
-| Tool | What it does | 💬 Demo question |
+Nine families. Every tool takes the curve and the portfolio as typed arguments —
+the engine holds no market data of its own, which is what makes "was the input
+wrong, or the maths?" a question with a mechanical answer. Full surface,
+formulas and sign conventions: **[docs/risk-tool-reference.md](docs/risk-tool-reference.md)**.
+
+| Family | Tools | 💬 Demo question |
 |---|---|---|
-| `price_portfolio_tool` | PV of fixed-rate bonds under a par curve | *"What is the demo book worth today?"* |
-| `compute_dv01_tool` | DV01 by **full revaluation** | *"What is the DV01 of the demo book?"* |
-| `compute_key_rate_dv01_tool` | Sensitivity to each par node individually | *"Break the DV01 down by tenor"* |
-| `run_stress_tool` | Revalue under an explicit bp shock vector | *"Run the 1994 bond massacre on the demo book"* |
-| `compute_historical_risk_tool` | VaR + Expected Shortfall by full revaluation | *"Compute 10-day 99% historical VaR"* |
+| **Valuation & bond analytics** | `price_portfolio_tool` · `compute_bond_analytics_tool` · `compute_carry_roll_tool` | *"What is the demo book worth, and what is the 10-year's yield, duration and convexity?"* |
+| **Curve analytics** | `compute_curve_analytics_tool` · `compute_rate_volatility_tool` | *"Is the curve inverted, and where is 2s10s?"* |
+| **Sensitivities** | `compute_dv01_tool` · `compute_key_rate_dv01_tool` · `compute_rate_sensitivities_tool` · `compute_risk_contributions_tool` | *"Break the DV01 down by tenor, and tell me which position drives the VaR"* |
+| **Single-scenario stress** | `run_stress_tool` · `run_rate_stress_tool` · `run_key_rate_stress_tool` · `run_curve_twist_stress_tool` · `run_curve_curvature_stress_tool` · `run_shock_ladder_tool` | *"Run a severe bear steepener"* · *"Show me the P&L ladder from −300 to +300bp"* |
+| **Stress suites** | `run_stress_matrix_tool` · `compare_stress_scenarios_tool` · `compute_stress_contributions_tool` · `explain_stress_loss_tool` · `compute_stress_thresholds_tool` · `run_concentration_stress_tool` · `run_scenario_severity_pack_tool` | *"Run the standard stress pack and tell me the three worst"* |
+| **Historical stress** | `run_historical_stress_tool` · `run_historical_crisis_stress_tool` · `find_worst_historical_stresses_tool` | *"Run the March 2020 COVID shock"* · *"Which historical moves would have hurt us most?"* |
+| **Reverse stress** | `run_reverse_stress_tool` · `find_limit_breach_stress_tool` | *"What rate move costs us $2m?"* · *"At what shock do we breach the limit?"* |
+| **Distribution risk** | `compute_historical_risk_tool` · `compute_parametric_risk_tool` · `compute_monte_carlo_risk_tool` · `run_extreme_tail_simulation_tool` · `run_volatility_regime_stress_tool` · `run_rate_correlation_stress_tool` · `compare_risk_methods_tool` · `backtest_var_tool` · `compute_pnl_attribution_tool` | *"Compare historical, parametric and Monte Carlo VaR"* · *"Backtest last year's VaR"* |
+| **Portfolio & regulatory** | `compute_concentration_tool` · `evaluate_risk_limits_tool` · `compare_portfolio_risk_tool` · `analyze_hypothetical_trade_tool` · `analyze_rate_hedge_tool` · `compute_frtb_girr_tool` | *"What happens to my risk if I add $10m of 10-year?"* · *"What is the FRTB GIRR charge?"* |
+
+Three rules run through all of them:
+
+* **The shock vector always travels with the result.** A scenario whose shape
+  cannot be inspected is a number nobody can check — so "bear steepener" is
+  always accompanied by the basis points it actually applied.
+* **No historical shock is stored anywhere.** The named crisis catalogue holds
+  *dates*; the shock is measured from published curves at the moment of use, and
+  a test asserts that no field of that catalogue holds a number.
+* **An absent capability is absent, never zero.** FRTB vega comes back `null`
+  because the book has no optionality; a scenario the bootstrap refuses is
+  listed as *not run*, with the reason. See
+  [docs/capability-gaps.md](docs/capability-gaps.md).
 
 ### Hard boundaries
 

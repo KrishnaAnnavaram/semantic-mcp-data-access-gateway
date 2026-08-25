@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import threading
 import time
 from typing import Any
 
@@ -90,6 +91,30 @@ class ZaiProvider:
                 "with your ANTHROPIC_API_KEY instead.", kind="auth")
         self.config = config
         self._client: Any = None
+        self._call_stats = threading.local()
+
+    def _reset_call_stats(self) -> None:
+        if not hasattr(self, "_call_stats"):
+            self._call_stats = threading.local()
+        self._call_stats.value = {"calls": 0, "duration_ms": 0, "usage": {}}
+
+    def _record_attempt(self, started: float, response: Any = None) -> None:
+        if not hasattr(self, "_call_stats"):
+            self._call_stats = threading.local()
+        stats = dict(getattr(self._call_stats, "value", {}) or {})
+        stats["calls"] = int(stats.get("calls") or 0) + 1
+        stats["duration_ms"] = int(stats.get("duration_ms") or 0) + round(
+            (time.time() - started) * 1000)
+        usage = dict(stats.get("usage") or {})
+        for key, value in self._usage(response).items() if response is not None else ():
+            usage[key] = int(usage.get(key) or 0) + int(value)
+        stats["usage"] = usage
+        self._call_stats.value = stats
+
+    def last_call_stats(self) -> dict[str, Any]:
+        if not hasattr(self, "_call_stats"):
+            return {}
+        return dict(getattr(self._call_stats, "value", {}) or {})
 
     # --- plumbing ---------------------------------------------------------
     def _api(self) -> Any:
@@ -136,6 +161,7 @@ class ZaiProvider:
     def structured_call(self, *, call_site: CallSite, system: str, prompt: str,
                         schema: dict[str, Any], max_tokens: int | None = None,
                         result_name: str = "emit_result") -> dict[str, Any]:
+        self._reset_call_stats()
         model = self.model_for(call_site)
         schema = strictened(schema)
         budget = self.config.tokens_for(call_site, max_tokens)
@@ -239,9 +265,10 @@ class ZaiProvider:
                      thinking: bool = True) -> dict[str, Any]:
         """One forced-function-call round: request, extract, parse, validate."""
         started = time.time()
-        response = self._create(
-            model=model,
-            max_tokens=budget,
+        try:
+            response = self._create(
+                model=model,
+                max_tokens=budget,
             # GLM bills thinking against the output budget, and it expands to
             # fill whatever it is given — measured 5,241 reasoning tokens under
             # a 12,000 ceiling and 9,576 under 20,000, on the same prompt. So
@@ -256,8 +283,12 @@ class ZaiProvider:
                 "description": ("Emit the result. You MUST call this function "
                                 "exactly once, with every required field."),
                 "parameters": schema}}],
-            tool_choice={"type": "function", "function": {"name": result_name}},
-        )
+                tool_choice={"type": "function", "function": {"name": result_name}},
+            )
+        except Exception:
+            self._record_attempt(started)
+            raise
+        self._record_attempt(started, response)
 
         choice = (getattr(response, "choices", None) or [None])[0]
         if choice is None:

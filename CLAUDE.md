@@ -124,8 +124,44 @@ python -m mcp_servers.host --isolation   # prove the risk engine cannot reach th
 python -m mcp_servers.host --primitives  # exercise all six MCP primitives
 python -m mcp_servers.host --ask "..."   # the host's own agent, driving both servers
 python tools/verify_mcp.py --self-test   # 48 checks; 4 canaries must be caught
-pytest                                   # 68 tests (frontend: cd frontend && npm test)
+pytest                                   # 1275 tests (frontend: cd frontend && npm test)
 ```
+
+**Risk engine** — 42 deterministic tools over the same two servers
+
+```bash
+# The whole quantitative surface, and the conventions it holds itself to.
+python -c "import anyio; from mcp_servers.risk.server import server as s; \
+           print(len(anyio.run(s.list_tools)), 'tools')"
+
+pytest tests/test_bond_and_curve_analytics.py   # golden: closed forms and identities
+pytest tests/test_rate_sensitivities.py         # DV01 convergence and reconciliation
+pytest tests/test_stress_engine.py              # exact scenario vectors, replay, reverse
+pytest tests/test_distribution_risk.py          # VaR/ES, parametric, Monte Carlo, backtest
+pytest tests/test_attribution_and_limits.py     # carry/roll, attribution, limits, hedging
+pytest tests/test_regulatory_girr.py            # FRTB constants against the published table
+pytest tests/test_risk_properties.py            # invariants over a grid of books and curves
+pytest tests/test_risk_tool_inventory.py        # the documentation-drift guard
+```
+
+Reference: `docs/risk-tool-reference.md` (every tool, every convention),
+`docs/risk-methodology.md` (the mathematics), `docs/capability-gaps.md` (what it
+deliberately cannot do, and what each gap would cost),
+`docs/agent-capabilities.md` (which of the 42 tools `/chat` can actually reach,
+and why the other eight are withheld).
+
+**MCP-registered tools and agent-reachable capabilities are different
+inventories, on purpose.** The risk server registers 42 tools; the domain expert
+is offered 30 executable capabilities. A planner chooses under uncertainty, so
+every catalogue entry is another chance to choose wrong - forty-two would buy a
+few rare questions at the cost of ambiguity on the common ones. The `ToolSpec`
+name *is* the `RiskWorkflows` method name, because `McpAgent._calculate`
+resolves it with `getattr`; contract tests enforce that in both directions.
+
+**The tool inventory is derived from the registered tools, never from prose.**
+`tests/test_risk_tool_inventory.py` fails if a documented count drifts from what
+the servers actually advertise — it caught a stale "5 risk tools" the day the
+count became 42. When code and document disagree, the document changes.
 
 ## All six MCP primitives are live
 
@@ -134,7 +170,7 @@ three flow the other way, mid-call.
 
 | Primitive | Where it lives | What it does here |
 |---|---|---|
-| **Tools** | both servers | 14 data tools, 5 risk tools |
+| **Tools** | both servers | 14 data tools, 42 risk tools (30 reachable as agent capabilities — `docs/agent-capabilities.md`) |
 | **Resources** | both servers | catalogues, caveats, provenance, risk methodology |
 | **Prompts** | both servers | recommended tool orderings, as slash-commands |
 | **Elicitation** | `search_series` | `'30 year'` matches BC_30YEAR *and* TC_30YEAR — the server asks rather than picking |

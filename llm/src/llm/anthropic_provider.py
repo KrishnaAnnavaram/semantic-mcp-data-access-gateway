@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
 import time
 from typing import Any
 
@@ -47,6 +48,26 @@ class AnthropicProvider:
     def __init__(self, config: ModelConfig) -> None:
         self.config = config
         self._client: Any = None
+        self._call_stats = threading.local()
+
+    def _reset_call_stats(self) -> None:
+        if not hasattr(self, "_call_stats"):
+            self._call_stats = threading.local()
+        self._call_stats.value = {"calls": 0, "duration_ms": 0, "usage": {}}
+
+    def _record_attempt(self, started: float, response: Any = None) -> None:
+        if not hasattr(self, "_call_stats"):
+            self._call_stats = threading.local()
+        self._call_stats.value = {
+            "calls": 1,
+            "duration_ms": round((time.time() - started) * 1000),
+            "usage": self._usage(response) if response is not None else {},
+        }
+
+    def last_call_stats(self) -> dict[str, Any]:
+        if not hasattr(self, "_call_stats"):
+            return {}
+        return dict(getattr(self._call_stats, "value", {}) or {})
 
     # --- plumbing ---------------------------------------------------------
     def _api(self) -> Any:
@@ -89,6 +110,7 @@ class AnthropicProvider:
     def structured_call(self, *, call_site: CallSite, system: str, prompt: str,
                         schema: dict[str, Any], max_tokens: int | None = None,
                         result_name: str = "emit_result") -> dict[str, Any]:
+        self._reset_call_stats()
         model = self.model_for(call_site)
         schema = strictened(schema)
         request: dict[str, Any] = {
@@ -107,8 +129,10 @@ class AnthropicProvider:
         try:
             response = self._api().messages.create(**request)
         except Exception as exc:  # noqa: BLE001
+            self._record_attempt(started)
             raise ProviderError(f"anthropic call failed: {exc}",
                                 kind=_kind_of(exc)) from exc
+        self._record_attempt(started, response)
 
         if getattr(response, "stop_reason", None) == "refusal":
             raise ProviderError(f"{model} refused the request", kind="refusal")

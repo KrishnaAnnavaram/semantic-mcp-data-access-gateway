@@ -556,6 +556,9 @@ COUNT_KEYS = frozenset({
     "lookback_days", "negotiation_round", "chain_length", "max_chain_reached", "negotiation_rounds", "chain_limit", "reentry_limit",
     # From the risk engine, through the calculation artifact.
     "scenarios_used", "horizon_days", "trading_days", "point_count",
+    # Stated by the planner in `calculation_params`. A `top_n` of 5 that
+    # arrives as 5.0 reaches a user-visible sentence as "top 5.0".
+    "scenario_count", "top_n",
 })
 
 

@@ -104,7 +104,9 @@ class _LoopThread:
 class AgentNetwork:
     """The three agents, hosted and wired to each other over A2A."""
 
-    def __init__(self, knowledge: Any = None, data_provider: Any = None) -> None:
+    def __init__(self, knowledge: Any = None, data_provider: Any = None,
+                 market_risk_knowledge: Any = None) -> None:
+        from agents.cache import get_intelligence  # noqa: PLC0415
         from agents.domain_expert_agent import DomainExpertAgent  # noqa: PLC0415
         from agents.mcp_agent import McpAgent  # noqa: PLC0415
         from agents.orchestrator_agent import OrchestratorAgent  # noqa: PLC0415
@@ -118,9 +120,21 @@ class AgentNetwork:
         # A2A message to its endpoint, and a public attribute is an invitation
         # to skip that. The orchestrator stays public because its own workflow
         # legitimately holds it — the orchestrator *is* the caller there.
+        store = getattr(knowledge, "store", None)
+        embedding_method = getattr(store, "_embed", None)
+
+        def embed(text: str) -> list[float]:
+            return embedding_method([text])[0]
+
+        intelligence = get_intelligence(
+            embedder=embed if callable(embedding_method) else None,
+            embedding_model=str(getattr(store, "EMBED_MODEL", "")))
+        self.intelligence = intelligence
         self.orchestrator_agent = OrchestratorAgent()
-        self._domain_expert_agent = DomainExpertAgent(knowledge)
-        self._mcp_agent = McpAgent(data_provider)
+        self._domain_expert_agent = DomainExpertAgent(
+            knowledge, market_risk_knowledge=market_risk_knowledge,
+            intelligence=intelligence)
+        self._mcp_agent = McpAgent(data_provider, intelligence=intelligence)
 
         self._executors = {
             AgentId.ORCHESTRATOR: OrchestratorExecutor(
@@ -305,7 +319,8 @@ _NETWORK: AgentNetwork | None = None
 _NETWORK_LOCK = threading.Lock()
 
 
-def get_network(knowledge: Any = None, data_provider: Any = None) -> AgentNetwork:
+def get_network(knowledge: Any = None, data_provider: Any = None,
+                market_risk_knowledge: Any = None) -> AgentNetwork:
     """The process-wide network, built once.
 
     A singleton for the same reason the MCP bridge is one: the expensive
@@ -316,14 +331,23 @@ def get_network(knowledge: Any = None, data_provider: Any = None) -> AgentNetwor
     global _NETWORK  # noqa: PLW0603 - deliberate process-wide singleton
     with _NETWORK_LOCK:
         if _NETWORK is None:
-            if knowledge is None or data_provider is None:
+            if (knowledge is None or data_provider is None
+                    or market_risk_knowledge is None):
                 from backend.knowledge.knowledge_base import KnowledgeBase  # noqa: PLC0415
+                from backend.knowledge.market_risk_kb import (  # noqa: PLC0415
+                    MarketRiskKnowledgeBase,
+                )
                 from backend.providers.base import make_data_provider  # noqa: PLC0415
 
                 knowledge = knowledge or KnowledgeBase()
+                market_risk_knowledge = (
+                    market_risk_knowledge if market_risk_knowledge is not None
+                    else MarketRiskKnowledgeBase())
                 data_provider = data_provider if data_provider is not None \
                     else make_data_provider()
-            _NETWORK = AgentNetwork(knowledge, data_provider)
+            _NETWORK = AgentNetwork(
+                knowledge, data_provider,
+                market_risk_knowledge=market_risk_knowledge)
         return _NETWORK
 
 

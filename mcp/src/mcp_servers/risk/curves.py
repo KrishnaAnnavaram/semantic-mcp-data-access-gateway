@@ -32,8 +32,8 @@ from __future__ import annotations
 
 import math
 from bisect import bisect_left
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Sequence
 
 SEMIANNUAL = 0.5
 MAX_TENOR_YEARS = 30.0
@@ -69,12 +69,12 @@ class ParCurve:
     @classmethod
     def from_months(
         cls, tenors_months: Sequence[float], rates_percent: Sequence[float]
-    ) -> "ParCurve":
+    ) -> ParCurve:
         pairs = sorted(zip((float(m) / 12.0 for m in tenors_months),
                            (float(r) for r in rates_percent)))
         return cls(tuple(t for t, _ in pairs), tuple(r for _, r in pairs))
 
-    def shocked(self, shocks_bp_by_tenor_years: dict[float, float]) -> "ParCurve":
+    def shocked(self, shocks_bp_by_tenor_years: dict[float, float]) -> ParCurve:
         """Apply an additive basis-point shock per tenor. Unlisted tenors move 0."""
         return ParCurve(
             self.tenors_years,
@@ -82,7 +82,7 @@ class ParCurve:
                   for t, r in zip(self.tenors_years, self.rates_percent)),
         )
 
-    def shifted(self, shock_bp: float) -> "ParCurve":
+    def shifted(self, shock_bp: float) -> ParCurve:
         """Parallel shift, in basis points."""
         return ParCurve(self.tenors_years,
                         tuple(r + shock_bp / 100.0 for r in self.rates_percent))

@@ -11,6 +11,15 @@ Interface contract (text in, hits out; embedding is an implementation detail):
     store.query(text, n_results, where=None) -> list[Hit]
     store.count() -> int
     store.reset()
+    store.ids_where(where) -> list[str]      # stored ids matching a payload filter
+    store.delete(ids) -> int                 # remove by the same ids upsert took
+
+The last two exist so an ingest can be genuinely idempotent rather than merely
+non-duplicating. Re-upserting the same ids overwrites in place, but a document
+that now chunks into fewer pieces than last time leaves the surplus behind, and
+those orphans stay retrievable forever. Removing them needs the ability to ask
+which ids a document currently owns, so both methods are on the interface and
+neither leaks Qdrant into the caller.
 """
 
 from __future__ import annotations
@@ -34,6 +43,8 @@ class VectorStore(Protocol):
     def query(self, text: str, n_results: int = 3, where: dict | None = None) -> list[Hit]: ...
     def count(self) -> int: ...
     def reset(self) -> None: ...
+    def ids_where(self, where: dict) -> list[str]: ...
+    def delete(self, ids: list[str]) -> int: ...
 
 
 class QdrantVectorStore:
@@ -120,17 +131,57 @@ class QdrantVectorStore:
             return 0
         return self.client.count(self.collection_name).count
 
+    def _filter(self, where: dict):
+        return self._models.Filter(
+            must=[self._models.FieldCondition(
+                key=k, match=self._models.MatchValue(value=v))
+                for k, v in where.items()]
+        )
+
+    def ids_where(self, where: dict) -> list[str]:
+        """Every stored id whose payload matches `where`.
+
+        Scrolls rather than searches: this is a bookkeeping question ("what does
+        this document currently own?"), not a similarity one, and asking it with
+        a query vector would silently cap at the search limit.
+        """
+        if not self.client.collection_exists(self.collection_name):
+            return []
+        found: list[str] = []
+        offset = None
+        while True:
+            points, offset = self.client.scroll(
+                self.collection_name, scroll_filter=self._filter(where) if where else None,
+                limit=512, offset=offset, with_payload=True, with_vectors=False)
+            found.extend((p.payload or {}).get("_id", str(p.id)) for p in points)
+            if offset is None:
+                return found
+
+    def delete(self, ids: list[str]) -> int:
+        """Remove points by the same string ids `upsert` was given."""
+        if not ids or not self.client.collection_exists(self.collection_name):
+            return 0
+        self.client.delete(self.collection_name,
+                           points_selector=[self._point_id(i) for i in ids])
+        return len(ids)
+
     def reset(self) -> None:
         if self.client.collection_exists(self.collection_name):
             self.client.delete_collection(self.collection_name)
 
 
-def make_vector_store() -> VectorStore:
+def make_vector_store(collection: str = "quant_knowledge") -> VectorStore:
     """Build the Qdrant vector store from the environment.
 
     QDRANT_URL = http://host:6333  -> Dockerized server (the full stack)
     unset                          -> embedded local store at ./data/qdrant (dev)
+
+    `collection` selects which collection on that same server. The default is
+    the `knowledge/` corpus, so existing callers are unaffected; the Market Risk
+    reference library asks for its own by name, which is what keeps the two
+    corpora from ever overwriting one another.
     """
     import os
 
-    return QdrantVectorStore(url=os.environ.get("QDRANT_URL") or None)
+    return QdrantVectorStore(url=os.environ.get("QDRANT_URL") or None,
+                             collection=collection)

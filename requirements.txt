@@ -32,6 +32,7 @@ jsonschema>=4.20        # strict structural validation of model output
 
 # --- knowledge layer + agents ---
 qdrant-client[fastembed]>=1.12 # vector store: embedded (dev) or Qdrant server (Docker)
+redis>=8.0.1,<9             # Redis 8.8 JSON/Search/Streams/TimeSeries client
 
 # --- agent service (Layer 2 /chat API) ---
 fastapi>=0.110

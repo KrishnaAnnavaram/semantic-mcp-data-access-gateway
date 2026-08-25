@@ -25,3 +25,10 @@ DATA_DIR = REPO_ROOT / "data"
 DOCS_DIR = REPO_ROOT / "docs"
 MIGRATIONS_DIR = REPO_ROOT / "postgres" / "migrations"
 KNOWLEDGE_DIR = REPO_ROOT / "knowledge"
+
+# The Market Risk reference corpus. It lives under `docs/` rather than
+# `knowledge/` because it is a *reference library* written for people, not the
+# executable analytical contracts the agent grounds requirements in. Both are
+# ingested, into separate Qdrant collections, and neither can overwrite the
+# other. See `backend/knowledge/market_risk_kb.py`.
+MARKET_RISK_KB_DIR = DOCS_DIR / "market-risk-kb"

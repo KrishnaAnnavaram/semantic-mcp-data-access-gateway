@@ -93,7 +93,17 @@ Two guarantees live in code rather than in the prompt:
 ### 2. Domain Expert — what does this task actually need?
 
 Retrieves from Qdrant and emits a `Requirement`: the fields, the row window, the
-tenors, the calculation, and the citations behind each.
+tenors, the calculation, the parameters that calculation reads, and the
+citations behind each.
+
+**A parameter must have a declared home.** `calculation_params` is a closed
+schema, and a capability can be routed to perfectly and still be unanswerable if
+its input has nowhere legal to arrive. Every parameter a capability reads is
+declared there and validated on the way through - dropped rather than clamped,
+because rewriting a confidence level of 99 to 0.99 guesses at the number the
+whole figure is defined by. Dates are the exception: a period is recorded once
+in `temporal` and filled in by the MCP agent for the capabilities that read it,
+so a planner is never asked to state the same window twice.
 
 **It holds no numbers of its own.** Every figure must be quoted verbatim from a
 chunk it actually retrieved, and the quote is verified against the retrieved text:
@@ -217,6 +227,7 @@ an agent.
 | `VectorStore` | `QdrantVectorStore` (embedded for dev, or Docker via `QDRANT_URL`) | `QDRANT_URL` |
 | `DataProvider` | `McpDataProvider` · `PostgresDataProvider` · `MockDataProvider` | `DATA_BACKEND` |
 | `ModelProvider` | `AnthropicProvider` · `ZaiProvider` | `LLM_BACKEND` |
+| `RedisIntelligence` | `RedisIntelligence` · `NoOpIntelligence` | `REDIS_ENABLED` |
 | `DataLayerPort` | `A2ADataLayer` — the MCP agent, over A2A | — |
 | A2A transport | in-process ASGI · HTTP | `A2A_TRANSPORT` |
 
@@ -236,6 +247,14 @@ when the provider can actually reach them (`hasattr(self.data, "call_tool")`). U
 `mock` or `postgres` the agents never see those tools and say plainly that there are
 no positions. An agent that advertises a capability it cannot honour will
 confabulate one.
+
+**Redis is derived memory, not authority.** The Domain Expert and MCP Agent
+share an optional Redis 8.8 service for validated exact work, safety-gated
+semantic derivation reuse, single-flight coordination, rate limits, and bounded
+operational evidence. PostgreSQL still owns data, Qdrant owns knowledge, and
+MCP execution is not cached until providers expose immutable snapshot identity.
+Redis failures are cache misses unless `REDIS_REQUIRED=true`. Full policy and
+operations: [`docs/redis.md`](docs/redis.md).
 
 ## Deterministic orchestration is not the model's job
 

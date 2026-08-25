@@ -1,0 +1,903 @@
+{
+  "$comment": "Routing catalogue for the expanded market-risk capability set. Each row is a realistic question and the capability the domain expert should schedule for it. Rows with a null expected capability are deliberately ambiguous: the correct behaviour is to ask through the orchestrator, never to pick between semantically different tools.",
+  "version": "1.0",
+  "question_count": 128,
+  "questions": [
+    {
+      "id": "R-001",
+      "question": "What is my DV01?",
+      "expected_capability": "compute_dv01",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-002",
+      "question": "What is the DV01 of the demo book?",
+      "expected_capability": "compute_dv01",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-003",
+      "question": "Show me the portfolio PV01.",
+      "expected_capability": "compute_dv01",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-004",
+      "question": "Break the DV01 down by tenor.",
+      "expected_capability": "compute_dv01",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-005",
+      "question": "What is my key-rate DV01 at the 10-year?",
+      "expected_capability": "compute_dv01",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-006",
+      "question": "Show my rate sensitivities across the curve.",
+      "expected_capability": "compute_rate_sensitivities",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-007",
+      "question": "Give me DV01, duration and convexity together.",
+      "expected_capability": "compute_rate_sensitivities",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-008",
+      "question": "What is the bucketed rate exposure?",
+      "expected_capability": "compute_rate_sensitivities",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-009",
+      "question": "How much DV01 sits in each maturity bucket?",
+      "expected_capability": "compute_rate_sensitivities",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-010",
+      "question": "What is the effective duration of the portfolio?",
+      "expected_capability": "compute_rate_sensitivities",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-011",
+      "question": "What is the yield to maturity of each bond?",
+      "expected_capability": "compute_bond_analytics",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-012",
+      "question": "Show me clean price and accrued interest.",
+      "expected_capability": "compute_bond_analytics",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-013",
+      "question": "What is the dirty price of the 10-year note?",
+      "expected_capability": "compute_bond_analytics",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-014",
+      "question": "Give me Macaulay and modified duration per bond.",
+      "expected_capability": "compute_bond_analytics",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-015",
+      "question": "What is the convexity of the 30-year bond?",
+      "expected_capability": "compute_bond_analytics",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-016",
+      "question": "Show the current yield on each position.",
+      "expected_capability": "compute_bond_analytics",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-017",
+      "question": "What is the dollar duration of each holding?",
+      "expected_capability": "compute_bond_analytics",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-018",
+      "question": "Compute full bond analytics for the book.",
+      "expected_capability": "compute_bond_analytics",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-019",
+      "question": "What is the book worth today?",
+      "expected_capability": "price_portfolio",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-020",
+      "question": "Value the portfolio.",
+      "expected_capability": "price_portfolio",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-021",
+      "question": "What is the present value of my positions?",
+      "expected_capability": "price_portfolio",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-022",
+      "question": "What is the 2s10s spread?",
+      "expected_capability": "compute_curve_analytics",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-023",
+      "question": "What is the current 5s30s?",
+      "expected_capability": "compute_curve_analytics",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-024",
+      "question": "Show me the 2s5s and 5s10s spreads.",
+      "expected_capability": "compute_curve_analytics",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-025",
+      "question": "Is the yield curve inverted?",
+      "expected_capability": "compute_curve_analytics",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-026",
+      "question": "What is the 2s10s30s butterfly?",
+      "expected_capability": "compute_curve_analytics",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-027",
+      "question": "Show me the zero rates implied by the curve.",
+      "expected_capability": "compute_curve_analytics",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-028",
+      "question": "What is the 5y5y forward rate?",
+      "expected_capability": "compute_curve_analytics",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-029",
+      "question": "Describe the shape of the curve.",
+      "expected_capability": "compute_curve_analytics",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-030",
+      "question": "How volatile has the 10-year been?",
+      "expected_capability": "compute_rate_volatility",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-031",
+      "question": "Compare 20-day and 250-day rate volatility.",
+      "expected_capability": "compute_rate_volatility",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-032",
+      "question": "What is the correlation between the 2-year and the 30-year?",
+      "expected_capability": "compute_rate_volatility",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-033",
+      "question": "Stress rates up 100 basis points.",
+      "expected_capability": "run_rate_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-034",
+      "question": "What happens if rates rise 200bp?",
+      "expected_capability": "run_rate_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-035",
+      "question": "Shock the curve down 50bp.",
+      "expected_capability": "run_rate_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-036",
+      "question": "Run a bear steepener.",
+      "expected_capability": "run_rate_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-037",
+      "question": "Run a bull steepener scenario.",
+      "expected_capability": "run_rate_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-038",
+      "question": "Apply a bear flattener.",
+      "expected_capability": "run_rate_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-039",
+      "question": "What is the impact of a bull flattener?",
+      "expected_capability": "run_rate_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-040",
+      "question": "Apply a curve twist about the 10-year.",
+      "expected_capability": "run_rate_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-041",
+      "question": "Run a butterfly shock on the belly.",
+      "expected_capability": "run_rate_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-042",
+      "question": "Sell off the wings of the curve by 100bp.",
+      "expected_capability": "run_rate_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-043",
+      "question": "Run a severe parallel selloff.",
+      "expected_capability": "run_rate_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-044",
+      "question": "Shock only the 10-year point by 50bp.",
+      "expected_capability": "run_key_rate_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-045",
+      "question": "Move the 30Y node down 75bp and nothing else.",
+      "expected_capability": "run_key_rate_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-046",
+      "question": "What if just the 2-year rises 100bp?",
+      "expected_capability": "run_key_rate_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-047",
+      "question": "Stress the 5-year node alone.",
+      "expected_capability": "run_key_rate_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-048",
+      "question": "Show portfolio P&L from -300bp to +300bp.",
+      "expected_capability": "run_shock_ladder",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-049",
+      "question": "Run a rate shock ladder.",
+      "expected_capability": "run_shock_ladder",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-050",
+      "question": "Plot my P&L profile across a range of shocks.",
+      "expected_capability": "run_shock_ladder",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-051",
+      "question": "How does P&L change across shock sizes?",
+      "expected_capability": "run_shock_ladder",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-052",
+      "question": "Run the standard stress pack.",
+      "expected_capability": "run_stress_matrix",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-053",
+      "question": "Run all major stress scenarios and rank them.",
+      "expected_capability": "run_stress_matrix",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-054",
+      "question": "Which standardised stress hurts the portfolio most?",
+      "expected_capability": "run_stress_matrix",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-055",
+      "question": "Give me the full stress matrix.",
+      "expected_capability": "run_stress_matrix",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-056",
+      "question": "Rank every rate scenario by loss.",
+      "expected_capability": "run_stress_matrix",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-057",
+      "question": "What positions drive the bear-steepener loss?",
+      "expected_capability": "compute_stress_contributions",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-058",
+      "question": "Which tenor contributes most to that stress loss?",
+      "expected_capability": "compute_stress_contributions",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-059",
+      "question": "Break down the +100bp stress loss by position.",
+      "expected_capability": "compute_stress_contributions",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-060",
+      "question": "Replay the 2022 rate move.",
+      "expected_capability": "run_historical_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-061",
+      "question": "Stress the book using the March 2020 curve move.",
+      "expected_capability": "run_historical_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-062",
+      "question": "What would the 2008 crisis do to this portfolio?",
+      "expected_capability": "run_historical_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-063",
+      "question": "Replay the 2013 taper tantrum.",
+      "expected_capability": "run_historical_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-064",
+      "question": "Apply the curve move from 2022-01-03 to 2022-10-24.",
+      "expected_capability": "run_historical_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-065",
+      "question": "Run the 1994 bond selloff on the demo book.",
+      "expected_capability": "run_historical_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-066",
+      "question": "What was the impact of the March 2023 regional bank stress?",
+      "expected_capability": "run_historical_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-067",
+      "question": "What historical rate move would hurt us most?",
+      "expected_capability": "find_worst_historical_stresses",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-068",
+      "question": "Show the worst 10 historical scenarios.",
+      "expected_capability": "find_worst_historical_stresses",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-069",
+      "question": "Find the worst five-day historical stress.",
+      "expected_capability": "find_worst_historical_stresses",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-070",
+      "question": "If this book had existed through history, when would it have lost most?",
+      "expected_capability": "find_worst_historical_stresses",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-071",
+      "question": "Search history for the most damaging curve move.",
+      "expected_capability": "find_worst_historical_stresses",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-072",
+      "question": "How much must rates rise before I lose $2 million?",
+      "expected_capability": "run_reverse_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-073",
+      "question": "What parallel shock causes a $5M loss?",
+      "expected_capability": "run_reverse_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-074",
+      "question": "How far can rates move before I lose a million?",
+      "expected_capability": "run_reverse_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-075",
+      "question": "What steepening would cost me $3 million?",
+      "expected_capability": "run_reverse_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-076",
+      "question": "At what rate move do losses reach $500K, $1M and $2M?",
+      "expected_capability": "compute_stress_thresholds",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-077",
+      "question": "Give me the loss threshold table.",
+      "expected_capability": "compute_stress_thresholds",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-078",
+      "question": "What rate shock breaches my $2M stress limit?",
+      "expected_capability": "find_limit_breach_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-079",
+      "question": "How severe can a bear steepener get before the limit breaches?",
+      "expected_capability": "find_limit_breach_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-080",
+      "question": "Are any risk limits breached right now?",
+      "expected_capability": "evaluate_risk_limits",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-081",
+      "question": "What is my DV01 limit utilisation against a $25,000 limit?",
+      "expected_capability": "evaluate_risk_limits",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-082",
+      "question": "How much stress-loss headroom remains under a $3M limit?",
+      "expected_capability": "evaluate_risk_limits",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-083",
+      "question": "What is my historical 99% VaR?",
+      "expected_capability": "compute_var",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-084",
+      "question": "Compute the 10-day 99% historical VaR.",
+      "expected_capability": "compute_var",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-085",
+      "question": "What is my Expected Shortfall?",
+      "expected_capability": "compute_var",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-086",
+      "question": "Calculate parametric VaR.",
+      "expected_capability": "compute_parametric_risk",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-087",
+      "question": "What is the variance-covariance VaR?",
+      "expected_capability": "compute_parametric_risk",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-088",
+      "question": "Give me delta-normal VaR and ES.",
+      "expected_capability": "compute_parametric_risk",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-089",
+      "question": "Calculate Monte Carlo VaR.",
+      "expected_capability": "compute_monte_carlo_risk",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-090",
+      "question": "Run Monte Carlo Expected Shortfall.",
+      "expected_capability": "compute_monte_carlo_risk",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-091",
+      "question": "Simulate 10,000 interest-rate scenarios.",
+      "expected_capability": "compute_monte_carlo_risk",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-092",
+      "question": "Compare historical, parametric and Monte Carlo VaR.",
+      "expected_capability": "compare_risk_methods",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-093",
+      "question": "Which VaR method gives the largest loss estimate?",
+      "expected_capability": "compare_risk_methods",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-094",
+      "question": "Compare historical and Monte Carlo VaR.",
+      "expected_capability": "compare_risk_methods",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-095",
+      "question": "Which position contributes most to VaR?",
+      "expected_capability": "compute_risk_contributions",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-096",
+      "question": "Decompose the Expected Shortfall by position.",
+      "expected_capability": "compute_risk_contributions",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-097",
+      "question": "What is the incremental VaR of the 30-year bond?",
+      "expected_capability": "compute_risk_contributions",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-098",
+      "question": "Has our 99% VaR model performed well?",
+      "expected_capability": "backtest_var",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-099",
+      "question": "How many VaR exceptions occurred?",
+      "expected_capability": "backtest_var",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-100",
+      "question": "Run Kupiec and Christoffersen tests.",
+      "expected_capability": "backtest_var",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-101",
+      "question": "Backtest the VaR model.",
+      "expected_capability": "backtest_var",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-102",
+      "question": "Were there any VaR breaches last year?",
+      "expected_capability": "backtest_var",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-103",
+      "question": "Why did the portfolio lose money?",
+      "expected_capability": "compute_pnl_attribution",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-104",
+      "question": "How much P&L came from rate movement?",
+      "expected_capability": "compute_pnl_attribution",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-105",
+      "question": "Attribute last month's P&L.",
+      "expected_capability": "compute_pnl_attribution",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-106",
+      "question": "How much of the P&L is unexplained?",
+      "expected_capability": "compute_pnl_attribution",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-107",
+      "question": "What is my expected carry?",
+      "expected_capability": "compute_carry_roll",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-108",
+      "question": "How much roll-down does the book have?",
+      "expected_capability": "compute_carry_roll",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-109",
+      "question": "What do I earn if the curve does not move?",
+      "expected_capability": "compute_carry_roll",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-110",
+      "question": "Where is my rate risk concentrated?",
+      "expected_capability": "compute_concentration",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-111",
+      "question": "Which maturity bucket carries the most DV01?",
+      "expected_capability": "compute_concentration",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-112",
+      "question": "How concentrated is the portfolio?",
+      "expected_capability": "compute_concentration",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-113",
+      "question": "What are my largest positions by risk?",
+      "expected_capability": "compute_concentration",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-114",
+      "question": "Compare the current portfolio with the hedged portfolio.",
+      "expected_capability": "compare_portfolio_risk",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-115",
+      "question": "Which book has lower DV01 and VaR?",
+      "expected_capability": "compare_portfolio_risk",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-116",
+      "question": "What happens if I add $10M of 10-year Treasury?",
+      "expected_capability": "analyze_hypothetical_trade",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-117",
+      "question": "How does buying $5M of the 30-year change my VaR?",
+      "expected_capability": "analyze_hypothetical_trade",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-118",
+      "question": "What is the incremental risk of a new 5-year position?",
+      "expected_capability": "analyze_hypothetical_trade",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-119",
+      "question": "What is the GIRR capital charge?",
+      "expected_capability": "compute_frtb_girr",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-120",
+      "question": "Compute FRTB delta for the rates book.",
+      "expected_capability": "compute_frtb_girr",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-121",
+      "question": "What is the standardised interest-rate capital requirement?",
+      "expected_capability": "compute_frtb_girr",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-122",
+      "question": "Run a stress test.",
+      "expected_capability": null,
+      "ambiguous": true,
+      "note": "no scenario named"
+    },
+    {
+      "id": "R-123",
+      "question": "Calculate VaR.",
+      "expected_capability": null,
+      "ambiguous": true,
+      "note": "no method, horizon or confidence named"
+    },
+    {
+      "id": "R-124",
+      "question": "What is my risk?",
+      "expected_capability": null,
+      "ambiguous": true,
+      "note": "no measure named"
+    },
+    {
+      "id": "R-125",
+      "question": "Show me the numbers.",
+      "expected_capability": null,
+      "ambiguous": true,
+      "note": "no capability named at all"
+    },
+    {
+      "id": "R-126",
+      "question": "How bad could it get?",
+      "expected_capability": null,
+      "ambiguous": true,
+      "note": "no scenario family named"
+    },
+    {
+      "id": "R-127",
+      "question": "Run the stored 1994 replay scenario.",
+      "expected_capability": "run_stress",
+      "ambiguous": false,
+      "note": ""
+    },
+    {
+      "id": "R-128",
+      "question": "Apply the scenario from the scenario list.",
+      "expected_capability": "run_stress",
+      "ambiguous": false,
+      "note": ""
+    }
+  ]
+}

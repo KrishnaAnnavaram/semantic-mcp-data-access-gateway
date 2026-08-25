@@ -1,6 +1,6 @@
 # MCP contract
 
-Two servers, seventeen tools, one host. This is the API — treat it as one, not
+Two servers, fifty-six tools, one host. This is the API — treat it as one, not
 as a collection of LLM-friendly functions.
 
 Protocol revision **2026-07-28**, SDK `mcp>=2.0.0`. Transport is **stdio**: the
@@ -12,9 +12,9 @@ host launches each server as a child process.
 
 ```
 host (mcp/src/mcp_servers/host) — MCP host + client, the only component that reasons
-  ├── stdio ──► market-risk-data-mcp   12 tools · 4 resources · 3 prompts
+  ├── stdio ──► market-risk-data-mcp   14 tools · 4 resources · 3 prompts
   │                └── PostgreSQL as mcp_reader (SELECT on analytics + demo)
-  └── stdio ──► risk-engine-mcp         5 tools · 2 resources
+  └── stdio ──► risk-engine-mcp        42 tools · 7 resources · 8 prompts
                    └── no database, no model, no network
 ```
 
@@ -194,15 +194,36 @@ at the first `{`.
 
 ## `risk-engine-mcp`
 
-| Tool | Returns |
-|---|---|
-| `price_portfolio_tool` | PV and per-position contributions |
-| `compute_dv01_tool` | Full-revaluation DV01 |
-| `compute_key_rate_dv01_tool` | Per-node sensitivities |
-| `run_stress_tool` | Shocked value and P&L |
-| `compute_historical_risk_tool` | VaR **and** ES from one revaluation pass |
+Forty-two tools in nine families. Every one takes the curve and the portfolio as
+typed arguments; the engine holds no market data of its own. The complete
+surface, with formulas, units and every sign convention, is
+[risk-tool-reference.md](risk-tool-reference.md).
 
-Resources: `risk://model/manifest`, `risk://methodology/curve-construction`.
+| Family | Tools | Returns |
+|---|---|---|
+| Valuation and bond analytics | `price_portfolio_tool`, `compute_bond_analytics_tool`, `compute_carry_roll_tool` | PV, the clean/dirty/accrued split, YTM, both duration families, convexity, carry and roll |
+| Curve analytics | `compute_curve_analytics_tool`, `compute_rate_volatility_tool` | Zero rates, forwards, spreads, butterflies, inversion; realised rate volatility and covariance |
+| Sensitivities | `compute_dv01_tool`, `compute_key_rate_dv01_tool`, `compute_rate_sensitivities_tool`, `compute_risk_contributions_tool` | DV01, key-rate DV01, buckets, and an explicit reconciliation block |
+| Single-scenario stress | `run_stress_tool`, `run_rate_stress_tool`, `run_key_rate_stress_tool`, `run_curve_twist_stress_tool`, `run_curve_curvature_stress_tool`, `run_shock_ladder_tool` | Shocked value, P&L, and **always** the resolved shock vector |
+| Stress suites | `run_stress_matrix_tool`, `compare_stress_scenarios_tool`, `compute_stress_contributions_tool`, `explain_stress_loss_tool`, `compute_stress_thresholds_tool`, `run_concentration_stress_tool`, `run_scenario_severity_pack_tool` | A ranked 21-scenario pack; position and tenor attribution with its residual |
+| Historical stress | `run_historical_stress_tool`, `run_historical_crisis_stress_tool`, `find_worst_historical_stresses_tool` | Shocks **measured** from published curves, never stored |
+| Reverse stress | `run_reverse_stress_tool`, `find_limit_breach_stress_tool` | The move that costs a stated amount, with convergence reported |
+| Distribution risk | `compute_historical_risk_tool`, `compute_parametric_risk_tool`, `compute_monte_carlo_risk_tool`, `run_extreme_tail_simulation_tool`, `run_volatility_regime_stress_tool`, `run_rate_correlation_stress_tool`, `compare_risk_methods_tool`, `backtest_var_tool`, `compute_pnl_attribution_tool` | VaR and ES under four labelled methodologies; coverage tests; P&L decomposition |
+| Portfolio and regulatory | `compute_concentration_tool`, `evaluate_risk_limits_tool`, `compare_portfolio_risk_tool`, `analyze_hypothetical_trade_tool`, `analyze_rate_hedge_tool`, `compute_frtb_girr_tool` | Concentration, limit utilisation, paired comparison, incremental trade risk, FRTB SA GIRR |
+
+Resources: `risk://model/manifest`, `risk://methodology/curve-construction`,
+`risk://scenarios/templates`, `risk://scenarios/historical-crises`,
+`risk://methodology/risk-measures`, `risk://methodology/regulatory-girr`,
+`risk://capability-gaps`.
+
+Three rules govern the whole surface:
+
+* **The shock vector always travels with the result.** A scenario whose shape
+  cannot be inspected is a number nobody can check.
+* **Nothing is silently approximated.** A convention the engine does not
+  implement is refused by name, with the fix in the message.
+* **An absent capability is absent, not zero.** `vega_capital` is `null`; a
+  scenario the bootstrap refuses is listed as not run, with its reason.
 
 Accepts **par yields only**. Passing bill discount rates as a curve is a
 category error the input schema rejects.
@@ -222,8 +243,11 @@ The fingerprint hashes inputs **and** the manifest. Same inputs under a changed
 quantile convention is a different calculation and must not collide with the
 original.
 
-`backtest_var` is deliberately absent from v1: a multi-thousand-day rolling
-computation is a different workload and should not shape the first API.
+`backtest_var_tool` was deliberately absent from v1 on the grounds that a
+multi-thousand-day rolling computation is a different workload. It is present
+now, and takes the forecast and outcome series as arguments rather than
+generating them - so the workload stays with whoever owns the history, and the
+engine stays a calculator.
 
 ---
 

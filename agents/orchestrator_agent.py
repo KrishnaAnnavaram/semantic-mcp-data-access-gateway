@@ -43,8 +43,8 @@ requests; you do not analyse data.
 Decide between three routes:
 
 - "direct" — greetings, small talk, questions about your own capabilities, and \
-conceptual questions you can answer in two or three sentences without reading \
-any data. Write the reply yourself in `direct_answer`.
+short definitions that neither select a calculation nor state its required \
+inputs. Write the reply yourself in `direct_answer`.
 - "clarify" — the user wants data, but a detail is missing that would change \
 the whole result: which metric, which portfolio, which tenor or date, what \
 confidence level or horizon, or which of two readings they meant. Ask ONE \
@@ -53,7 +53,11 @@ Each option needs a `label` (what the user reads) and a `value` (what gets sent 
 as their next message - natural language, NEVER an internal tool name).
 - "data_request" — anything that needs actual numbers and is specific enough to \
 act on: rates, curves, history, tables, extracts, risk metrics, portfolio \
-figures. Also choose this when the user names fields, columns or a row count.
+figures. Also choose this when the user names fields, columns or a row count, \
+asks HOW to calculate a market-risk measure, asks WHAT DATA the calculation \
+requires, or asks WHICH calculation to use. Those methodology/input questions \
+belong to the Domain Expert because it reads the knowledge corpora and the live \
+data catalogue; an orchestrator answer would be ungrounded.
 
 The test depends on what is being asked for:
 
@@ -68,6 +72,13 @@ curve, a tenor:
   "data for a 97.5% expected shortfall calculation" -> data_request
   "the data to compute DV01 on the demo book"       -> data_request
   "10 year history", "the nominal curve"            -> data_request
+
+**Asking for a METHOD OR ITS INPUTS** also goes to the Domain Expert, even when \
+the user has not asked to run a number yet:
+  "how do I calculate DV01 and what market data is required?" -> data_request
+  "what data do I need for Key Rate DV01?"                    -> data_request
+  "which calculation measures credit-spread sensitivity?"    -> data_request
+  "what is DV01?"                                             -> direct
 
 No subject at all -> "clarify":
   "show me the data" / "give me a table" -> of what?

@@ -30,12 +30,34 @@ from __future__ import annotations
 
 import datetime as dt
 import logging
+import os
 from typing import Any
 
+from agents.cache import get_intelligence
+from agents.cache.fingerprints import (
+    canonical_question,
+    catalogue_fingerprint,
+    model_identity,
+)
+from agents.cache.serialization import CacheRequest
+from agents.cache.versions import (
+    MCP_ASSESS_PROMPT_VERSION,
+    MCP_ASSESS_SCHEMA_VERSION,
+    MCP_CAPABILITY_LOGIC_VERSION,
+    MCP_CATALOGUE_SCHEMA_VERSION,
+    MCP_CATALOGUE_VERSION,
+    MCP_CHOICES_SCHEMA_VERSION,
+    MCP_CHOICES_VERSION,
+)
 from agents.contracts import ServeResponse, ToolCatalogue, ToolSpec
 from llm import CallSite
 
-from agents.observability import set_run_metadata, structured_call, traced
+from agents.observability import (
+    last_failure_kind,
+    set_run_metadata,
+    structured_call,
+    traced,
+)
 
 LOGGER = logging.getLogger("agents.mcp_agent")
 
@@ -127,14 +149,35 @@ ASSESS_SCHEMA: dict[str, Any] = {
 class McpAgent:
     """Advertises what the data layer can do, negotiates, and executes."""
 
-    def __init__(self, data_provider) -> None:
+    def __init__(self, data_provider, *, intelligence=None) -> None:
         self.data = data_provider
         self.call_site = CALL_SITE
+        self.intelligence = intelligence or get_intelligence()
+
+    def _provider_identity(self) -> str:
+        backend = os.environ.get("DATA_BACKEND", "")
+        return f"{backend}:{self.data.__class__.__module__}.{self.data.__class__.__name__}"
 
     # -- advertise -----------------------------------------------------------
 
     @traced("mcp_agent.catalogue", run_type="tool")
     def catalogue(self) -> ToolCatalogue:
+        request = CacheRequest(
+            agent="mcp_agent", operation="catalogue",
+            identity={"provider": self._provider_identity()},
+            versions={"prompt": MCP_CATALOGUE_VERSION,
+                      "schema": MCP_CATALOGUE_SCHEMA_VERSION,
+                      "capabilities": MCP_CAPABILITY_LOGIC_VERSION},
+            result_kind="tool_catalogue",
+            canonical_question="connected data capabilities",
+        )
+        return self.intelligence.cached(
+            request, self._catalogue_uncached,
+            cache_if=lambda result: (
+                bool(result.tools and result.fields)
+                and not any("unavailable" in note.lower() for note in result.notes)))
+
+    def _catalogue_uncached(self) -> ToolCatalogue:
         """What is really connected, read from the live provider."""
         fields: set[str] = {"observation_date", "rate_percent", "quote_basis", "tenor"}
         tenors: list[str] = []
@@ -175,18 +218,485 @@ class McpAgent:
             # `_calculate` dispatches to. Advertising a name the executor cannot
             # resolve makes the domain expert plan a calculation that then fails
             # at the last step, which is the worst place to discover it.
+            #
+            # Every description follows one shape: USE WHEN / NOT WHEN / NEEDS /
+            # OPTIONAL / ASKS LIKE. With this many neighbouring capabilities the
+            # planner is choosing between *questions*, not between names, and
+            # the NOT WHEN clause naming the correct alternative is what makes
+            # the near-misses separable - historical from hypothetical, reverse
+            # from ordinary, backtest from VaR.
             tools += [
+                # -- valuation and bond analytics ------------------------------
                 ToolSpec("price_portfolio",
-                         "Present value of the SYNTHETIC_DEMO book on a par curve.",
+                         "PURPOSE: present value of the demo book on a par curve. "
+                         "USE WHEN the user asks what the portfolio is worth. "
+                         "NOT WHEN they want per-bond price detail, yield or "
+                         "duration - use compute_bond_analytics. "
+                         "NEEDS a portfolio. OPTIONAL curve_date. "
+                         "ASKS LIKE: 'what is the book worth?'; "
+                         "'value the portfolio as of 2020-03-17'.",
                          "risk", executable=True),
+                ToolSpec("compute_bond_analytics",
+                         "PURPOSE: per-bond valuation analytics - clean and dirty "
+                         "price, accrued interest, yield to maturity, current "
+                         "yield, Macaulay/modified/effective duration, dollar "
+                         "duration and convexity. "
+                         "USE WHEN the user asks about bond-level pricing or "
+                         "yield measures, or names duration or convexity for "
+                         "individual instruments. "
+                         "NOT WHEN they want portfolio rate sensitivity in "
+                         "currency per basis point - use compute_dv01 or "
+                         "compute_rate_sensitivities. "
+                         "NEEDS a portfolio. OPTIONAL curve_date. "
+                         "ASKS LIKE: 'what is the YTM and convexity of each "
+                         "bond?'; 'show me clean price and accrued interest'.",
+                         "risk", executable=True),
+                ToolSpec("compute_carry_roll",
+                         "PURPOSE: what the book earns if the curve does not "
+                         "move - carry and roll-down, separately. "
+                         "USE WHEN the user asks about carry, roll-down, or "
+                         "expected return from holding. "
+                         "NOT WHEN they ask why P&L already happened - use "
+                         "compute_pnl_attribution. "
+                         "NEEDS a portfolio. OPTIONAL horizon_days, curve_date. "
+                         "PARAMS: set calculation_params.horizon_days for the holding "
+                         "period. "
+                         "ASKS LIKE: 'what is my carry?'; 'how much roll-down "
+                         "does the book have over a year?'.",
+                         "risk", executable=True),
+
+                # -- curve analytics -------------------------------------------
+                ToolSpec("compute_curve_analytics",
+                         "PURPOSE: curve shape - zero and forward rates, named "
+                         "spreads (2s5s, 2s10s, 5s10s, 5s30s, 10s30s), "
+                         "butterflies and inversion diagnostics. "
+                         "USE WHEN the user asks about curve shape, a named "
+                         "spread, a butterfly, forwards, zero rates, or whether "
+                         "the curve is inverted. "
+                         "NOT WHEN they want the level of one yield - that is "
+                         "plain retrieval and needs no calculation. "
+                         "NEEDS nothing beyond the curve. OPTIONAL curve_date, "
+                         "tenors_months. "
+                         "ASKS LIKE: 'what is 2s10s?'; 'is the curve "
+                         "inverted?'; 'show me the 5y5y forward'.",
+                         "risk", executable=True),
+                ToolSpec("compute_rate_volatility",
+                         "PURPOSE: realised volatility of published par yields, "
+                         "per tenor, with rolling windows and correlations. "
+                         "USE WHEN the user asks how volatile rates have been. "
+                         "NOT WHEN they mean option-implied volatility - this "
+                         "system holds no options and cannot answer that. "
+                         "NOT WHEN they want a loss estimate - use compute_var. "
+                         "NEEDS nothing. OPTIONAL trading_days, horizon_days. "
+                         "PARAMS: set calculation_params.horizon_days for the change "
+                         "length and trading_days for the estimation window. "
+                         "ASKS LIKE: 'how volatile is the 10-year?'; 'compare "
+                         "20-day and 250-day rate volatility'.",
+                         "risk", executable=True),
+
+                # -- sensitivities ----------------------------------------------
                 ToolSpec("compute_dv01",
-                         "DV01 by full revaluation, with key-rate breakdown.",
+                         "PURPOSE: portfolio DV01 by full revaluation, with a "
+                         "key-rate breakdown. "
+                         "USE WHEN the user asks for DV01, PV01, or rate "
+                         "sensitivity in currency per basis point. "
+                         "NOT WHEN they want duration, convexity and bucketed "
+                         "exposure together - use compute_rate_sensitivities. "
+                         "NEEDS a portfolio. OPTIONAL curve_date, key_rates. "
+                         "ASKS LIKE: 'what is my DV01?'; 'break the DV01 down "
+                         "by tenor'.",
                          "risk", executable=True),
-                ToolSpec("compute_var",
-                         "Historical-simulation VaR and Expected Shortfall.",
+                ToolSpec("compute_rate_sensitivities",
+                         "PURPOSE: the full sensitivity picture in one pass - "
+                         "DV01, key-rate DV01, maturity-bucket exposure, "
+                         "effective duration and convexity, per-position shares, "
+                         "and an explicit reconciliation. "
+                         "USE WHEN the user asks where rate risk sits across the "
+                         "curve, or wants duration and DV01 together. "
+                         "NOT WHEN a plain DV01 number answers it - use "
+                         "compute_dv01, which is cheaper. "
+                         "NEEDS a portfolio. OPTIONAL curve_date. "
+                         "ASKS LIKE: 'show my rate sensitivities'; 'what is the "
+                         "duration and DV01 by bucket?'.",
                          "risk", executable=True),
+                ToolSpec("compute_risk_contributions",
+                         "PURPOSE: component, marginal and incremental VaR or ES "
+                         "per position. "
+                         "USE WHEN the user asks which positions drive the VaR "
+                         "or the Expected Shortfall. "
+                         "NOT WHEN they ask which positions drive a STRESS loss "
+                         "- use compute_stress_contributions. NOT WHEN they ask "
+                         "where exposure sits - use compute_concentration. "
+                         "NEEDS a portfolio. OPTIONAL risk_measure ('var' or "
+                         "'es'), confidence_level, horizon_days. "
+                         "PARAMS: set calculation_params.risk_measure to 'var' or "
+                         "'es', plus confidence_level and horizon_days. "
+                         "ASKS LIKE: 'which position contributes most to VaR?'; "
+                         "'decompose the expected shortfall'.",
+                         "risk", executable=True),
+                ToolSpec("compute_concentration",
+                         "PURPOSE: where risk is bunched up - largest positions, "
+                         "DV01 and key-rate concentration, maturity buckets, "
+                         "with shares and a Herfindahl index. "
+                         "USE WHEN the user asks where risk is concentrated or "
+                         "which bucket carries most exposure. "
+                         "NOT WHEN they ask about contribution to a specific "
+                         "loss measure - use compute_risk_contributions or "
+                         "compute_stress_contributions. "
+                         "NEEDS a portfolio. OPTIONAL top_n, curve_date. "
+                         "PARAMS: set calculation_params.top_n for how many entries to "
+                         "rank. "
+                         "ASKS LIKE: 'where is my rate risk concentrated?'; "
+                         "'which maturity bucket carries the most DV01?'.",
+                         "risk", executable=True),
+
+                # -- deterministic stress ---------------------------------------
                 ToolSpec("run_stress",
-                         "Revalue the book under a tenor shock vector.",
+                         "PURPOSE: revalue the book under a stored scenario or an "
+                         "explicit tenor shock vector. "
+                         "USE WHEN the user names a stored scenario from the "
+                         "scenario list, or supplies their own shock vector. "
+                         "NOT WHEN they describe a standard shape in words like "
+                         "'up 100bp' or 'bear steepener' - use run_rate_stress. "
+                         "NEEDS a portfolio and either scenario_id or a shock "
+                         "vector. OPTIONAL curve_date. "
+                         "ASKS LIKE: 'run the stored 1994 replay scenario'.",
+                         "risk", executable=True),
+                ToolSpec("run_rate_stress",
+                         "PURPOSE: standard named interest-rate scenarios by full "
+                         "revaluation - parallel moves, bear/bull steepener, "
+                         "bear/bull flattener, curve twist, belly and wings "
+                         "curvature. "
+                         "USE WHEN the user describes a HYPOTHETICAL rate move in "
+                         "words or basis points. "
+                         "NOT WHEN the move actually happened in history - use "
+                         "run_historical_stress. NOT WHEN only one curve point "
+                         "moves - use run_key_rate_stress. NOT WHEN the user "
+                         "gives a target LOSS instead of a move - use "
+                         "run_reverse_stress. "
+                         "NEEDS a portfolio and scenario. OPTIONAL shock_bp, "
+                         "severity_bp, pivot_tenor_months, curve_date. "
+                         "PARAMS: set calculation_params.scenario to exactly one of "
+                         "'parallel', 'parallel_up', 'parallel_down', 'twist', "
+                         "'bear_steepener', 'bull_steepener', 'bear_flattener', "
+                         "'bull_flattener', 'belly_selloff', 'belly_rally', "
+                         "'wings_selloff', 'wings_rally'; shock_bp for a parallel move "
+                         "in basis points, negative for a fall; severity_bp for a "
+                         "template magnitude; pivot_tenor_months for a twist. "
+                         "ASKS LIKE: 'stress rates up 100bp'; 'run a bear "
+                         "steepener'; 'apply a curve twist'.",
+                         "risk", executable=True),
+                ToolSpec("run_key_rate_stress",
+                         "PURPOSE: move exactly one curve node and leave every "
+                         "other node still. "
+                         "USE WHEN the user names a single maturity point to "
+                         "shock. "
+                         "NOT WHEN the whole curve moves - use run_rate_stress. "
+                         "NEEDS a portfolio, tenor_months and shock_bp. "
+                         "OPTIONAL curve_date. "
+                         "PARAMS: set calculation_params.tenor_months to the node in "
+                         "MONTHS (24=2Y, 60=5Y, 120=10Y, 240=20Y, 360=30Y) and "
+                         "shock_bp to the move in basis points, negative for a fall. "
+                         "ASKS LIKE: 'shock only the 10-year by 50bp'; 'move the "
+                         "30Y node down 75bp'.",
+                         "risk", executable=True),
+                ToolSpec("run_shock_ladder",
+                         "PURPOSE: portfolio P&L across a ladder of parallel "
+                         "shocks, with the duration-approximation error at each "
+                         "rung so convexity is visible. "
+                         "USE WHEN the user asks for a range or profile of "
+                         "shocks rather than one scenario. "
+                         "NOT WHEN they want one shock - use run_rate_stress. "
+                         "NOT WHEN they want different curve SHAPES ranked - use "
+                         "run_stress_matrix. "
+                         "NEEDS a portfolio. OPTIONAL curve_date. "
+                         "ASKS LIKE: 'show P&L from -300bp to +300bp'; 'run a "
+                         "rate shock ladder'.",
+                         "risk", executable=True),
+                ToolSpec("run_stress_matrix",
+                         "PURPOSE: the whole standard scenario pack in one pass - "
+                         "parallel, steepeners, flatteners, twists, curvature and "
+                         "key-rate shocks - ranked worst first with the driver of "
+                         "each named. "
+                         "USE WHEN the user asks for all scenarios, the worst "
+                         "hypothetical scenario, or a ranking. "
+                         "NOT WHEN they name one scenario - use run_rate_stress. "
+                         "NOT WHEN they mean worst HISTORICAL moves - use "
+                         "find_worst_historical_stresses. "
+                         "NEEDS a portfolio. OPTIONAL curve_date. "
+                         "ASKS LIKE: 'run the standard stress pack'; 'which "
+                         "standardised stress hurts most?'.",
+                         "risk", executable=True),
+                ToolSpec("compute_stress_contributions",
+                         "PURPOSE: decompose one stress loss across positions and "
+                         "across the curve, with the unexplained residual stated. "
+                         "USE WHEN the user asks what DRIVES a stress loss. "
+                         "NOT WHEN they want the loss itself - use "
+                         "run_rate_stress. NOT WHEN they mean VaR contribution - "
+                         "use compute_risk_contributions. "
+                         "NEEDS a portfolio and scenario. OPTIONAL shock_bp, "
+                         "severity_bp, curve_date. "
+                         "PARAMS: set calculation_params.scenario to the scenario "
+                         "being explained, using run_rate_stress names ('parallel', "
+                         "'bear_steepener', ...), plus shock_bp or severity_bp for its "
+                         "size. "
+                         "ASKS LIKE: 'what drives the bear-steepener loss?'; "
+                         "'which tenor contributes most to that stress?'.",
+                         "risk", executable=True),
+
+                # -- historical stress ------------------------------------------
+                ToolSpec("run_historical_stress",
+                         "PURPOSE: replay a curve move that REALLY HAPPENED "
+                         "against today's book, by named crisis or by two dates. "
+                         "The shock is measured from published curves, never "
+                         "invented. Named windows: 1994_BOND_SELLOFF, "
+                         "2008_GFC_LEHMAN, 2013_TAPER_TANTRUM, 2020_COVID_SHOCK, "
+                         "2022_FED_TIGHTENING, 2023_REGIONAL_BANK_STRESS. "
+                         "USE WHEN the user names a historical episode or a date "
+                         "range to replay. "
+                         "NOT WHEN the scenario is hypothetical - use "
+                         "run_rate_stress. NOT WHEN they want the system to "
+                         "SEARCH history for the worst move - use "
+                         "find_worst_historical_stresses. "
+                         "NEEDS a portfolio and either crisis_id or both "
+                         "start_date and end_date. "
+                         "PARAMS: set calculation_params.crisis_id to one of "
+                         "1994_BOND_SELLOFF, 2008_GFC_LEHMAN, 2013_TAPER_TANTRUM, "
+                         "2020_COVID_SHOCK, 2022_FED_TIGHTENING, "
+                         "2023_REGIONAL_BANK_STRESS. For a window with no name, leave "
+                         "crisis_id null and put the dates in temporal.start_date and "
+                         "temporal.end_date instead. "
+                         "ASKS LIKE: 'replay the 2022 rate move'; 'stress the "
+                         "book using the March 2020 curve move'.",
+                         "risk", executable=True),
+                ToolSpec("find_worst_historical_stresses",
+                         "PURPOSE: search observed history for the rate moves "
+                         "that would hurt today's book most, ranked, each fully "
+                         "revalued. "
+                         "USE WHEN the user asks which historical move would be "
+                         "worst, or for the worst N historical scenarios. "
+                         "NOT WHEN they name a specific episode - use "
+                         "run_historical_stress. NOT WHEN they mean hypothetical "
+                         "scenarios - use run_stress_matrix. "
+                         "NEEDS a portfolio. OPTIONAL horizon_days, top_n, "
+                         "trading_days. "
+                         "PARAMS: set calculation_params.horizon_days for the move "
+                         "length in days and top_n for how many to rank. "
+                         "ASKS LIKE: 'what historical move would hurt us most?'; "
+                         "'show the worst 10 historical scenarios'; 'find the "
+                         "worst five-day historical stress'.",
+                         "risk", executable=True),
+
+                # -- reverse stress ---------------------------------------------
+                ToolSpec("run_reverse_stress",
+                         "PURPOSE: solve for the rate move that produces a stated "
+                         "loss. The LOSS is the input and the SHOCK is the "
+                         "answer - the opposite direction from ordinary stress. "
+                         "USE WHEN the user gives a target loss amount and asks "
+                         "what move causes it. "
+                         "NOT WHEN the shock is already specified - use "
+                         "run_rate_stress. NOT WHEN several loss levels are "
+                         "asked for at once - use compute_stress_thresholds. "
+                         "NEEDS a portfolio and target_loss. OPTIONAL scenario, "
+                         "curve_date. "
+                         "PARAMS: set calculation_params.target_loss to the loss as a "
+                         "positive number (2000000 for two million), and scenario to "
+                         "the shape to scale. "
+                         "ASKS LIKE: 'how far must rates rise before I lose "
+                         "$2 million?'; 'what parallel shock causes a $5M loss?'.",
+                         "risk", executable=True),
+                ToolSpec("compute_stress_thresholds",
+                         "PURPOSE: the rate move needed to reach EACH of several "
+                         "loss levels, as a table. "
+                         "USE WHEN the user names more than one loss level. "
+                         "NOT WHEN there is a single target - use "
+                         "run_reverse_stress. "
+                         "NEEDS a portfolio. OPTIONAL target_losses, scenario. "
+                         "PARAMS: set calculation_params.target_losses to the list of "
+                         "losses as positive numbers, e.g. [500000, 1000000, 2000000]. "
+                         "ASKS LIKE: 'at what move do losses reach $500K, $1M "
+                         "and $2M?'.",
+                         "risk", executable=True),
+                ToolSpec("find_limit_breach_stress",
+                         "PURPOSE: the stress severity at which a stated loss "
+                         "LIMIT turns amber and then breaches. "
+                         "USE WHEN the user frames the question around a limit "
+                         "rather than a loss amount. "
+                         "NOT WHEN they ask whether limits are breached TODAY - "
+                         "use evaluate_risk_limits. "
+                         "NEEDS a portfolio and limit_amount. OPTIONAL scenario, "
+                         "amber_utilisation_percent. "
+                         "PARAMS: set calculation_params.limit_amount to the limit as "
+                         "a positive number, and optionally amber_utilisation_percent. "
+                         "ASKS LIKE: 'what shock breaches my $2M stress limit?'; "
+                         "'how severe can a bear steepener get before breach?'.",
+                         "risk", executable=True),
+
+                # -- distribution risk ------------------------------------------
+                ToolSpec("compute_var",
+                         "PURPOSE: HISTORICAL-SIMULATION VaR and Expected "
+                         "Shortfall - observed past moves, full revaluation. "
+                         "USE WHEN the user asks for VaR or ES without naming a "
+                         "method, or names historical simulation. "
+                         "NOT WHEN they name parametric - use "
+                         "compute_parametric_risk. NOT WHEN they name Monte "
+                         "Carlo - use compute_monte_carlo_risk. NOT WHEN they "
+                         "ask whether the model has been ACCURATE - use "
+                         "backtest_var. "
+                         "NEEDS a portfolio. OPTIONAL confidence_level, "
+                         "horizon_days, trading_days. "
+                         "PARAMS: set calculation_params.confidence_level as a "
+                         "fraction (0.99 for 99%) and horizon_days as a whole number "
+                         "of days. "
+                         "ASKS LIKE: 'what is my 99% VaR?'; 'compute 10-day "
+                         "historical VaR'.",
+                         "risk", executable=True),
+                ToolSpec("compute_parametric_risk",
+                         "PURPOSE: PARAMETRIC (delta-normal) VaR and ES - a "
+                         "linear key-rate approximation under an assumed normal "
+                         "distribution, with factor contributions. A DIFFERENT "
+                         "MODEL from historical simulation, not a variant. "
+                         "USE WHEN the user says parametric, delta-normal, "
+                         "variance-covariance or analytic VaR. "
+                         "NOT WHEN no method is named - use compute_var. "
+                         "NEEDS a portfolio. OPTIONAL confidence_level, "
+                         "horizon_days, trading_days. "
+                         "PARAMS: set calculation_params.confidence_level as a "
+                         "fraction (0.99 for 99%) and horizon_days as a whole number "
+                         "of days. "
+                         "ASKS LIKE: 'calculate parametric VaR'; 'what is the "
+                         "variance-covariance VaR?'.",
+                         "risk", executable=True),
+                ToolSpec("compute_monte_carlo_risk",
+                         "PURPOSE: MONTE CARLO VaR and ES - correlated simulated "
+                         "curve moves with full revaluation on every path, "
+                         "reproducible from a seed. "
+                         "USE WHEN the user says Monte Carlo, simulation, or "
+                         "asks for a stated number of simulated scenarios. "
+                         "NOT WHEN no method is named - use compute_var. "
+                         "NEEDS a portfolio. OPTIONAL confidence_level, "
+                         "horizon_days, scenario_count, random_seed. "
+                         "PARAMS: set calculation_params.scenario_count when the user "
+                         "names a number of simulations, plus confidence_level and "
+                         "horizon_days. "
+                         "ASKS LIKE: 'run Monte Carlo VaR'; 'simulate 10,000 "
+                         "interest-rate scenarios'.",
+                         "risk", executable=True),
+                ToolSpec("compare_risk_methods",
+                         "PURPOSE: historical, parametric and Monte Carlo VaR and "
+                         "ES computed on identical inputs and shown side by side. "
+                         "USE WHEN the user asks to COMPARE methods or which "
+                         "method gives the largest estimate. "
+                         "NOT WHEN one method is named - use that method. "
+                         "NEEDS a portfolio. OPTIONAL confidence_level, "
+                         "horizon_days, scenario_count. "
+                         "PARAMS: set calculation_params.confidence_level and "
+                         "horizon_days for all three methods, and scenario_count for "
+                         "the simulated one. "
+                         "ASKS LIKE: 'compare historical and Monte Carlo VaR'; "
+                         "'which VaR method is most conservative?'.",
+                         "risk", executable=True),
+                ToolSpec("backtest_var",
+                         "PURPOSE: judge whether a VaR forecast has been ACCURATE "
+                         "- exception count and dates, Kupiec unconditional "
+                         "coverage, Christoffersen independence and joint "
+                         "conditional coverage. Uses model-revaluation P&L, "
+                         "which the result labels. "
+                         "USE WHEN the user asks about model performance, "
+                         "exceptions, breaches of VaR, or names a coverage test. "
+                         "NOT WHEN they want today's VaR number - use "
+                         "compute_var. "
+                         "NEEDS a portfolio. OPTIONAL confidence_level, "
+                         "observations. "
+                         "PARAMS: set calculation_params.confidence_level as a "
+                         "fraction (0.99 for 99%) - the level whose exceptions are "
+                         "being counted. "
+                         "ASKS LIKE: 'has our 99% VaR model performed well?'; "
+                         "'how many VaR exceptions occurred?'; 'run Kupiec and "
+                         "Christoffersen tests'.",
+                         "risk", executable=True),
+
+                # -- P&L, limits, comparison, regulatory ------------------------
+                ToolSpec("compute_pnl_attribution",
+                         "PURPOSE: explain P&L already earned - carry, roll-down, "
+                         "rate move, and the unexplained residual, which is "
+                         "always shown. "
+                         "USE WHEN the user asks WHY the portfolio gained or lost "
+                         "over a period. "
+                         "NOT WHEN they ask what WOULD happen - that is stress. "
+                         "NOT WHEN they ask about expected future carry - use "
+                         "compute_carry_roll. "
+                         "NEEDS a portfolio. OPTIONAL start_date, end_date, "
+                         "lookback_days. "
+                         "PARAMS: none in calculation_params - the period travels in "
+                         "temporal. Set temporal.start_date and temporal.end_date as "
+                         "ISO dates, or temporal.lookback_days for a period ending at "
+                         "the latest curve. "
+                         "ASKS LIKE: 'why did the portfolio lose money?'; 'how "
+                         "much P&L came from carry versus rates?'.",
+                         "risk", executable=True),
+                ToolSpec("evaluate_risk_limits",
+                         "PURPOSE: compare measured risk against limits the USER "
+                         "supplies, with utilisation, headroom and a "
+                         "GREEN/AMBER/RED status. No limit is ever invented. "
+                         "USE WHEN the user asks about limit utilisation, "
+                         "headroom, or whether limits are breached now. "
+                         "NOT WHEN they ask what move would BREACH a limit - use "
+                         "find_limit_breach_stress. "
+                         "NEEDS a portfolio and at least one of dv01_limit, "
+                         "var_limit, stress_loss_limit. OPTIONAL "
+                         "amber_utilisation_percent. "
+                         "PARAMS: set calculation_params to whichever limits the user "
+                         "stated - dv01_limit, var_limit, stress_loss_limit - as "
+                         "positive numbers. "
+                         "ASKS LIKE: 'is my $25,000 DV01 limit breached?'; 'what "
+                         "is my limit utilisation?'.",
+                         "risk", executable=True),
+                ToolSpec("compare_portfolio_risk",
+                         "PURPOSE: two EXISTING portfolios measured on identical "
+                         "inputs and differenced - PV, DV01, duration, convexity, "
+                         "key rates and concentration. "
+                         "USE WHEN the user compares two books that both exist. "
+                         "NOT WHEN one side is a proposed trade - use "
+                         "analyze_hypothetical_trade. "
+                         "NEEDS a portfolio. OPTIONAL other_portfolio_id, "
+                         "curve_date. "
+                         "PARAMS: set calculation_params.other_portfolio_id when the "
+                         "user names the second book. "
+                         "ASKS LIKE: 'compare the current and hedged "
+                         "portfolios'; 'which book has lower DV01?'.",
+                         "risk", executable=True),
+                ToolSpec("analyze_hypothetical_trade",
+                         "PURPOSE: incremental risk of ADDING a Treasury position "
+                         "- the book before and after, differenced. Nothing "
+                         "stored is modified. "
+                         "USE WHEN the user proposes a trade that does not exist "
+                         "yet. "
+                         "NOT WHEN both books already exist - use "
+                         "compare_portfolio_risk. "
+                         "NEEDS a portfolio, tenor_months and notional. "
+                         "OPTIONAL curve_date. "
+                         "PARAMS: set calculation_params.tenor_months to the maturity "
+                         "in MONTHS (120 for a 10-year) and notional to the face "
+                         "amount (10000000 for ten million). "
+                         "ASKS LIKE: 'what happens if I add $10M of 10-year?'; "
+                         "'how does buying $5M of 30Y change my VaR?'.",
+                         "risk", executable=True),
+                ToolSpec("compute_frtb_girr",
+                         "PURPOSE: the FRTB standardised-approach GENERAL "
+                         "INTEREST RATE RISK charge (delta and curvature) for "
+                         "the supported Treasury/rates scope only. This is NOT a "
+                         "complete bank-wide FRTB market-risk capital "
+                         "requirement: credit spread, equity, FX, commodity, "
+                         "default risk and vega are outside scope and are "
+                         "reported as unsupported rather than as zero. "
+                         "USE WHEN the user asks for the GIRR charge or "
+                         "standardised rates capital. "
+                         "NOT WHEN they ask for total regulatory capital - that "
+                         "cannot be computed here. "
+                         "NEEDS a portfolio. OPTIONAL curve_date. "
+                         "ASKS LIKE: 'what is the GIRR capital charge?'; "
+                         "'compute FRTB delta for the rates book'.",
                          "risk", executable=True),
             ]
         else:
@@ -201,6 +711,20 @@ class McpAgent:
 
     @traced("mcp_agent.choices", run_type="tool")
     def choices(self) -> dict[str, Any]:
+        request = CacheRequest(
+            agent="mcp_agent", operation="choices",
+            identity={"provider": self._provider_identity()},
+            versions={"prompt": MCP_CHOICES_VERSION,
+                      "schema": MCP_CHOICES_SCHEMA_VERSION,
+                      "capabilities": MCP_CAPABILITY_LOGIC_VERSION},
+            result_kind="choices", canonical_question="available user choices",
+        )
+        return self.intelligence.cached(
+            request, self._choices_uncached,
+            cache_if=lambda result: (
+                any(result.values()) and not result.get("availability_warnings")))
+
+    def _choices_uncached(self) -> dict[str, Any]:
         """The concrete things a user could actually pick, for a clarifying question.
 
         Without this the orchestrator writes options from imagination and offers
@@ -213,7 +737,8 @@ class McpAgent:
         """
         out: dict[str, Any] = {"portfolios": [], "scenarios": [],
                                "curve_families": ["nominal", "real"],
-                               "tenors": list(DEFAULT_TENORS)}
+                               "tenors": list(DEFAULT_TENORS),
+                               "availability_warnings": []}
         workflows = self._workflows()
         if workflows is None:
             return out
@@ -223,6 +748,8 @@ class McpAgent:
                                  for b in books][:8]
         except Exception as exc:  # noqa: BLE001 - a thinner question beats none
             LOGGER.warning("could not list portfolios for choices: %s", exc)
+            out["availability_warnings"].append(
+                "Portfolio choices are temporarily unavailable.")
         try:
             scenarios = (workflows.list_scenarios() or {}).get("scenarios") or []
             out["scenarios"] = [{"id": s.get("scenario_id"), "name": s.get("name"),
@@ -230,12 +757,39 @@ class McpAgent:
                                 for s in scenarios][:8]
         except Exception as exc:  # noqa: BLE001
             LOGGER.warning("could not list scenarios for choices: %s", exc)
+            out["availability_warnings"].append(
+                "Scenario choices are temporarily unavailable.")
         return out
 
     # -- negotiate -----------------------------------------------------------
 
     @traced("mcp_agent.assess", run_type="llm")
     def assess(self, requirement, catalogue: ToolCatalogue) -> ServeResponse:
+        request = CacheRequest(
+            agent="mcp_agent", operation="assess",
+            identity={"provider": self._provider_identity(),
+                      "requirement": requirement.as_capability_request(),
+                      "catalogue": catalogue_fingerprint(
+                          catalogue, backend=self._provider_identity())},
+            versions={"prompt": MCP_ASSESS_PROMPT_VERSION,
+                      "schema": MCP_ASSESS_SCHEMA_VERSION,
+                      "capabilities": MCP_CAPABILITY_LOGIC_VERSION},
+            result_kind="serve_response",
+            canonical_question=canonical_question(requirement.task),
+            model=model_identity(CALL_SITE),
+        )
+        return self.intelligence.cached(
+            request,
+            lambda: self._assess_uncached(requirement, catalogue),
+            cache_if=lambda result: (
+                "assessment model unavailable" not in result.notes
+                and not any("coverage lookup unavailable" in item
+                            for item in result.temporal_constraints)
+                and not last_failure_kind()),
+        )
+
+    def _assess_uncached(self, requirement,
+                         catalogue: ToolCatalogue) -> ServeResponse:
         """Answer a proposed plan with capability evidence.
 
         Two halves, deliberately. The **mechanical** half is computed here from
@@ -335,7 +889,7 @@ class McpAgent:
                                                  else "nominal")]
         except Exception as exc:  # noqa: BLE001 - a thinner answer beats none
             LOGGER.warning("coverage lookup failed: %s", exc)
-            return []
+            return ["coverage lookup unavailable; no date coverage was assumed"]
         firsts = [s["first_observation"] for s in series if s.get("first_observation")]
         lasts = [s["last_observation"] for s in series if s.get("last_observation")]
         if not firsts or not lasts:
@@ -359,6 +913,13 @@ class McpAgent:
 
     @traced("mcp_agent.execute", run_type="tool")
     def execute(self, requirement, answers: dict[str, Any] | None = None) -> dict[str, Any]:
+        return self.intelligence.observed(
+            "mcp_agent", "execute",
+            lambda: self._execute_scoped(requirement, answers),
+            question=requirement.task)
+
+    def _execute_scoped(self, requirement,
+                        answers: dict[str, Any] | None = None) -> dict[str, Any]:
         """Fetch the agreed requirement; calculate if one was agreed.
 
         Wrapped in the provider's input scope when the provider has one, so a
@@ -484,6 +1045,17 @@ class McpAgent:
             as_of = getattr(scope, "as_of_date", None) if scope else None
             if as_of and "curve_date" in names:
                 kwargs["curve_date"] = as_of
+            # A named period travels in `temporal`, because that is where the
+            # planner records when a question is about. Two capabilities read
+            # the same period as a calculation input - P&L attribution over a
+            # window, a historical replay of one - and asking the planner to
+            # state the dates twice, once per destination, invites it to state
+            # them once and leave the other empty. Fill from the fact already
+            # recorded, and only where the signature reads it.
+            for field in ("start_date", "end_date", "lookback_days"):
+                stated = getattr(scope, field, None) if scope else None
+                if stated is not None and field in names and field not in kwargs:
+                    kwargs[field] = stated
 
             return {"tool": tool, "result": method(**kwargs),
                     "arguments": kwargs}

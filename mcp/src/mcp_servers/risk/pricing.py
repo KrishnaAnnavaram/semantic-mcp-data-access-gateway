@@ -31,8 +31,8 @@ produces a number, and the number is wrong.
 from __future__ import annotations
 
 import datetime as dt
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Sequence
 
 from .curves import DiscountCurve
 
@@ -97,15 +97,30 @@ class PortfolioValue:
     positions: tuple[PositionValue, ...]
 
 
-def generate_cash_flows(bond: FixedRateBond, valuation_date: dt.date) -> list[CashFlow]:
-    """Remaining cash flows, generated backwards from maturity.
+@dataclass(frozen=True)
+class QuasiPeriod:
+    """Where the valuation date sits inside the current quasi-coupon period.
 
-    Backwards because the maturity date anchors the schedule - a bond pays on
-    its maturity anniversary, and rolling forward from issue accumulates drift
-    that leaves the final coupon on the wrong day.
+    `elapsed_fraction` is the *w* of the module docstring. It is the one number
+    the cash-flow schedule, the accrued-interest calculation and the carry
+    decomposition all need, and they must agree on it: accrued interest derived
+    from a different day count than the one the pricer discounts on produces a
+    clean price that does not reconcile with anything.
     """
+
+    period_start: dt.date
+    period_end: dt.date
+    elapsed_fraction: float
+    remaining_flow_dates: tuple[dt.date, ...]
+    coupon_amount: float
+
+
+def current_quasi_period(
+    bond: FixedRateBond, valuation_date: dt.date
+) -> QuasiPeriod | None:
+    """The schedule state at a valuation date, or None once the bond has matured."""
     if valuation_date >= bond.maturity_date:
-        return []
+        return None
 
     months = 12 // bond.coupon_frequency
     dates: list[dt.date] = []
@@ -117,14 +132,34 @@ def generate_cash_flows(bond: FixedRateBond, valuation_date: dt.date) -> list[Ca
     # `d` now holds the quasi-coupon date at or before valuation - the start of
     # the current period. It may precede issue for the first period; that is
     # what "quasi" means and it is the correct ICMA reference point.
-    period_start = d
-    period_end = dates[0]
+    period_start, period_end = d, dates[0]
 
     span = (period_end - period_start).days
     elapsed = (valuation_date - period_start).days
-    w = (elapsed / span) if span > 0 else 0.0
+    return QuasiPeriod(
+        period_start=period_start,
+        period_end=period_end,
+        elapsed_fraction=(elapsed / span) if span > 0 else 0.0,
+        remaining_flow_dates=tuple(dates),
+        coupon_amount=bond.face_value * (bond.coupon_rate_pct / 100.0)
+        / bond.coupon_frequency,
+    )
 
-    coupon = bond.face_value * (bond.coupon_rate_pct / 100.0) / bond.coupon_frequency
+
+def generate_cash_flows(bond: FixedRateBond, valuation_date: dt.date) -> list[CashFlow]:
+    """Remaining cash flows, generated backwards from maturity.
+
+    Backwards because the maturity date anchors the schedule - a bond pays on
+    its maturity anniversary, and rolling forward from issue accumulates drift
+    that leaves the final coupon on the wrong day.
+    """
+    period = current_quasi_period(bond, valuation_date)
+    if period is None:
+        return []
+
+    dates = list(period.remaining_flow_dates)
+    w = period.elapsed_fraction
+    coupon = period.coupon_amount
     flows: list[CashFlow] = []
     for i, date in enumerate(dates):
         last = i == len(dates) - 1

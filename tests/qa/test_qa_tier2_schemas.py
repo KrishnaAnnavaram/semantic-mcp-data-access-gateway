@@ -91,12 +91,45 @@ def test_tool_listing_is_deterministic():
 # --- the SQL boundary -------------------------------------------------------
 
 
+# Whole name segments, not substrings. The first version of this check matched
+# "eval" anywhere in a tool name and flagged `evaluate_risk_limits_tool` - a
+# tool on a server that has no database at all. A guard whose false positives
+# force honest tools to be renamed teaches people to work around it, so it
+# matches segments split on underscores. "sql" stays a substring match, because
+# there is no innocent reason for those three letters to appear.
+SQL_ESCAPE_HATCH_SEGMENTS = {"query", "execute", "exec", "raw", "eval", "sql"}
+
+
+def _looks_like_a_sql_hatch(name: str) -> bool:
+    lowered = name.lower()
+    if "sql" in lowered:
+        return True
+    return bool(set(lowered.split("_")) & SQL_ESCAPE_HATCH_SEGMENTS)
+
+
 def test_no_tool_offers_a_sql_escape_hatch(data_tools, risk_tools):
     """A run_sql tool would move schema knowledge into the prompt."""
     suspicious = [t.name for t in data_tools + risk_tools
-                  if any(word in t.name.lower()
-                         for word in ("sql", "query", "execute", "raw", "eval"))]
+                  if _looks_like_a_sql_hatch(t.name)]
     assert suspicious == []
+
+
+@pytest.mark.parametrize("name", [
+    "run_sql", "execute_sql_tool", "raw_query", "query_observations",
+    "eval_expression", "run_raw_statement",
+])
+def test_the_sql_escape_hatch_guard_can_actually_fail(name):
+    """The canary. A guard that has only ever passed proves nothing."""
+    assert _looks_like_a_sql_hatch(name), (
+        f"{name!r} is exactly the kind of tool this guard exists to catch")
+
+
+@pytest.mark.parametrize("name", [
+    "evaluate_risk_limits_tool", "compute_rate_sensitivities_tool",
+    "run_stress_matrix_tool", "explain_stress_loss_tool",
+])
+def test_the_sql_escape_hatch_guard_does_not_fire_on_honest_names(name):
+    assert not _looks_like_a_sql_hatch(name)
 
 
 def test_no_tool_accepts_a_parameter_that_shapes_sql(data_tools, risk_tools):
