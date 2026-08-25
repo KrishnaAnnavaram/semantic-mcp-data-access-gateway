@@ -141,6 +141,23 @@ and selected p50/p95/p99 latencies. The command-line equivalent is:
 python -m agents.cache.admin health --analytics
 ```
 
+## LangSmith
+
+This Redis telemetry (Streams/TimeSeries/counters) and LangSmith are separate
+systems, but a cache hit is not invisible in a trace: `@traced` marks the
+*agent* method (`domain_expert.derive`, `mcp_agent.catalogue`, ...), and on a
+hit that method's body — the model call, the `qdrant.search` child span —
+never runs. Without a marker, that run would show up in LangSmith as a bare
+`llm`/`retriever` span with no model attribution and near-zero duration,
+indistinguishable from a silent failure. `RedisIntelligence` attaches
+`cache_status` (`exact_hit` / `semantic_hit` / `wait_hit` / `miss`), plus
+`cache_type`, `redis_latency_ms` and — on a semantic hit —
+`semantic_similarity`, as run metadata on whichever span is active, and a
+`cache:<status>` tag for filtering a project's run list to hits versus misses.
+A `structured_call` rejected by the native rate limiter is tagged
+`rate_limited` the same way. Both are fail-open, like every other call into
+`agents/observability.py`: a broken tracer never affects the cache.
+
 ## Local operation
 
 Copy `.env.example` to `.env`, then run:
