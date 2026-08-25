@@ -12,11 +12,22 @@ is the whole point of the DataProvider seam — the agent does not change.
 
 from __future__ import annotations
 
+import contextlib
 import os
 
 from backend.providers.base import NOMINAL_TENORS, REAL_TENORS  # reuse the tenor vocabulary
 
 DEFAULT_DSN = "postgresql://gateway:change-me-locally@127.0.0.1:5432/gateway"
+
+
+def _span(name: str, run_type: str = "tool", **metadata):
+    """LangSmith span helper, resolved defensively (see providers/mcp.py)."""
+    try:
+        from agents.observability import span as _agent_span  # noqa: PLC0415
+
+        return _agent_span(name, run_type, **metadata)
+    except Exception:  # noqa: BLE001 - tracing is optional
+        return contextlib.nullcontext()
 
 
 class PostgresDataProvider:
@@ -29,10 +40,18 @@ class PostgresDataProvider:
         import psycopg2
         import psycopg2.extras
 
-        with psycopg2.connect(self.dsn) as conn:
-            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-                cur.execute(sql, params)
-                return [dict(r) for r in cur.fetchall()]
+        # `postgres.query` span: the query type, a bounded SQL preview and the
+        # row count — enough to see which DB reads a turn made and how big they
+        # were, without ever putting the DSN (which carries the password) or the
+        # full result set into the trace. These `analytics.*` reads hold no
+        # sensitive data, so the bounded SQL text is safe and useful.
+        with _span("postgres.query", "tool",
+                   query_type=sql.split(None, 1)[0].upper() if sql.strip() else "",
+                   sql=" ".join(sql.split())[:240]):
+            with psycopg2.connect(self.dsn) as conn:
+                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                    cur.execute(sql, params)
+                    return [dict(r) for r in cur.fetchall()]
 
     # ---- contract ------------------------------------------------------------
     def list_series(self) -> list[dict]:

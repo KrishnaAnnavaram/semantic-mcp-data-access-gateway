@@ -86,6 +86,7 @@ from agents.a2a.envelope import (
 )
 from agents.a2a.guardrails import LedgerRegistry, max_chain, max_reentry
 from agents.a2a.identity import AgentId
+from agents.observability import continue_trace
 
 LOGGER = logging.getLogger("agents.a2a.executors")
 
@@ -229,7 +230,14 @@ class BaseAgentExecutor(AgentExecutor):
             context_id=task.context_id, user_request_id=request.user_request_id,
             call_chain=request.call_chain.steps))
         try:
-            outcome = await asyncio.to_thread(self.handle, request, task)
+            # Re-establish the caller's LangSmith trace before handing work to
+            # the worker thread. `asyncio.to_thread` copies the current context,
+            # so entering `continue_trace` here is what carries the parent across
+            # to the thread — and makes this specialist's spans nest under the
+            # turn's single root instead of starting a disconnected trace. A
+            # no-op when no headers arrived or tracing is off; it never raises.
+            with continue_trace(request.trace_headers):
+                outcome = await asyncio.to_thread(self.handle, request, task)
         except Exception as exc:
             LOGGER.exception("%s.%s failed", self.agent_id.value, request.skill)
             await updater.add_artifact(

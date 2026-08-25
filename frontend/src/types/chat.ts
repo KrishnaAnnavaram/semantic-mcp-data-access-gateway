@@ -90,6 +90,39 @@ export interface TraceStep {
   detail?: unknown
 }
 
+// One recorded agent-to-agent call, mirroring the backend TurnLedger's handoff
+// dict (agents/a2a/guardrails.py `Handoff.as_dict`). This is what drives the
+// GRAPH view — a real record of who called whom, not a static picture.
+export interface Handoff {
+  sequence: number
+  from: string
+  to: string
+  skill: string
+  chain_length: number
+  task_id: string
+  context_id: string
+  state: string
+  duplicate: boolean
+  repeatable: boolean
+  negotiation_round: number
+  negotiation_phase: string
+  duration_ms: number
+}
+
+// The turn's handoff ledger (agents/a2a/guardrails.py `TurnLedger.as_dict`).
+export interface Handoffs {
+  user_request_id: string
+  context_id: string
+  handoffs_used: number
+  handoff_limit: number
+  chain_limit: number
+  reentry_limit: number
+  max_chain_reached: number
+  negotiation_rounds: number
+  duplicates_suppressed: number
+  handoffs: Handoff[]
+}
+
 export interface ChatResponse {
   answer: string
   sources: string[]
@@ -103,8 +136,14 @@ export interface ChatResponse {
   catalogue: Record<string, unknown> | null
   calculation: Record<string, unknown> | null
   langsmith_url: string | null
+  langsmith_trace_id: string | null
+  langsmith_project: string | null
+  handoffs: Handoffs | null
 }
 
+// What one assistant turn carries for its own trace/graph views. Every field is
+// per-message: selecting an older answer shows *that* answer's trace and link,
+// never one global "latest" reference.
 export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
@@ -112,6 +151,44 @@ export interface ChatMessage {
   data_plan?: DataPlan | null
   negotiation?: Negotiation | null
   trace?: TraceStep[]
+  handoffs?: Handoffs | null
+  langsmith_url?: string | null
+  langsmith_trace_id?: string | null
+  langsmith_project?: string | null
+}
+
+// The generic node the GRAPH and TRACE views render, derived from the trace
+// steps and the handoff ledger. Category drives colour and icon; status drives
+// the completed/running/failed/skipped styling.
+export type TraceCategory =
+  | 'pipeline'
+  | 'agent'
+  | 'llm'
+  | 'a2a'
+  | 'retriever'
+  | 'mcp'
+  | 'tool'
+  | 'database'
+  | 'cache'
+export type TraceStatus = 'running' | 'completed' | 'failed' | 'skipped'
+
+export interface TraceNode {
+  id: string
+  parentId?: string | null
+  name: string
+  category: TraceCategory
+  status: TraceStatus
+  durationMs?: number
+  agent?: string
+  detail?: string
+  metadata?: Record<string, unknown>
+}
+
+// The LangSmith reference a message keeps, resolved from its own fields.
+export interface LangSmithRef {
+  url: string | null
+  traceId: string | null
+  project: string | null
 }
 
 export interface ChatSession {

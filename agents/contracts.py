@@ -543,6 +543,10 @@ class AgentOutcome:
     trace: list[dict[str, Any]] = field(default_factory=list)
     citations: list[dict[str, Any]] = field(default_factory=list)
     langsmith_url: str | None = None
+    #: The id of this turn's LangSmith trace (its root run). Travels to the UI
+    #: beside the URL so a message can be correlated to LangSmith even when the
+    #: deep link is not clicked. None when tracing is off.
+    langsmith_trace_id: str | None = None
     # A specialist A2A task left in `input-required`, so the next turn can
     # resume *that* task rather than start unrelated work. Server-side only:
     # the service stores it against the session and the client never sees it.
@@ -567,6 +571,7 @@ class AgentOutcome:
             "trace": self.trace,
             "citations": self.citations,
             "langsmith_url": self.langsmith_url,
+            "langsmith_trace_id": self.langsmith_trace_id,
             "validation": (self.validation.as_dict()
                            if self.validation is not None else None),
             "waiting": self.waiting,

@@ -151,10 +151,21 @@ def run_langsmith(cases: list[Case]) -> int:
         scorer.__name__ = evaluator.__name__
         return scorer
 
+    # Stamp the same process-wide facts every trace carries, so one experiment
+    # can be compared against another by backend, model or commit — the point of
+    # keeping experiments in LangSmith rather than only printing a local table.
+    try:
+        from agents.observability import app_metadata  # noqa: PLC0415
+
+        experiment_metadata = app_metadata()
+    except Exception:  # noqa: BLE001 - metadata is optional
+        experiment_metadata = {}
+
     results = evaluate(
         target, data=dataset_name,
         evaluators=[make_scorer(e) for e in ALL_EVALUATORS],
         experiment_prefix="agents", max_concurrency=1,
+        metadata=experiment_metadata or None,
     )
     print(f"\nexperiment complete: {getattr(results, 'experiment_name', 'see LangSmith')}")
     print(f"project: {status['project']}")

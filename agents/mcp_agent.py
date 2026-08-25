@@ -35,7 +35,7 @@ from typing import Any
 from agents.contracts import ServeResponse, ToolCatalogue, ToolSpec
 from llm import CallSite
 
-from agents.observability import structured_call, traced
+from agents.observability import set_run_metadata, structured_call, traced
 
 LOGGER = logging.getLogger("agents.mcp_agent")
 
@@ -415,6 +415,13 @@ class McpAgent:
         if requirement.calculation:
             calculation = self._calculate(requirement.calculation, requirement)
 
+        # Trace metadata for the fetch: how many rows were delivered vs agreed,
+        # which curve family and calculation. Counts, not payloads — the table
+        # itself never goes to the trace.
+        set_run_metadata(rows_delivered=delivered, rows_agreed=requirement.rows,
+                         curve_family=family, tenors=len(tenors),
+                         calculation=requirement.calculation or None,
+                         data_backend=type(self.data).__name__)
         return {"table": table, "rows_delivered": delivered,
                 "rows_agreed": requirement.rows, "window_unstated": window_unstated,
                 "calculation": calculation, "notes": notes}

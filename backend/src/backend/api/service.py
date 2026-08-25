@@ -5,9 +5,11 @@ orchestrator on the user's behalf:
 
     POST /chat  { "query": "...", "session_id": "..." }
       -> { "answer", "sources", "trace", "awaiting_clarification",
-           "tables", "data_plan", "negotiation", "catalogue", "calculation" }
+           "tables", "data_plan", "negotiation", "catalogue", "calculation",
+           "langsmith_url", "langsmith_trace_id", "langsmith_project", "handoffs" }
     POST /summarise { "messages": [...] } -> { "title": "..." }
-    GET  /health -> { "status", "llm_backend", "models", "data_backend", "a2a" }
+    GET  /health -> { "status", "llm_backend", "models", "data_backend",
+                      "langsmith", "a2a" }
 
 `/chat` does not call an agent's method. It sends an A2A message to the
 orchestrator, which is the only agent whose card admits the user boundary at
@@ -189,6 +191,12 @@ class ChatResponse(BaseModel):
     catalogue: dict | None = None
     calculation: dict | None = None
     langsmith_url: str | None = None
+    # The id of this turn's LangSmith trace, and the project it lives in. Carried
+    # beside the URL so the frontend can label a message with its trace even when
+    # the deep link is not opened, and so a message keeps its *own* trace rather
+    # than sharing one global "latest" link. Both null when tracing is off.
+    langsmith_trace_id: str | None = None
+    langsmith_project: str | None = None
     # The turn's agent-to-agent ledger: who called whom, at what depth, with
     # which task id, how long it took and how much of the budget it spent.
     # Additive and optional - the frontend needs no change to keep working, and
@@ -222,6 +230,20 @@ def health() -> dict:
         status["model_layer_error"] = str(exc)
         status["api_key_configured"] = False
     status["data_backend"] = os.environ.get("DATA_BACKEND", "mock")
+    # LangSmith observability status. Reported so the UI header can show whether
+    # tracing is on without guessing from the frontend's own mode, and so an
+    # operator can settle "why are my traces missing" from one endpoint. This is
+    # *configured*, not *verified*: it reads the environment and makes no network
+    # call, because `/health` must answer whether or not LangSmith is reachable —
+    # and LangSmith being down must never make this service report unhealthy. The
+    # API key is never included; only whether one is present.
+    try:
+        from agents.observability import langsmith_status  # noqa: PLC0415
+
+        status["langsmith"] = langsmith_status()
+    except Exception as exc:  # noqa: BLE001 - health must answer even when broken
+        status["langsmith"] = {"enabled": False, "error": str(exc),
+                               "reason": "observability layer unavailable"}
     # Configuration only — deliberately not a probe. `/health` must answer
     # before Qdrant or the MCP children are up, and building the network to
     # report on it would make the liveness check the thing most likely to fail.
@@ -303,8 +325,26 @@ def _response_for(outcome) -> ChatResponse:
         catalogue=outcome.catalogue.as_dict() if outcome.catalogue else None,
         calculation=outcome.calculation,
         langsmith_url=outcome.langsmith_url,
+        langsmith_trace_id=outcome.langsmith_trace_id,
+        # Only meaningful alongside a real trace; null when tracing is off keeps
+        # the client from labelling a message with a project it never traced to.
+        langsmith_project=(_langsmith_project() if outcome.langsmith_url else None),
         handoffs=outcome.handoffs,
     )
+
+
+def _langsmith_project() -> str | None:
+    """The configured LangSmith project, or None if tracing is unavailable.
+
+    Never raises: the project name is cosmetic, and a broken observability
+    import must not turn a successful turn into a 502.
+    """
+    try:
+        from agents.observability import project_name  # noqa: PLC0415
+
+        return project_name()
+    except Exception:  # noqa: BLE001 - cosmetic
+        return None
 
 
 @app.post("/chat", response_model=ChatResponse)

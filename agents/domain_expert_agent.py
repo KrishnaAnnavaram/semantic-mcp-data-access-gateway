@@ -52,6 +52,7 @@ from llm import CallSite
 from agents.observability import (
     TERMINAL_FAILURES,
     last_failure_kind,
+    set_run_metadata,
     structured_call,
     traced,
 )
@@ -387,12 +388,7 @@ class DomainExpertAgent:
         ]
         merged: dict[tuple[str, str], KnowledgeChunk] = {}
         for query in queries:
-            try:
-                hits = self.kb.retrieve(query, n_results=self.n_results)
-            except Exception as exc:  # noqa: BLE001 - reported, never fatal
-                LOGGER.warning("knowledge retrieval failed for %r: %s", query, exc)
-                continue
-            for hit in hits:
+            for hit in self._qdrant_search(query):
                 key = (hit.get("source", ""), hit.get("heading", ""))
                 chunk = KnowledgeChunk(
                     domain=hit.get("domain", ""), source=hit.get("source", ""),
@@ -401,7 +397,47 @@ class DomainExpertAgent:
                 # Keep the better-scoring sighting when both queries find it.
                 if key not in merged or chunk.distance < merged[key].distance:
                     merged[key] = chunk
-        return sorted(merged.values(), key=lambda c: c.distance)
+        chunks = sorted(merged.values(), key=lambda c: c.distance)
+        # Retriever-level metadata for the trace: how many queries ran, how many
+        # distinct chunks survived the merge, and the best distance. No document
+        # text or vectors — a retriever span that dumps the corpus is noise, and
+        # payload bounding is a rule of this integration.
+        set_run_metadata(collection=self._collection_name(),
+                         query_count=len(queries), returned_chunks=len(chunks),
+                         top_k=self.n_results,
+                         best_distance=round(chunks[0].distance, 4) if chunks else None)
+        return chunks
+
+    @traced("qdrant.search", run_type="retriever")
+    def _qdrant_search(self, query: str) -> list[dict]:
+        """One vector query against the store, as its own span.
+
+        Nested under `knowledge_retrieval` so the two-query strategy is visible
+        in the trace — and so a slow or empty query is attributable to the
+        embedding call rather than lost in the merge. Failures are reported and
+        swallowed: a retrieval miss must degrade to fewer citations, never take
+        the turn down.
+        """
+        try:
+            hits = self.kb.retrieve(query, n_results=self.n_results)
+        except Exception as exc:  # noqa: BLE001 - reported, never fatal
+            LOGGER.warning("knowledge retrieval failed for %r: %s", query, exc)
+            set_run_metadata(collection=self._collection_name(), result_count=0,
+                             top_k=self.n_results, error=type(exc).__name__)
+            return []
+        set_run_metadata(collection=self._collection_name(),
+                         result_count=len(hits), top_k=self.n_results)
+        return hits
+
+    def _collection_name(self) -> str | None:
+        """The Qdrant collection behind the knowledge base, if discoverable.
+
+        Read defensively through the seams: a mock or a differently-shaped store
+        may not expose it, and a missing collection name is a cosmetic gap in
+        the trace, never an error.
+        """
+        store = getattr(self.kb, "store", None)
+        return getattr(store, "collection_name", None)
 
     @staticmethod
     def _context(chunks: list[KnowledgeChunk]) -> str:

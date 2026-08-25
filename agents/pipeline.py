@@ -59,7 +59,15 @@ from agents.a2a.guardrails import CallChain, TurnLedger
 from agents.a2a import elicitation as elicit
 from agents.a2a.identity import AgentId
 from agents.contracts import AgentOutcome, Intent, Negotiation, Requirement, ToolCatalogue
-from agents.observability import run_url, traced
+from agents.observability import (
+    app_metadata,
+    current_trace_headers,
+    run_id,
+    run_url,
+    set_run_metadata,
+    set_run_tags,
+    traced,
+)
 from agents.redaction import CONTRACT_KEYS, scrub_identifiers
 
 LOGGER = logging.getLogger("agents.pipeline")
@@ -100,6 +108,11 @@ class AgentPipeline:
     def handle(self, question: str, history: list[dict] | None = None,
                already_clarified: bool = False) -> AgentOutcome:
         ledger = self._ledger or self.network.ledgers.open("")
+        # Group every turn of one conversation onto a LangSmith thread, and
+        # stamp the process-wide facts a dashboard filters on. `context_id` is
+        # the conversation (the session id, or the turn id when there is none),
+        # so the same value is `session_id`/`thread_id` across turns.
+        self._stamp_root(ledger)
         trace: list[dict[str, Any]] = []
 
         # --- 1. is this a question, or a request for data? -------------------
@@ -113,6 +126,11 @@ class AgentPipeline:
             intent.reasoning = ("Answer to a prior clarification; proceeding "
                                 "rather than asking again.")
             intent.task = intent.task or question
+        # The route decides the shape of the whole turn, so it is worth a tag
+        # and a metadata key — "P95 latency of data_request turns" is a question
+        # a dashboard should be able to answer.
+        set_run_metadata(route=intent.route)
+        set_run_tags(f"route:{intent.route}")
         trace.append({"kind": "intent", "label": f"Route: {intent.route}",
                       "detail": intent.reasoning})
 
@@ -511,6 +529,9 @@ class AgentPipeline:
                         "asking again", waiting.get("task_id"))
 
         ledger = self._ledger or self.network.ledgers.open("")
+        self._stamp_root(ledger)
+        set_run_metadata(route="resume")
+        set_run_tags("route:resume")
         trace: list[dict[str, Any]] = [{
             "kind": "intent", "label": "Route: resume",
             "detail": f"Answering a question from {waiting.get('agent')} "
@@ -697,6 +718,11 @@ class AgentPipeline:
         coroutine is marshalled onto the network's loop and waited on. The loop
         itself stays free, which is what allows the agent being called to make a
         nested call of its own.
+
+        The trace headers are captured *here*, on this worker thread, because
+        this is where the orchestrator's run is the active one. Passing them
+        into the call is what keeps the specialist's spans under this turn's
+        single root rather than in a trace of their own.
         """
         return dispatch(
             self.network.loop,
@@ -705,12 +731,34 @@ class AgentPipeline:
                 requesting_agent=AgentId.ORCHESTRATOR.value, ledger=ledger,
                 chain=self._chain, intent=intent,
                 context_id=context_id or ledger.context_id, task_id=task_id,
-                negotiation_phase=phase),
+                negotiation_phase=phase,
+                trace_headers=current_trace_headers()),
             ledger.remaining_seconds() + 30)
 
     @staticmethod
+    def _stamp_root(ledger: TurnLedger) -> None:
+        """Thread grouping and process facts on the turn's root run.
+
+        Best effort and fail-open (the helpers swallow their own errors): a turn
+        must complete whether or not LangSmith accepts the metadata.
+        """
+        thread = ledger.context_id or ledger.user_request_id
+        set_run_metadata(session_id=thread, thread_id=thread,
+                         conversation_id=thread,
+                         user_request_id=ledger.user_request_id,
+                         **app_metadata())
+        meta = app_metadata()
+        set_run_tags(f"backend:{meta.get('llm_backend')}",
+                     f"env:{meta.get('environment')}",
+                     f"data_backend:{meta.get('data_backend')}")
+
+    @staticmethod
     def _finish(outcome: AgentOutcome, ledger: TurnLedger) -> AgentOutcome:
+        # Captured while the root run is still open, so the URL and trace id
+        # point at this turn. Both are None when tracing is off, which the UI
+        # reads as "no trace available" rather than showing a broken link.
         outcome.langsmith_url = run_url()
+        outcome.langsmith_trace_id = run_id()
         outcome.handoffs = ledger.as_dict()
         return outcome
 

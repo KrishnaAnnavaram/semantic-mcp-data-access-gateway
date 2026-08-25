@@ -3,7 +3,7 @@
 
 import { getSettings } from '../config'
 import { mockDemoAnswer } from './mockFixtures'
-import type { ChatResponse, ChatMessage, DataPlan, Negotiation, Table, ElicitationPayload, TraceStep } from '../types/chat'
+import type { ChatResponse, ChatMessage, DataPlan, Handoffs, Negotiation, Table, ElicitationPayload, TraceStep } from '../types/chat'
 
 export class AgentClientError extends Error {}
 
@@ -18,6 +18,14 @@ export interface AnswerResult {
   negotiation: Negotiation | null
   awaitingClarification: boolean
   trace: TraceStep[]
+  // Observability — carried from the /chat payload so each assistant message
+  // keeps its OWN LangSmith reference and handoff ledger. The previous mapper
+  // silently dropped langsmith_url here, which is why the "Open trace" link
+  // never reached the UI however correctly the backend produced it.
+  handoffs: Handoffs | null
+  langsmithUrl: string | null
+  langsmithTraceId: string | null
+  langsmithProject: string | null
 }
 
 interface AgentClient {
@@ -37,6 +45,10 @@ function toResult(payload: ChatResponse, latencyMs: number): AnswerResult {
     negotiation: payload.negotiation ?? null,
     awaitingClarification: payload.elicitation != null,
     trace: payload.trace ?? [],
+    handoffs: payload.handoffs ?? null,
+    langsmithUrl: payload.langsmith_url ?? null,
+    langsmithTraceId: payload.langsmith_trace_id ?? null,
+    langsmithProject: payload.langsmith_project ?? null,
   }
 }
 

@@ -54,7 +54,7 @@ export default function App() {
           <RightRail
             artifact={resolved}
             onCloseArtifact={closeArtifactPanel}
-            trace={lastAssistant?.trace}
+            message={lastAssistant}
             sending={sending}
             hasStarted={messages.length > 0}
           />
