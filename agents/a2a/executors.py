@@ -60,6 +60,7 @@ from a2a.server.tasks import TaskUpdater
 from a2a.types import Task, TaskState
 from a2a.types.a2a_pb2 import Role
 
+from agents import events
 from agents.a2a import elicitation as elicit
 from agents.a2a.envelope import (
     ARTIFACT_ASSESSMENT,
@@ -67,6 +68,7 @@ from agents.a2a.envelope import (
     ARTIFACT_CATALOGUE,
     ARTIFACT_CHOICES,
     ARTIFACT_CITATIONS,
+    ARTIFACT_COMPLETENESS,
     ARTIFACT_DATASET,
     ARTIFACT_ERROR,
     ARTIFACT_INPUT_REQUEST,
@@ -107,6 +109,7 @@ DESCRIPTIONS = {
     ARTIFACT_TITLE: "A short name for the conversation.",
     ARTIFACT_ASSESSMENT: "What the data layer can and cannot serve, with evidence.",
     ARTIFACT_VALIDATION: "Whether the result matches the agreed analytical contract.",
+    ARTIFACT_COMPLETENESS: "Whether the question can be executed as it stands, and what is missing if not.",
 }
 
 
@@ -229,6 +232,11 @@ class BaseAgentExecutor(AgentExecutor):
             agent=self.agent_id.value, skill=request.skill, task_id=task.id,
             context_id=task.context_id, user_request_id=request.user_request_id,
             call_chain=request.call_chain.steps))
+        # Bind the turn on this execution's context as well, so anything that
+        # publishes an execution event from the worker thread below - a model
+        # call, a retrieval, an MCP tool - is attributed to the right request
+        # without every layer having to thread an id through its signature.
+        event_token = events.set_request_id(request.user_request_id)
         try:
             # Re-establish the caller's LangSmith trace before handing work to
             # the worker thread. `asyncio.to_thread` copies the current context,
@@ -254,6 +262,7 @@ class BaseAgentExecutor(AgentExecutor):
             return
         finally:
             _ACTIVE_EXECUTION.reset(token)
+            events.reset_request_id(event_token)
 
         for name, data in outcome.artifacts:
             await updater.add_artifact(
@@ -593,6 +602,7 @@ class DomainExpertExecutor(BaseAgentExecutor):
 
     agent_id = AgentId.DOMAIN_EXPERT
     callers: ClassVar[dict[str, set[str]]] = {
+        "check_requirement_completeness": {AgentId.ORCHESTRATOR.value},
         "derive_data_requirement": {AgentId.ORCHESTRATOR.value},
         # Result validation is requested by the workflow authority, not by the
         # agent that produced the number. Keeping the orchestrator in the middle
@@ -608,6 +618,9 @@ class DomainExpertExecutor(BaseAgentExecutor):
     def handle(self, request: SkillRequest, task: Task) -> Outcome:
         from agents.a2a.ports import A2ADataLayer
         from agents.planning import DataPlanner
+
+        if request.skill == "check_requirement_completeness":
+            return self._preflight(request)
 
         if request.skill == "validate_result":
             return self._validate(request)
@@ -638,6 +651,60 @@ class DomainExpertExecutor(BaseAgentExecutor):
                 .add(ARTIFACT_NEGOTIATION, plan.negotiation.as_dict())
                 .add(ARTIFACT_CATALOGUE, plan.catalogue.as_dict())
                 .add(ARTIFACT_CITATIONS, [c.as_dict() for c in plan.chunks]))
+
+    def _preflight(self, request: SkillRequest) -> Outcome:
+        """Decide whether the question is executable before anything is spent.
+
+        Deliberately the cheapest thing this agent does, and deliberately the
+        first: it reads the user's words, nothing else. No Qdrant query, no
+        model call, no catalogue read - because the whole reason it exists is
+        that discovering a missing comparison period after four vector searches
+        and a reasoning call costs a minute and buys nothing.
+
+        The verdict is data, not prose. When it says a field is missing it names
+        the field, gives one question, and says why that field cannot be
+        defaulted; the orchestrator decides how to put that to the user, adds
+        real options, and owns the conversation. This agent has no route to a
+        human and does not acquire one here.
+        """
+        from agents import preflight  # noqa: PLC0415
+
+        question = str(request.input.get("question") or "")
+        with events.stage(
+                events.EventType.DOMAIN_VALIDATION_STARTED,
+                events.EventType.DOMAIN_VALIDATION_COMPLETED,
+                agent=self.agent_id.value,
+                title="Checking whether the required analysis inputs are present",
+                request_id=request.user_request_id) as measured:
+            verdict = preflight.assess(
+                question,
+                rounds_used=int(request.input.get("clarification_rounds") or 0),
+                already_clarified=bool(request.input.get("already_clarified")))
+            measured["intent"] = verdict.intent
+            measured["complete"] = verdict.complete
+            measured["missing_fields"] = [m.name for m in verdict.missing]
+
+        if not verdict.complete:
+            events.emit(events.EventType.CLARIFICATION_REQUIRED,
+                        agent=self.agent_id.value,
+                        title="Missing information detected",
+                        summary=", ".join(m.name for m in verdict.missing),
+                        # `info`, deliberately not `failed`. Stopping to ask is
+                        # this gate working exactly as designed; reporting it as
+                        # a failure put "finished with failures" on the one path
+                        # the feature exists to make look good, and would teach
+                        # a reader to distrust the status line everywhere else.
+                        status="info", request_id=request.user_request_id,
+                        intent=verdict.intent,
+                        missing_fields=[m.name for m in verdict.missing])
+            LOGGER.info("preflight incomplete | intent=%s missing=%s",
+                        verdict.intent, [m.name for m in verdict.missing])
+        narrative = ("The question carries the inputs it needs."
+                     if verdict.complete else
+                     "Cannot execute yet: "
+                     + ", ".join(m.name for m in verdict.missing) + ".")
+        return Outcome(narrative=narrative).add(ARTIFACT_COMPLETENESS,
+                                                verdict.as_dict())
 
     def _validate(self, request: SkillRequest) -> Outcome:
         """Judge an execution result against the contract that was agreed.
@@ -708,7 +775,8 @@ class OrchestratorExecutor(BaseAgentExecutor):
             outcome = pipeline.handle(
                 question=str(request.input.get("query") or ""),
                 history=request.input.get("history") or [],
-                already_clarified=bool(request.input.get("already_clarified")))
+                already_clarified=bool(request.input.get("already_clarified")),
+                pending_clarification=request.input.get("pending_clarification"))
 
         # The ledger is deliberately NOT shipped in this artifact. Numbers that
         # cross a `google.protobuf.Value` come back as floats, and a handoff

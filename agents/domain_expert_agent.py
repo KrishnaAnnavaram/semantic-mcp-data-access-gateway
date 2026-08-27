@@ -39,6 +39,7 @@ import logging
 import re
 from typing import Any
 
+from agents import events
 from agents.cache import get_intelligence
 from agents.cache.fingerprints import (
     analytical_signature,
@@ -577,9 +578,17 @@ class DomainExpertAgent:
             subject,
             f"{subject} observation window how many rows lookback observations read",
         ]
-        return self._retrieve_queries(
-            self.kb, queries, n_results=self.n_results,
-            default_collection=EXECUTABLE_COLLECTION)
+        with events.stage(events.EventType.RETRIEVAL_STARTED,
+                          events.EventType.RETRIEVAL_COMPLETED,
+                          agent="domain-expert",
+                          title="Searching the executable knowledge corpus",
+                          tool_name="qdrant", collection=EXECUTABLE_COLLECTION,
+                          queries=len(queries)) as measured:
+            chunks = self._retrieve_queries(
+                self.kb, queries, n_results=self.n_results,
+                default_collection=EXECUTABLE_COLLECTION)
+            measured["chunks"] = len(chunks)
+        return chunks
 
     @traced("market_risk_reference_retrieval", run_type="retriever")
     def retrieve_market_risk(self, subject: str) -> list[KnowledgeChunk]:
@@ -611,10 +620,17 @@ class DomainExpertAgent:
         if self.market_risk_kb is None:
             return []
         queries = [subject, f"{subject} {REFERENCE_INTERPRETATION}"]
-        chunks = self._retrieve_queries(
-            self.market_risk_kb, queries,
-            n_results=self.market_risk_n_results,
-            default_collection=REFERENCE_COLLECTION)
+        with events.stage(events.EventType.RETRIEVAL_STARTED,
+                          events.EventType.RETRIEVAL_COMPLETED,
+                          agent="domain-expert",
+                          title="Searching the market-risk reference corpus",
+                          tool_name="qdrant", collection=REFERENCE_COLLECTION,
+                          queries=len(queries)) as measured:
+            chunks = self._retrieve_queries(
+                self.market_risk_kb, queries,
+                n_results=self.market_risk_n_results,
+                default_collection=REFERENCE_COLLECTION)
+            measured["chunks"] = len(chunks)
         return chunks[:self.max_reference_chunks]
 
     def _retrieve_queries(self, knowledge, queries: list[str], *, n_results: int,

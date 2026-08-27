@@ -360,6 +360,12 @@ class TurnLedger:
         }
 
 
+def _safe_request_id(raw: str) -> str:
+    """A caller-supplied correlation id, reduced to something safe to key on."""
+    cleaned = "".join(c for c in str(raw) if c.isalnum() or c in "-_")[:48]
+    return cleaned or uuid.uuid4().hex[:12]
+
+
 class LedgerRegistry:
     """The turn ledgers currently in flight, keyed by `user_request_id`.
 
@@ -384,8 +390,22 @@ class LedgerRegistry:
         self._ledgers: dict[str, TurnLedger] = {}
         self._lock = threading.Lock()
 
-    def open(self, context_id: str) -> TurnLedger:
-        ledger = TurnLedger(context_id=context_id)
+    def open(self, context_id: str, user_request_id: str = "") -> TurnLedger:
+        """Start a turn, optionally under an id the caller already published.
+
+        The client picks the id before it sends the question, so it can be
+        watching the live event stream by the time the first agent starts
+        thinking. Adopting it here is what makes one identifier serve the
+        stream, the handoff ledger, the latency table and the graph, instead of
+        four views that have to be reconciled after the fact.
+
+        Sanitised, not trusted: a caller-supplied id is a correlation key inside
+        one process, so it is reduced to a bounded run of safe characters before
+        it is used as a dictionary key or written into a log line.
+        """
+        ledger = (TurnLedger(context_id=context_id,
+                             user_request_id=_safe_request_id(user_request_id))
+                  if user_request_id else TurnLedger(context_id=context_id))
         with self._lock:
             self._ledgers[ledger.user_request_id] = ledger
             self._evict()

@@ -113,8 +113,12 @@ def wire(network: AgentNetwork, *, route: str = "data_request",
         route=route, reasoning="stubbed routing", task=q, direct_answer="Hello.",
         question="Which book?", requested_rows=rows)
     network.orchestrator_agent.ground_options = lambda q, intent, choices: intent
+    # `reflect` returns (reply, interpretation): the short executive answer the
+    # chat bubble shows, and the longer reading the structured document puts
+    # under the metrics. Both come from one model call in the real agent.
     network.orchestrator_agent.reflect = lambda q, req, neg, res: (
-        f"Returned {res.get('rows_delivered')} rows.")
+        f"Returned {res.get('rows_delivered')} rows.",
+        "Stubbed interpretation.")
     network.orchestrator_agent.summarise_session = lambda messages: "Treasury curve history"
     # derive returns a HYPOTHESIS (no decision); revise returns the commitment.
     network._domain_expert_agent.derive = lambda question, task, cat, f, r, **kw: (
@@ -192,7 +196,8 @@ def test_nothing_but_the_three_agents_is_addressable(network):
 def test_cards_advertise_the_skills_the_executors_actually_serve():
     assert skill_ids(AgentId.ORCHESTRATOR) == {
         "handle_user_turn", "relay_user_input", "summarise_session"}
-    assert skill_ids(AgentId.DOMAIN_EXPERT) == {"derive_data_requirement",
+    assert skill_ids(AgentId.DOMAIN_EXPERT) == {"check_requirement_completeness",
+                                                "derive_data_requirement",
                                                 "validate_result"}
     assert skill_ids(AgentId.MCP) == {
         "describe_data_capabilities", "assess_data_requirement",
@@ -387,6 +392,10 @@ def test_a_data_request_travels_through_a2a_and_not_through_method_calls(network
     calls = [(h["from"], h["to"], h["skill"]) for h in outcome.handoffs["handoffs"]]
     assert calls == [
         ("user-boundary", "orchestrator", "handle_user_turn"),
+        # The completeness gate runs first, before any retrieval or model
+        # call. It is the cheapest hop in the turn and the one that can end
+        # it without spending the four that follow.
+        ("orchestrator", "domain-expert", "check_requirement_completeness"),
         ("orchestrator", "domain-expert", "derive_data_requirement"),
         ("domain-expert", "mcp-agent", "describe_data_capabilities"),
         ("domain-expert", "mcp-agent", "assess_data_requirement"),

@@ -45,6 +45,8 @@ LLM_BACKEND=anthropic to run on Claude. `/health` reports which one is live.
 
 from __future__ import annotations
 
+import asyncio
+import json
 import os
 import time
 from typing import Any
@@ -52,6 +54,7 @@ from typing import Any
 from a2a.utils.constants import PROTOCOL_VERSION_CURRENT
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 # Load .env before anything reads the environment. Without this the service
@@ -156,6 +159,11 @@ class SummaryResponse(BaseModel):
 class ChatRequest(BaseModel):
     query: str = Field(..., min_length=1)
     session_id: str | None = None
+    # The client chooses this before it asks, and opens `/chat/stream/{id}`
+    # first, so it is already watching by the time the orchestrator starts
+    # thinking. Optional: a client that does not want the live view omits it
+    # and the server generates one, exactly as before.
+    request_id: str | None = Field(default=None, max_length=48)
 
 
 class ElicitationOption(BaseModel):
@@ -206,6 +214,17 @@ class ChatResponse(BaseModel):
     # gains the ability to show a handoff timeline when someone wants one.
     # Without it, following a request across agents means reading server logs.
     handoffs: dict | None = None
+    # The turn's correlation id: the same value as `handoffs.user_request_id`,
+    # as the live stream's `request_id`, and as the key `/trace/{id}` and
+    # `/latency/{id}` are addressed by. One id, four views.
+    request_id: str | None = None
+    # The reply as sections - executive answer, scope, metrics, table, chart,
+    # interpretation, methodology, assumptions, caveats, sources - adapted to
+    # what kind of question this was. `answer` is unchanged, so a client that
+    # ignores this renders exactly what it rendered before.
+    structured: dict | None = None
+    # Where this turn's time went, summed from measured durations only.
+    latency: dict | None = None
 
 
 @app.get("/health")
@@ -345,6 +364,9 @@ def _response_for(outcome) -> ChatResponse:
         # the client from labelling a message with a project it never traced to.
         langsmith_project=(_langsmith_project() if outcome.langsmith_url else None),
         handoffs=outcome.handoffs,
+        request_id=outcome.request_id or None,
+        structured=outcome.structured,
+        latency=outcome.latency,
     )
 
 
@@ -384,7 +406,9 @@ def chat(req: ChatRequest) -> ChatResponse:
         outcome = network.handle(req.query, history=history,
                                  already_clarified=session.get("clarified", False),
                                  session_id=req.session_id,
-                                 waiting=session.get("waiting"))
+                                 waiting=session.get("waiting"),
+                                 pending_clarification=session.get("clarification"),
+                                 request_id=req.request_id or "")
     except Exception as exc:  # surface a clean error to the chatbot client
         raise HTTPException(status_code=502, detail=f"agent error: {exc}") from exc
 
@@ -417,9 +441,158 @@ def chat(req: ChatRequest) -> ChatResponse:
             # And remember which specialist task, if any, that question came
             # from — that is the correlation the resumed A2A task needs.
             "waiting": outcome.waiting,
+            # A pre-flight clarification has no task to resume — nothing had
+            # started — so what has to survive is the *question it interrupted*.
+            # Holding it here is what lets the next turn read "last 30 days" as
+            # the answer it is rather than as a new request with no subject.
+            "clarification": outcome.clarification,
         }
 
     return _response_for(outcome)
+
+
+@app.get("/chat/stream/{request_id}")
+async def chat_stream(request_id: str) -> StreamingResponse:
+    """The turn's execution events, as they happen (SSE).
+
+    **Why SSE and not WebSockets.** The traffic is one-directional: the server
+    reports progress and the browser reports nothing back. A WebSocket would
+    add a second protocol, a second failure mode, a handshake to get through
+    whatever proxy sits in front of this, and its own reconnect logic — to carry
+    a stream of small JSON objects in one direction. SSE is a plain GET over the
+    same HTTP stack `/chat` already uses, it survives the same CORS
+    configuration, `EventSource` reconnects on its own, and the whole client is
+    thirty lines. The moment the browser needs to *send* something mid-turn —
+    cancel this run, answer a question inline — a WebSocket earns its keep; it
+    does not before then.
+
+    **This is a view, not a channel the answer depends on.** The turn runs on
+    `POST /chat` exactly as it always has. If nobody subscribes, if the
+    subscriber disconnects, or if this endpoint is never called, the answer is
+    identical — the publisher never waits for a reader. The client opens this
+    first, then posts, and the bounded per-run history covers the race.
+
+    The stream ends when the turn does. A subscriber to a turn that has already
+    finished gets its replayed history and an immediate close, which is what
+    makes a reconnect after a dropped connection cheap rather than a hang.
+    """
+    from agents.events import bus  # noqa: PLC0415
+
+    event_bus = bus()
+    # Claim the run before anything is read from it.
+    #
+    # This is load-bearing, and getting it wrong made the whole live view
+    # silently deliver nothing. The client subscribes BEFORE it posts, so at
+    # this moment the turn does not exist yet — and to `is_finished()` a run it
+    # has never heard of is indistinguishable from one that has ended, so the
+    # stream closed immediately and every event of the turn arrived to nobody.
+    #
+    # `open_run` is idempotent by request id: it registers the turn if this is
+    # the first mention of it and leaves an existing one (including a finished
+    # one being re-read) exactly as it stands. It also starts the timeline at
+    # the moment the browser began waiting, which is the honest origin for a
+    # number labelled "elapsed".
+    event_bus.open_run(request_id)
+
+    async def publish():
+        # **Subscribe before replaying, not after.** The obvious order — replay
+        # the history, then start listening — has a window between the two, and
+        # anything published inside it belongs to neither: too late for the
+        # replay, too early for the subscription. On a turn whose first events
+        # land within milliseconds of the connection that is not a rare race,
+        # it is the common case.
+        #
+        # Subscribing first cannot lose an event; it can only deliver one
+        # twice, and `seen` already discards the duplicate because sequence
+        # numbers are monotonic per turn. Trading a silent loss for a cheap
+        # comparison is the right way round.
+        idle = 0
+        # A turn that never arrives must not hold the connection forever — a
+        # mistyped or abandoned request id would otherwise pin a response for
+        # the life of the process. Generous on purpose: the bound has to exceed
+        # the turn deadline (900s) or it would cut off turns that are running
+        # normally, which is the failure this whole channel exists to prevent.
+        max_idle = int(1200 / 15)
+        with event_bus.subscribe(request_id) as queue:
+            seen = 0
+            for event in event_bus.history(request_id):
+                seen = event.sequence
+                yield _sse("event", event.as_dict())
+            if event_bus.is_finished(request_id):
+                yield _sse("done", {"request_id": request_id, "replayed": True})
+                return
+            while True:
+                try:
+                    event = await asyncio.wait_for(queue.get(), timeout=15.0)
+                except TimeoutError:
+                    # A comment frame. Idle proxies close a connection that has
+                    # been silent for long enough, and a single reasoning call
+                    # can legitimately be silent for a minute.
+                    yield ": keep-alive\n\n"
+                    idle += 1
+                    if event_bus.is_finished(request_id) or idle >= max_idle:
+                        break
+                    continue
+                idle = 0
+                if event is None:
+                    break
+                if event.sequence <= seen:
+                    continue        # already replayed above
+                seen = event.sequence
+                yield _sse("event", event.as_dict())
+        yield _sse("done", {"request_id": request_id})
+
+    return StreamingResponse(
+        publish(), media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive",
+                 # Nginx buffers proxied responses by default, which turns a
+                 # live stream into one delivery at the end — the exact failure
+                 # this endpoint exists to remove.
+                 "X-Accel-Buffering": "no"})
+
+
+def _sse(event: str, payload: Any) -> str:
+    return f"event: {event}\ndata: {json.dumps(payload, default=str)}\n\n"
+
+
+@app.get("/trace/{request_id}")
+def request_trace(request_id: str) -> dict:
+    """This turn's own execution trace and latency breakdown.
+
+    Served from the events the gateway recorded itself, so it answers whether
+    or not LangSmith is configured, reachable, or has finished ingesting. That
+    is deliberate: observability must never be a dependency of being able to
+    explain what happened, and a trace view that goes blank when a SaaS is slow
+    is a trace view nobody trusts in the moment they need it.
+    """
+    from agents.events import bus, latency_report, timeline  # noqa: PLC0415
+
+    events = timeline(request_id)
+    return {
+        "request_id": request_id,
+        "available": bool(events),
+        "finished": bus().is_finished(request_id),
+        "events": events,
+        "latency": latency_report(request_id),
+    }
+
+
+@app.get("/langsmith/trace/{trace_id}")
+def langsmith_trace(trace_id: str) -> dict:
+    """The LangSmith span tree for one turn, fetched and sanitised server-side.
+
+    The API key never leaves this process. The browser asks this service for a
+    trace id it already holds; this service is what holds the credential and
+    what decides which fields may travel.
+
+    Always answers. LangSmith being disabled, unreachable, or still ingesting
+    are three different facts and all three come back as `available: false` with
+    the reason named — never as a 5xx, because a missing trace must not look
+    like a broken gateway.
+    """
+    from backend.api.langsmith_reader import fetch_trace  # noqa: PLC0415
+
+    return fetch_trace(trace_id)
 
 
 if __name__ == "__main__":

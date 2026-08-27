@@ -298,6 +298,10 @@ ARTIFACT_INPUT_REQUEST = "input_request"
 ARTIFACT_TITLE = "title"
 ARTIFACT_ASSESSMENT = "capability_assessment"
 ARTIFACT_VALIDATION = "result_validation"
+#: The domain expert's pre-flight verdict: whether the question can be executed
+#: as it stands, and if not, which fields are missing and why. Published before
+#: any retrieval so a reader can see that nothing expensive ran.
+ARTIFACT_COMPLETENESS = "completeness"
 
 
 def data_artifact(name: str, data: Any, description: str = "") -> Artifact:
@@ -559,6 +563,10 @@ COUNT_KEYS = frozenset({
     # Stated by the planner in `calculation_params`. A `top_n` of 5 that
     # arrives as 5.0 reaches a user-visible sentence as "top 5.0".
     "scenario_count", "top_n",
+    # From the latency report and the live event timeline. A waterfall axis
+    # labelled "12043.0 ms" is the same defect one layer out.
+    "total_ms", "avg_ms", "max_ms", "attributed_ms", "unattributed_ms",
+    "elapsed_ms", "calls", "events", "rounds", "clarification_rounds",
 })
 
 
@@ -593,6 +601,16 @@ def outcome_from_dict(data: dict[str, Any]) -> AgentOutcome:
     data["waiting"] = restore_counts(data.get("waiting")) if data.get("waiting") else None
     data["calculation"] = (restore_counts(data.get("calculation"))
                            if data.get("calculation") else None)
+    # Counts and millisecond durations travel through a protobuf Value as
+    # floats. A latency table reading "12043.0 ms" and a structured section
+    # reporting "250.0 observations" are the same small lie as a handoff count
+    # of 4.0, and this is where it is undone.
+    data["structured"] = (restore_counts(data.get("structured"))
+                          if data.get("structured") else None)
+    data["latency"] = (restore_counts(data.get("latency"))
+                       if data.get("latency") else None)
+    data["clarification"] = (restore_counts(data.get("clarification"))
+                             if data.get("clarification") else None)
     return AgentOutcome(
         answer=str(data.get("answer") or ""),
         route=data.get("route") or "data_request",  # type: ignore[arg-type]
@@ -609,6 +627,10 @@ def outcome_from_dict(data: dict[str, Any]) -> AgentOutcome:
         validation=validation_from_dict(data.get("validation")),
         waiting=data.get("waiting"),
         handoffs=data.get("handoffs"),
+        request_id=str(data.get("request_id") or ""),
+        structured=data.get("structured"),
+        latency=data.get("latency"),
+        clarification=data.get("clarification"),
     )
 
 

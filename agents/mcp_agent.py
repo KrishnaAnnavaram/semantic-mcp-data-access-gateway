@@ -33,6 +33,7 @@ import logging
 import os
 from typing import Any
 
+from agents import events
 from agents.cache import get_intelligence
 from agents.cache.fingerprints import (
     canonical_question,
@@ -913,6 +914,16 @@ class McpAgent:
 
     @traced("mcp_agent.execute", run_type="tool")
     def execute(self, requirement, answers: dict[str, Any] | None = None) -> dict[str, Any]:
+        events.emit(events.EventType.MCP_AGENT_STARTED, agent="mcp-agent",
+                    title="Preparing the data request",
+                    # A marker, not a span: no event completes it, and the tool
+                    # calls that follow are where the work becomes visible. Left
+                    # as `running` it span forever in the live view.
+                    status="completed",
+                    summary=(requirement.calculation or "retrieval only"),
+                    calculation=requirement.calculation or "",
+                    tenors=len(requirement.tenors or []),
+                    rows=requirement.rows)
         return self.intelligence.observed(
             "mcp_agent", "execute",
             lambda: self._execute_scoped(requirement, answers),

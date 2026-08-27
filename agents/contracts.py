@@ -585,6 +585,24 @@ class AgentOutcome:
     # The turn's agent-to-agent ledger: which agent called which, how deep, how
     # long each took, and how much of the budget was spent.
     handoffs: dict[str, Any] | None = None
+    #: The turn's correlation id — the same value as `handoffs.user_request_id`
+    #: and as the live event stream's `request_id`. Carried explicitly so the
+    #: client can join an answer to the events it already watched arrive,
+    #: without having to reach into the ledger to find it.
+    request_id: str = ""
+    #: The reply as sections rather than as one block of prose: an executive
+    #: answer, the scope it was computed under, the metrics, the table, the
+    #: interpretation, the methodology and the caveats. `answer` remains the
+    #: plain-text form, so a client that ignores this loses nothing.
+    structured: dict[str, Any] | None = None
+    #: Where this turn's time actually went, summed from measured durations.
+    latency: dict[str, Any] | None = None
+    #: A pre-flight clarification this turn is waiting on: the original
+    #: question, the fields that were missing, and how many times the gate has
+    #: already asked. Server-side only — the service holds it against the
+    #: session so the user's answer is merged with what they first asked rather
+    #: than read as an unrelated new question.
+    clarification: dict[str, Any] | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -604,4 +622,8 @@ class AgentOutcome:
                            if self.validation is not None else None),
             "waiting": self.waiting,
             "handoffs": self.handoffs,
+            "request_id": self.request_id,
+            "structured": self.structured,
+            "latency": self.latency,
+            "clarification": self.clarification,
         }

@@ -30,6 +30,20 @@ def _span(name: str, run_type: str = "tool", **metadata):
         return contextlib.nullcontext()
 
 
+def _query_stage(query_type: str):
+    """Publish a database read to the live execution stream, defensively."""
+    try:
+        from agents import events  # noqa: PLC0415
+
+        return events.stage(events.EventType.DB_QUERY_STARTED,
+                            events.EventType.DB_QUERY_COMPLETED,
+                            agent="data-layer",
+                            title=f"PostgreSQL {query_type or 'query'}",
+                            tool_name="postgres")
+    except Exception:  # noqa: BLE001 - the stream is optional
+        return contextlib.nullcontext()
+
+
 class PostgresDataProvider:
     def __init__(self, dsn: str | None = None):
         # Prefer 127.0.0.1 to dodge the Windows localhost->IPv6 hang.
@@ -45,9 +59,9 @@ class PostgresDataProvider:
         # were, without ever putting the DSN (which carries the password) or the
         # full result set into the trace. These `analytics.*` reads hold no
         # sensitive data, so the bounded SQL text is safe and useful.
-        with _span("postgres.query", "tool",
-                   query_type=sql.split(None, 1)[0].upper() if sql.strip() else "",
-                   sql=" ".join(sql.split())[:240]):
+        query_type = sql.split(None, 1)[0].upper() if sql.strip() else ""
+        with _span("postgres.query", "tool", query_type=query_type,
+                   sql=" ".join(sql.split())[:240]), _query_stage(query_type):
             with psycopg2.connect(self.dsn) as conn:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
                     cur.execute(sql, params)
