@@ -98,6 +98,32 @@ ORCHESTRATOR_SKILLS = [
 
 DOMAIN_EXPERT_SKILLS = [
     AgentSkill(
+        id="check_requirement_completeness",
+        name="Check whether a question can be executed as it stands",
+        description=(
+            "The pre-flight gate. Decides, before any retrieval or execution, "
+            "whether the question carries the inputs its analysis actually "
+            "needs - deterministically, from the user's own words, with no "
+            "model call and no vector search. Returns either 'complete' or the "
+            "missing field names with one question each and the reason each "
+            "matters. Fields with a documented default (confidence level, "
+            "holding period, observation window, as-of date) are never "
+            "reported missing; only a field no default can honestly stand in "
+            "for can stop a turn - a comparison with no period, a stress with "
+            "no scenario, a reverse stress with no target loss. The expert "
+            "never asks the user itself: this answer goes to the orchestrator."
+        ),
+        tags=["market-risk", "validation", "requirements", "cost-avoidance",
+              IDEMPOTENT_TAG],
+        examples=[
+            "Compare the curve and show the biggest movements.",
+            "Run a stress test on the demo book.",
+            "Show me the 10-year Treasury yield.",
+        ],
+        input_modes=[JSON_MODE],
+        output_modes=[JSON_MODE],
+    ),
+    AgentSkill(
         id="validate_result",
         name="Validate an execution result against the agreed plan",
         description=(

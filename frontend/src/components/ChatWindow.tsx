@@ -40,7 +40,10 @@ export function ChatWindow({ onOpenArtifact, send, regenerate, sending, error, c
         ) : (
           chat.messages.map((message, i) => (
             <div key={i} className="animate-fade-in-up">
-              <MessageBubble message={message} />
+              <MessageBubble
+                message={message}
+                onOpenTable={(artifactIndex) => onOpenArtifact({ message: i, artifact: artifactIndex })}
+              />
               {message.role === 'assistant' && message.tables && message.tables.length > 0 && (
                 <ArtifactCardList
                   tables={message.tables}

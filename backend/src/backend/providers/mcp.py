@@ -62,6 +62,27 @@ def _span(name: str, run_type: str = "tool", **metadata: Any):
     except Exception:  # noqa: BLE001 - tracing is optional
         return contextlib.nullcontext()
 
+
+def _tool_stage(tool: str, **metadata: Any):
+    """Publish MCP tool start/finish to the live execution stream.
+
+    Same defensive shape as `_span`, and for the same reason: a provider that
+    cannot import the event bus must still fetch data. Returns a null context
+    when the bus is unreachable, so the call site is one `with` either way.
+    """
+    try:
+        from agents import events  # noqa: PLC0415
+
+        return events.stage(
+            events.EventType.MCP_TOOL_STARTED,
+            events.EventType.MCP_TOOL_COMPLETED,
+            failed=events.EventType.MCP_TOOL_FAILED,
+            agent="mcp-agent", title=f"MCP tool: {tool}", tool_name=tool,
+            **metadata)
+    except Exception:  # noqa: BLE001 - the stream is optional
+        return contextlib.nullcontext()
+
+
 # The agent's tenor vocabulary expressed in months. This is a translation between
 # two naming conventions, not a list of Treasury fields -- series codes are still
 # resolved from the live catalogue, so a maturity Treasury adds needs no edit here.
@@ -262,7 +283,8 @@ class McpDataProvider:
         # or the result, so no bulk array or rate table reaches the trace.
         with _span(f"mcp.call:{tool}", "tool", tool_name=tool,
                    server="market-risk-data-mcp",
-                   argument_keys=sorted((arguments or {}).keys()) or None):
+                   argument_keys=sorted((arguments or {}).keys()) or None),                 _tool_stage(tool, server="market-risk-data-mcp",
+                            argument_keys=sorted((arguments or {}).keys())):
             return self._bridge.call_raw(tool, arguments or {}, relay)
 
     def call_tool(self, tool: str, arguments: dict[str, Any] | None = None) -> dict:

@@ -216,6 +216,29 @@ cd frontend && npm install && npm run dev                         # :5173
 python -m evaluation.run                     # 13 cases x 11 scorers, offline table
 ```
 
+**Observability + the requirement gate**
+
+```bash
+python tools/measure_gate_saving.py          # what the gate avoids, counted
+pytest tests/test_preflight.py               # 47 checks, deterministic, offline
+pytest tests/test_execution_events.py        # 30 checks on the event bus
+pytest tests/test_clarification_gate.py      # 12 end-to-end over the real network
+curl -s -N localhost:8000/chat/stream/<id>   # live execution events (SSE)
+curl -s localhost:8000/trace/<request_id>    # timeline + latency, no LangSmith needed
+```
+
+The domain expert answers a **cheap question first**: does this request carry
+the inputs its analysis needs? Deterministic — regular expressions and a lexicon
+over the user's own words, no model call and no vector search
+(`agents/preflight.py`). An incomplete question is stopped before four Qdrant
+queries and a reasoning call are spent finding out. Measured on the real ledger:
+an incomplete question falls from 5 A2A calls / 4 vector queries / 4 model calls
+to **2 / 0 / 1**; a complete one pays one extra hop and nothing else.
+
+It is deliberately reluctant to ask. A parameter with a documented default is
+never a reason to interrupt a quant — only a field no default can honestly stand
+in for may block. `PREFLIGHT_ENABLED=false` restores the previous flow exactly.
+
 **A2A layer** — three addressable agents on the same service
 
 ```bash
@@ -324,8 +347,11 @@ its history — neither is cleanly recoverable once pushed.
 2. `python -m treasury_db.load`
 3. `python tools/verify_load.py --self-test` — 74/74
 4. `python tools/verify_mcp.py --self-test` — 48/48 (spawns real child processes)
-5. `pytest` — includes `tests/test_a2a.py` (30 A2A checks, offline; cards,
-   agent-to-agent routing, artifacts, elicitation relay, guardrails, failures).
+5. `pytest` — includes `tests/test_a2a.py` (61 A2A checks, offline; cards,
+   agent-to-agent routing, artifacts, elicitation relay, guardrails, failures),
+   `tests/test_preflight.py` (the requirement gate),
+   `tests/test_execution_events.py` (the event bus and latency report) and
+   `tests/test_clarification_gate.py` (the gate end to end over a real network).
    Plus `cd frontend && npm test`.
 6. `git status` shows no `adaptive-legacy-code-complexity-harness/`, no `.env`
 7. **`git grep -nE '^(<<<<<<<|=======|>>>>>>>)' -- ':!data/'` returns nothing.** Conflict markers

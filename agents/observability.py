@@ -538,6 +538,26 @@ def structured_call(*, call_site, system: str, prompt: str, schema: dict[str, An
     provider = model_provider()
     model = provider.model_for(call_site)
     _FAILURE.kind = ""
+    # The live stream's most valuable line. Model calls are where the minutes
+    # go, so publishing one event per call - with its call site, which is the
+    # thing that separates a 2 s routing decision from a 60 s requirement
+    # derivation - turns "still thinking" into "the domain expert has been
+    # deriving for 41 s".
+    from agents import events as _events  # noqa: PLC0415 - avoids a cycle
+
+    label = site.replace("_", " ")
+
+    def _failed_event(begun: float) -> None:
+        _events.emit(_events.EventType.MODEL_CALL_FAILED, agent=site,
+                     title=f"{label}: model call failed",
+                     summary=_FAILURE.kind, status="failed",
+                     duration_ms=int((_time.perf_counter() - begun) * 1000),
+                     tool_name=site, call_site=site, model=model,
+                     failure_kind=_FAILURE.kind)
+
+    _events.emit(_events.EventType.MODEL_CALL_STARTED, agent=site,
+                 title=f"{label}: model call", tool_name=site, call_site=site,
+                 model=model, provider=provider.name)
     # LangSmith model attribution: `ls_provider` and `ls_model_name` are the
     # conventional keys a run carries so the UI groups by model and can price a
     # call. Attached to the enclosing llm span (this call runs inside one), so it
@@ -560,6 +580,7 @@ def structured_call(*, call_site, system: str, prompt: str, schema: dict[str, An
         _FAILURE.kind = "schema"
         _FAILURE.stats = _provider_stats(provider, started, "schema")
         _record_non_specialist_call(site, model, _FAILURE.stats)
+        _failed_event(started)
         return None
     except ProviderError as exc:
         LOGGER.warning("structured call failed | provider=%s model=%s "
@@ -568,6 +589,7 @@ def structured_call(*, call_site, system: str, prompt: str, schema: dict[str, An
         _FAILURE.kind = exc.kind or "provider"
         _FAILURE.stats = _provider_stats(provider, started, _FAILURE.kind)
         _record_non_specialist_call(site, model, _FAILURE.stats)
+        _failed_event(started)
         return None
     except Exception as exc:  # noqa: BLE001 - never take a request down
         LOGGER.warning("structured call errored | provider=%s model=%s | %s",
@@ -575,10 +597,19 @@ def structured_call(*, call_site, system: str, prompt: str, schema: dict[str, An
         _FAILURE.kind = "unknown"
         _FAILURE.stats = _provider_stats(provider, started, "unknown")
         _record_non_specialist_call(site, model, _FAILURE.stats)
+        _failed_event(started)
         return None
 
     set_run_metadata(model_call_seconds=round(_time.perf_counter() - started, 3))
     _FAILURE.stats = _provider_stats(provider, started, "")
+    _events.emit(_events.EventType.MODEL_CALL_COMPLETED, agent=site,
+                 title=f"{label}: model call complete",
+                 status="completed",
+                 duration_ms=int((_time.perf_counter() - started) * 1000),
+                 tool_name=site, call_site=site, model=model,
+                 provider=provider.name,
+                 input_tokens=_FAILURE.stats.get("input_tokens"),
+                 output_tokens=_FAILURE.stats.get("output_tokens"))
     _record_non_specialist_call(site, model, _FAILURE.stats)
     LOGGER.debug("structured call ok | provider=%s model=%s call_site=%s",
                  provider.name, model, getattr(call_site, "value", call_site))

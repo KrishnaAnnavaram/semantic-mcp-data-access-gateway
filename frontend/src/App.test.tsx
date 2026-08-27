@@ -38,8 +38,10 @@ describe('App', () => {
       { timeout: 2000 },
     )
     expect(screen.getByText('Data table 1')).toBeInTheDocument()
-    // the reasoning rail is collapsed by default; open it to see the trace
-    fireEvent.click(screen.getByRole('button', { name: /show reasoning panel/i }))
+    // Sending a question now opens the rail on its EXECUTION tab, so the user
+    // watches the work happen instead of a spinner. The reasoning trail moved
+    // one click away rather than one panel away.
+    fireEvent.click(screen.getByRole('tab', { name: /reasoning/i }))
     expect(screen.getByText('Route: data_request')).toBeInTheDocument()
     expect(screen.getByText('Composed reply')).toBeInTheDocument()
     // the market snapshot strip picks up the curve table that was just returned

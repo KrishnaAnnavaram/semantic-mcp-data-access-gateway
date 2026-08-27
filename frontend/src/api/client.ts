@@ -4,6 +4,7 @@
 import { getSettings } from '../config'
 import { mockDemoAnswer } from './mockFixtures'
 import type { ChatResponse, ChatMessage, DataPlan, Handoffs, Negotiation, Table, ElicitationPayload, TraceStep } from '../types/chat'
+import type { LatencyReport, StructuredAnswer } from '../types/execution'
 
 export class AgentClientError extends Error {}
 
@@ -26,10 +27,16 @@ export interface AnswerResult {
   langsmithUrl: string | null
   langsmithTraceId: string | null
   langsmithProject: string | null
+  // The turn's correlation id — the same one the client chose before asking and
+  // watched the live stream under, echoed back so a stored message can find its
+  // own events, trace, waterfall and graph later.
+  requestId: string | null
+  structured: StructuredAnswer | null
+  latency: LatencyReport | null
 }
 
 interface AgentClient {
-  ask(query: string, sessionId: string): Promise<AnswerResult>
+  ask(query: string, sessionId: string, requestId?: string): Promise<AnswerResult>
   summarise(messages: ChatMessage[]): Promise<string | null>
 }
 
@@ -49,6 +56,9 @@ function toResult(payload: ChatResponse, latencyMs: number): AnswerResult {
     langsmithUrl: payload.langsmith_url ?? null,
     langsmithTraceId: payload.langsmith_trace_id ?? null,
     langsmithProject: payload.langsmith_project ?? null,
+    requestId: payload.request_id ?? null,
+    structured: payload.structured ?? null,
+    latency: payload.latency ?? null,
   }
 }
 
@@ -61,11 +71,17 @@ class RestAgentClient implements AgentClient {
     this.timeoutMs = timeoutMs
   }
 
-  async ask(query: string, sessionId: string): Promise<AnswerResult> {
+  async ask(query: string, sessionId: string, requestId?: string): Promise<AnswerResult> {
     const started = performance.now()
     let response: Response
     try {
-      response = await this.post('/chat', { query, session_id: sessionId }, this.timeoutMs)
+      // `request_id` is chosen by the caller and sent with the question, so the
+      // live stream it already subscribed to and this answer carry the same id.
+      response = await this.post(
+        '/chat',
+        { query, session_id: sessionId, request_id: requestId },
+        this.timeoutMs,
+      )
     } catch (err) {
       throw new AgentClientError(`Could not reach the agent service: ${(err as Error).message}`)
     }
@@ -138,8 +154,12 @@ export function isMockMode(): boolean {
   return getSettings().agentBackend !== 'rest'
 }
 
-export async function askAgent(query: string, sessionId: string): Promise<AnswerResult> {
-  return buildClient().ask(query, sessionId)
+export async function askAgent(
+  query: string,
+  sessionId: string,
+  requestId?: string,
+): Promise<AnswerResult> {
+  return buildClient().ask(query, sessionId, requestId)
 }
 
 export async function summariseSession(messages: ChatMessage[]): Promise<string | null> {

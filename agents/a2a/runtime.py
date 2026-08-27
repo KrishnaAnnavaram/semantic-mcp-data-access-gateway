@@ -40,6 +40,7 @@ from a2a.client import ClientConfig, ClientFactory
 from a2a.utils.constants import TransportProtocol
 from starlette.applications import Starlette
 
+from agents import events
 from agents.a2a.cards import agent_card
 from agents.a2a.client import AgentLink
 from agents.a2a.envelope import ARTIFACT_OUTCOME, ARTIFACT_TITLE, SkillResult
@@ -200,12 +201,24 @@ class AgentNetwork:
 
     def handle(self, question: str, history: list[dict] | None = None,
                already_clarified: bool = False, session_id: str | None = None,
-               waiting: dict[str, Any] | None = None) -> AgentOutcome:
+               waiting: dict[str, Any] | None = None,
+               pending_clarification: dict[str, Any] | None = None,
+               request_id: str = "") -> AgentOutcome:
         """One user turn, through the orchestrator's A2A endpoint.
 
         `waiting` is a specialist task left in `input-required` by the previous
         turn. Its presence routes this turn to `relay_user_input`, so the user's
         answer resumes that task instead of starting an unrelated workflow.
+
+        `pending_clarification` is the *other* kind of unfinished business: a
+        pre-flight question the domain expert's gate raised before anything ran.
+        There is no task to resume in that case - nothing had started - so the
+        turn is handled normally, with the user's answer merged back into the
+        question it answers.
+
+        `request_id` is the correlation the client chose before it asked, so the
+        live event stream it is already watching, this turn's handoff ledger and
+        the latency report all carry the same id.
         """
         skill = "relay_user_input" if waiting else "handle_user_turn"
         payload: dict[str, Any] = {
@@ -215,7 +228,10 @@ class AgentNetwork:
         }
         if waiting:
             payload["waiting"] = waiting
-        result, ledger = self._ask(skill, payload, session_id)
+        if pending_clarification:
+            payload["pending_clarification"] = pending_clarification
+        result, ledger = self._ask(skill, payload, session_id,
+                                   request_id=request_id)
         outcome = _outcome_from(result)
         # Attached here rather than carried in the artifact: this is the same
         # ledger every agent in the turn shared, with native integers and the
@@ -232,7 +248,8 @@ class AgentNetwork:
         return (result.artifact(ARTIFACT_TITLE) or {}).get("title") or None
 
     def _ask(self, skill: str, payload: dict[str, Any],
-             session_id: str | None) -> tuple[SkillResult, TurnLedger]:
+             session_id: str | None,
+             request_id: str = "") -> tuple[SkillResult, TurnLedger]:
         """Open the turn's budget, spend the first hop on it, and hand both back.
 
         The ledger is opened *here*, at the user boundary, and every agent the
@@ -243,7 +260,13 @@ class AgentNetwork:
         all three agents — carries it, which is what makes a whole multi-agent
         turn recoverable from a task listing.
         """
-        ledger = self.ledgers.open(session_id or "")
+        ledger = self.ledgers.open(session_id or "", request_id)
+        # Open the turn's event timeline before the first hop, and bind the id
+        # on this thread's context so every publisher below - the A2A client,
+        # the model layer, the providers - attributes its events here without
+        # threading an id through its own signature.
+        events.bus().open_run(ledger.user_request_id)
+        token = events.set_request_id(ledger.user_request_id)
         try:
             result = self._loop_thread.run(
                 self.link(AgentId.ORCHESTRATOR).call(
@@ -256,6 +279,13 @@ class AgentNetwork:
                 ledger.turn_timeout_s + 60)
             return result, ledger
         finally:
+            events.reset_request_id(token)
+            # The stream is closed here rather than by the pipeline, because
+            # this is the only point that is reached whether the turn answered,
+            # refused, timed out or raised. A subscriber that is told nothing
+            # more is coming can stop waiting; one that is not waits for the
+            # whole connection timeout on a turn that has already finished.
+            events.bus().close_run(ledger.user_request_id)
             self.ledgers.close(ledger)
 
     # -- lifecycle -----------------------------------------------------------

@@ -191,7 +191,36 @@ REFLECT_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
         "reply": {"type": "string", "description": "At most three sentences."},
+        # Asked for in the same call rather than a second one. The reply is the
+        # executive answer and stays short; the interpretation is the paragraph
+        # a reviewer reads underneath the metrics. Two calls would double the
+        # most expensive part of composing an answer to produce material the
+        # model already has in context.
+        "interpretation": {
+            "type": "string",
+            "description": ("Two to five sentences reading the result for a "
+                            "market-risk professional: what the figures say, "
+                            "which parameter drives them, and what would "
+                            "change them. Empty string when the turn produced "
+                            "no calculation and no table - there is then "
+                            "nothing to interpret and inventing something is "
+                            "worse than saying nothing."),
+        },
     },
+    # Only `reply` is required, deliberately.
+    #
+    # Under `zai` a structured result is a **forced function call**, and the
+    # pressure of a second mandatory field is enough to make glm-5.2 answer in
+    # prose instead of calling the tool at all. That comes back as
+    # `kind=no_tool_call`, the payload is rejected, and the turn falls all the
+    # way to `_fallback_reply` — so demanding the richer answer produced a
+    # poorer one than never asking for it. Measured on a live turn: the model
+    # wrote a perfectly good paragraph and it was discarded.
+    #
+    # Optional keeps the contract exactly as strict as it was before the
+    # interpretation existed. When the model supplies one the structured
+    # document gains a section; when it does not, `answer_builder` drops the
+    # empty section and nothing else changes.
     "required": ["reply"],
     "additionalProperties": False,
 }
@@ -377,8 +406,18 @@ class OrchestratorAgent:
         return intent
 
     @traced("orchestrator.reflect", run_type="llm")
-    def reflect(self, question: str, requirement, negotiation, result) -> str:
-        """Write the user-facing reply from what the other two agents produced."""
+    def reflect(self, question: str, requirement, negotiation,
+                result) -> tuple[str, str]:
+        """Write the user-facing reply from what the other two agents produced.
+
+        Returns `(reply, interpretation)`. The reply is the executive answer -
+        the same short, honest sentences this agent has always written, and
+        still the whole of `answer` on the wire. The interpretation is the
+        longer reading that goes under the metrics in the structured document,
+        and it comes back from the *same* model call: composing the answer is
+        the last expensive thing a turn does, and asking twice for material the
+        model already has in context would add a call for nothing.
+        """
         unavailable = [n.name for n in requirement.field_notes
                        if n.verdict == "unavailable"] if requirement else []
         summary = {
@@ -404,8 +443,9 @@ class OrchestratorAgent:
             schema=REFLECT_SCHEMA, max_tokens=1200,
         )
         if payload and payload.get("reply"):
-            return payload["reply"].strip()
-        return self._fallback_reply(requirement, result)
+            return (payload["reply"].strip(),
+                    str(payload.get("interpretation") or "").strip())
+        return self._fallback_reply(requirement, result), ""
 
     @traced("orchestrator.summarise_session", run_type="llm")
     def summarise_session(self, messages: list[dict]) -> str | None:

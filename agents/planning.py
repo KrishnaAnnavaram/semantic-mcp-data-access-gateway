@@ -50,6 +50,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+from agents import events
 from agents.contracts import (
     KnowledgeChunk,
     Negotiation,
@@ -208,6 +209,10 @@ class DataPlanner:
 
             phase = "CAPABILITY_ASSESSMENT" if round_ == 1 else "VALIDATION"
             self._phase(round_, phase)
+            events.emit(events.EventType.NEGOTIATION_ROUND,
+                        agent="domain-expert",
+                        title=f"Negotiation round {round_}: {phase.lower().replace('_', ' ')}",
+                        rounds=round_, phase=phase)
             assessment = self.data_layer.assess(requirement, catalogue)
             negotiation.say(round_, "mcp_agent",
                             self._assessment_summary(assessment),

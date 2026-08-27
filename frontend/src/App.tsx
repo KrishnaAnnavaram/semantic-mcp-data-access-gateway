@@ -42,7 +42,9 @@ export default function App() {
       <MarketSnapshotStrip />
       <div className="flex min-h-0 flex-1">
         <Sidebar />
-        <main className="flex min-w-0 flex-1">
+        {/* `relative` so the right rail can maximise over the conversation
+            rather than over the whole window chrome. */}
+        <main className="relative flex min-w-0 flex-1">
           <ChatWindow
             onOpenArtifact={openArtifactPanel}
             send={send}

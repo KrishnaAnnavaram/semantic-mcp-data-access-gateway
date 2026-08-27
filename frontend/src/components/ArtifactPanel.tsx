@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import clsx from 'clsx'
-import { X, Download, CheckCircle2, AlertTriangle, XCircle, MinusCircle, Brain, Cable } from 'lucide-react'
+import { X, CheckCircle2, AlertTriangle, XCircle, MinusCircle, Brain, Cable } from 'lucide-react'
+import { DataTable } from './DataTable'
 import { Badge } from './Badge'
 import { CurveChart } from './CurveChart'
 import { tableToChartPoints } from '../lib/marketSnapshot'
@@ -22,29 +23,11 @@ interface Props {
   plan: DataPlan | null
   negotiation: Negotiation | null
   onClose: () => void
+  /** Set when the rail is maximised, so the grid uses the height it has. */
+  tall?: boolean
 }
 
-function toCsv(table: Table): string {
-  const escape = (v: unknown) => {
-    const s = v === null || v === undefined ? '' : String(v)
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
-  }
-  const lines = [table.columns.map(escape).join(',')]
-  for (const row of table.rows) lines.push(row.map(escape).join(','))
-  return lines.join('\n')
-}
-
-function downloadCsv(table: Table) {
-  const blob = new Blob([toCsv(table)], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'smcp-gateway-export.csv'
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
-export function ArtifactPanel({ table, plan, negotiation, onClose }: Props) {
+export function ArtifactPanel({ table, plan, negotiation, onClose, tall }: Props) {
   const [tab, setTab] = useState<Tab>('table')
   const badge = classificationBadge(table.provenance?.classification, isMockMode())
 
@@ -86,7 +69,7 @@ export function ArtifactPanel({ table, plan, negotiation, onClose }: Props) {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
-        {tab === 'table' && <TableTab table={table} />}
+        {tab === 'table' && <TableTab table={table} tall={tall} />}
         {tab === 'plan' && <PlanTab plan={plan} />}
         {tab === 'discussion' && <DiscussionTab negotiation={negotiation} />}
         {tab === 'source' && <SourceTab table={table} />}
@@ -95,51 +78,19 @@ export function ArtifactPanel({ table, plan, negotiation, onClose }: Props) {
   )
 }
 
-function TableTab({ table }: { table: Table }) {
-  const displayed = table.rows.length
-  const total = table.row_count
+function TableTab({ table, tall }: { table: Table; tall?: boolean }) {
   const points = tableToChartPoints(table)
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <p className="text-xs text-text-muted">
-          {table.truncated
-            ? `Showing ${displayed.toLocaleString()} of ${total.toLocaleString()} rows. The calculation used all ${total.toLocaleString()}.`
-            : `${total.toLocaleString()} row(s) × ${table.columns.length} column(s).`}
-        </p>
-        <button
-          onClick={() => downloadCsv(table)}
-          className="flex shrink-0 items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-text-muted transition-colors hover:border-accent/40 hover:text-text"
-        >
-          <Download size={12} />
-          Download CSV
-        </button>
-      </div>
       {points && (
         <div className="mb-4 rounded-md border border-border bg-surface-2 p-3">
           <CurveChart points={points} />
         </div>
       )}
-      <div className="md-table-wrap max-h-[420px] overflow-y-auto">
-        <table className="md-table">
-          <thead>
-            <tr>
-              {table.columns.map((c) => (
-                <th key={c}>{c}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {table.rows.map((row, i) => (
-              <tr key={i}>
-                {row.map((cell, j) => (
-                  <td key={j}>{cell === null ? <span className="text-text-faint">—</span> : String(cell)}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* Sticky header, both-axis scrolling, a filter and paging all live in
+          DataTable, which is also what the maximised panel uses — one grid, so
+          a table cannot be reviewable in one place and not the other. */}
+      <DataTable table={table} maxHeightClass={tall ? 'max-h-[calc(100vh-20rem)]' : 'max-h-[420px]'} />
     </div>
   )
 }

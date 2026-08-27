@@ -30,6 +30,7 @@ from typing import Any
 from a2a.client import Client
 from a2a.types import CancelTaskRequest, SendMessageRequest
 
+from agents import events
 from agents.a2a.cards import is_idempotent
 from agents.a2a.envelope import (
     SkillRequest,
@@ -107,6 +108,14 @@ class AgentLink:
                         self.agent.value, skill)
             handoff.state = getattr(cached, "state", "") or ""
             handoff.task_id = getattr(cached, "task_id", "") or ""
+            events.emit(events.EventType.AGENT_HANDOFF_COMPLETED,
+                        agent=self.agent.value,
+                        title=f"{self.agent.value}.{skill} (repeat suppressed)",
+                        summary="answered from the identical earlier call in "
+                                "this turn",
+                        status="completed", duration_ms=0,
+                        request_id=ledger.user_request_id, skill=skill,
+                        duplicate=True, sequence=handoff.sequence)
             return cached
 
         message = build_request_message(
@@ -119,6 +128,21 @@ class AgentLink:
                     if negotiation_round else "",
                     message.context_id, task_id or "-")
 
+        # One event per handoff, published from the single place every A2A call
+        # passes through. That is what makes "which agent is working now" a
+        # measured fact rather than a guess assembled in the browser, and it
+        # costs one dictionary append on a path that is about to wait seconds
+        # for a model.
+        events.emit(events.EventType.AGENT_HANDOFF,
+                    agent=self.agent.value,
+                    title=f"{requesting_agent} -> {self.agent.value}",
+                    summary=intent or skill, request_id=ledger.user_request_id,
+                    skill=skill, caller=requesting_agent,
+                    chain_length=handoff.chain_length,
+                    sequence=handoff.sequence,
+                    negotiation_round=negotiation_round,
+                    negotiation_phase=negotiation_phase)
+
         started = time.perf_counter()
         # Bounded by what is left of the turn, not by a flat per-call number.
         # A call contains every call beneath it, so a flat deadline made the
@@ -127,6 +151,18 @@ class AgentLink:
         # by construction: a child can never outlive its parent.
         result = await self._send(message, ledger.remaining_seconds())
         ledger.record(handoff, digest, result, started)
+        events.emit(events.EventType.AGENT_HANDOFF_COMPLETED,
+                    agent=self.agent.value,
+                    title=f"{self.agent.value}.{skill} returned",
+                    summary=result.narrative[:200] if result.narrative else "",
+                    status=("completed" if result.state == "completed"
+                            else "running" if result.state == "input-required"
+                            else "failed"),
+                    duration_ms=handoff.duration_ms,
+                    request_id=ledger.user_request_id, skill=skill,
+                    task_id=result.task_id, state=result.state,
+                    sequence=handoff.sequence,
+                    error_kind=(result.error or {}).get("kind", ""))
         LOGGER.info("a2a <-- | turn=%s seq=%d %s.%s state=%s task=%s %dms%s",
                     ledger.user_request_id, handoff.sequence, self.agent.value,
                     skill, result.state, result.task_id or "-",

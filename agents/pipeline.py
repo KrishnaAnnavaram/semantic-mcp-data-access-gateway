@@ -39,15 +39,18 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from agents import answer_builder, events
+from agents.a2a import elicitation as elicit
 from agents.a2a.client import dispatch
 from agents.a2a.envelope import (
     ARTIFACT_CALCULATION,
-    ARTIFACT_VALIDATION,
     ARTIFACT_CATALOGUE,
     ARTIFACT_CHOICES,
+    ARTIFACT_COMPLETENESS,
     ARTIFACT_DATASET,
     ARTIFACT_NEGOTIATION,
     ARTIFACT_REQUIREMENT,
+    ARTIFACT_VALIDATION,
     SkillResult,
     catalogue_from_dict,
     execution_from_dict,
@@ -56,7 +59,6 @@ from agents.a2a.envelope import (
     validation_from_dict,
 )
 from agents.a2a.guardrails import CallChain, TurnLedger
-from agents.a2a import elicitation as elicit
 from agents.a2a.identity import AgentId
 from agents.contracts import AgentOutcome, Intent, Negotiation, Requirement, ToolCatalogue
 from agents.observability import (
@@ -68,8 +70,11 @@ from agents.observability import (
     set_run_tags,
     traced,
 )
+from agents.preflight import CompletenessVerdict, verdict_from_dict
 from agents.redaction import (
-    CONTRACT_KEYS, MCP_IMPLEMENTATION_NAMES, scrub_identifiers,
+    CONTRACT_KEYS,
+    MCP_IMPLEMENTATION_NAMES,
+    scrub_identifiers,
 )
 
 LOGGER = logging.getLogger("agents.pipeline")
@@ -108,7 +113,9 @@ class AgentPipeline:
 
     @traced("agent_pipeline", run_type="chain")
     def handle(self, question: str, history: list[dict] | None = None,
-               already_clarified: bool = False) -> AgentOutcome:
+               already_clarified: bool = False,
+               pending_clarification: dict[str, Any] | None = None
+               ) -> AgentOutcome:
         ledger = self._ledger or self.network.ledgers.open("")
         # Group every turn of one conversation onto a LangSmith thread, and
         # stamp the process-wide facts a dashboard filters on. `context_id` is
@@ -116,8 +123,25 @@ class AgentPipeline:
         # so the same value is `session_id`/`thread_id` across turns.
         self._stamp_root(ledger)
         trace: list[dict[str, Any]] = []
+        events.emit(events.EventType.REQUEST_RECEIVED, agent="system",
+                    title="Request received", status="completed",
+                    request_id=ledger.user_request_id)
+
+        # --- 0. is this the answer to a question we asked? --------------------
+        # A user who replies "last 30 days" has not asked a new question; they
+        # have finished the one they started. Merging here rather than letting
+        # the router see the fragment on its own is what stops "last 30 days"
+        # being classified as an unrelated request with no subject.
+        question, clarification_rounds = self._merge_clarification(
+            question, pending_clarification, trace)
+        if pending_clarification:
+            already_clarified = True
 
         # --- 1. is this a question, or a request for data? -------------------
+        events.emit(events.EventType.ORCHESTRATOR_STARTED,
+                    agent=AgentId.ORCHESTRATOR.value,
+                    title="Analysing the request",
+                    request_id=ledger.user_request_id)
         intent = self.orchestrator.classify(question, history, already_clarified)
         if already_clarified and intent.route == "clarify":
             # The prompt asks for this; the guarantee is here. A user who has
@@ -135,6 +159,11 @@ class AgentPipeline:
         set_run_tags(f"route:{intent.route}")
         trace.append({"kind": "intent", "label": f"Route: {intent.route}",
                       "detail": intent.reasoning})
+        events.emit(events.EventType.ORCHESTRATOR_DECISION,
+                    agent=AgentId.ORCHESTRATOR.value,
+                    title=f"Request classified as {intent.route}",
+                    summary=intent.reasoning, status="completed",
+                    request_id=ledger.user_request_id, route=intent.route)
 
         if intent.route == "direct":
             trace.append({"kind": "answer", "label": "Answered by the orchestrator",
@@ -146,7 +175,44 @@ class AgentPipeline:
         if intent.route == "clarify":
             return self._clarify(question, intent, trace, ledger)
 
-        return self._data_request(question, intent, trace, ledger)
+        return self._data_request(question, intent, trace, ledger,
+                                  clarification_rounds=clarification_rounds,
+                                  already_clarified=already_clarified)
+
+    # -- clarification continuation ------------------------------------------
+
+    @staticmethod
+    def _merge_clarification(question: str,
+                             pending: dict[str, Any] | None,
+                             trace: list[dict]) -> tuple[str, int]:
+        """Rejoin an answer to the question it answers.
+
+        The service holds the pre-flight clarification against the session, so
+        this turn knows that "last 30 days" is the missing comparison window for
+        "compare the Treasury curve and show the biggest movements" rather than
+        a standalone request. The two are combined into one sentence - the same
+        shape `_revalidate` already uses for elicitation answers - so every
+        agent downstream sees the complete request and nothing has to reconstruct
+        the user's intent from two half-turns.
+        """
+        if not pending:
+            return question, 0
+        original = str(pending.get("question") or "").strip()
+        rounds = int(pending.get("rounds") or 0)
+        if not original:
+            return question, rounds
+        merged = f"{original} ({question.strip()})"
+        trace.append({
+            "kind": "clarification",
+            "label": "Combined your answer with the original question",
+            "detail": {"original": original, "answer": question,
+                       "missing_fields": pending.get("missing_fields") or [],
+                       "clarification_rounds": rounds},
+        })
+        LOGGER.info("merged a clarification answer into the original question "
+                    "(round %d, fields=%s)", rounds,
+                    pending.get("missing_fields"))
+        return merged, rounds
 
     # -- clarify -------------------------------------------------------------
 
@@ -177,7 +243,22 @@ class AgentPipeline:
     # -- data request --------------------------------------------------------
 
     def _data_request(self, question: str, intent: Intent, trace: list[dict],
-                      ledger: TurnLedger) -> AgentOutcome:
+                      ledger: TurnLedger, *, clarification_rounds: int = 0,
+                      already_clarified: bool = False) -> AgentOutcome:
+        # --- the gate ---------------------------------------------------------
+        # Cheapest question first. Before a single vector query or reasoning
+        # call, the domain expert says whether this question carries the inputs
+        # its analysis needs. A missing comparison period used to be discovered
+        # after four Qdrant searches, a derive call and a capability read; it is
+        # now discovered from the user's own words in under a millisecond, and
+        # nothing downstream is spent finding out.
+        verdict = self._completeness(question, ledger, trace,
+                                     clarification_rounds=clarification_rounds,
+                                     already_clarified=already_clarified)
+        if verdict is not None and not verdict.complete:
+            return self._clarify_from_gate(question, intent, verdict, trace,
+                                           ledger, clarification_rounds)
+
         plan = self._ask(
             AgentId.DOMAIN_EXPERT, "derive_data_requirement",
             {"question": question, "task": intent.task,
@@ -254,6 +335,101 @@ class AgentPipeline:
 
         return self._compose(question, intent, requirement, negotiation, catalogue,
                              execution, tool_names, trace, ledger)
+
+    def _completeness(self, question: str, ledger: TurnLedger,
+                      trace: list[dict], *, clarification_rounds: int,
+                      already_clarified: bool) -> CompletenessVerdict | None:
+        """Ask the domain expert whether this question is executable yet.
+
+        A failure here is not a reason to stop. The gate exists to *save* work,
+        so a gate that cannot answer must let the turn proceed on the old path
+        rather than refuse a question the system could have served - an
+        optimisation that can fail the request it was meant to speed up is a
+        worse trade than the cost it avoids.
+        """
+        result = self._ask(
+            AgentId.DOMAIN_EXPERT, "check_requirement_completeness",
+            {"question": question,
+             "clarification_rounds": clarification_rounds,
+             "already_clarified": already_clarified},
+            ledger, intent="does this question carry the inputs it needs")
+        verdict = (verdict_from_dict(result.artifact(ARTIFACT_COMPLETENESS))
+                   if result.completed else None)
+        if verdict is None:
+            LOGGER.info("the completeness gate did not answer (%s); "
+                        "continuing without it", result.state)
+            return None
+        trace.append({
+            "kind": "decision",
+            "label": ("Requirement validation: complete"
+                      if verdict.complete else
+                      "Requirement validation: missing "
+                      + ", ".join(m.name for m in verdict.missing)),
+            "detail": verdict.as_dict(),
+        })
+        if verdict.proceeded_on_defaults:
+            LOGGER.info("proceeding on defaults after %d clarification round(s)",
+                        clarification_rounds)
+        return verdict
+
+    def _clarify_from_gate(self, question: str, intent: Intent,
+                           verdict: CompletenessVerdict, trace: list[dict],
+                           ledger: TurnLedger,
+                           clarification_rounds: int) -> AgentOutcome:
+        """One grouped question for everything the gate found missing.
+
+        Grouped on purpose. Three separate turns asking for a curve, then a
+        period, then a tenor is three interruptions to answer one question, and
+        the user has to hold the thread across all of them. One message with a
+        short numbered list is answerable in a single reply.
+
+        The catalogue is read **only** when a missing field is something the
+        data layer holds a list of - a scenario, a portfolio. Asking "which
+        comparison period?" needs no catalogue, and paying an A2A call plus a
+        provider round trip to attach options nobody can use would give back
+        part of what this gate exists to save.
+        """
+        needs_catalogue = {m.options_from for m in verdict.missing
+                           if m.options_from in {"scenarios", "portfolios"}}
+        options: list[dict[str, str]] = []
+        if needs_catalogue:
+            result = self._ask(AgentId.MCP, "list_data_choices", {}, ledger,
+                               intent="real options for the missing field")
+            choices = result.artifact(ARTIFACT_CHOICES) or {}
+            options = _options_for(verdict, choices)
+            trace.append({"kind": "tool_call",
+                          "label": "Read the real choices for the missing field",
+                          "detail": {"state": result.state,
+                                     "options": len(options)}})
+
+        questions = verdict.questions
+        if len(questions) == 1:
+            asked = questions[0]
+        else:
+            asked = ("I can run that. I need "
+                     f"{len(questions)} details:\n\n"
+                     + "\n".join(f"{i}. {q}" for i, q in enumerate(questions, 1)))
+
+        intent.route = "clarify"
+        intent.question = asked
+        intent.options = options or intent.options
+        trace.append({
+            "kind": "clarification",
+            "label": "Stopped before retrieval: required inputs are missing",
+            "detail": {"intent": verdict.intent,
+                       "missing_fields": [m.name for m in verdict.missing],
+                       "questions": questions, "reason": verdict.reason,
+                       "options": intent.options},
+        })
+        LOGGER.info("preflight clarification | intent=%s missing=%s round=%d",
+                    verdict.intent, [m.name for m in verdict.missing],
+                    clarification_rounds + 1)
+        return self._finish(AgentOutcome(
+            answer=asked, route="clarify", intent=intent, trace=trace,
+            clarification={"question": question,
+                           "missing_fields": [m.name for m in verdict.missing],
+                           "intent": verdict.intent,
+                           "rounds": clarification_rounds + 1}), ledger)
 
     def _not_agreed(self, decision: str, question: str, intent: Intent | None,
                     requirement: Requirement, negotiation: Negotiation,
@@ -390,17 +566,32 @@ class AgentPipeline:
         if validation is not None:
             result["validation"] = validation.as_dict()
 
-        answer = scrub_identifiers(
-            self.orchestrator.reflect(question, requirement, negotiation, result),
-            tool_names)
+        events.emit(events.EventType.RESPONSE_SYNTHESIS_STARTED,
+                    agent=AgentId.ORCHESTRATOR.value,
+                    title="Generating the final response",
+                    request_id=ledger.user_request_id)
+        reply, interpretation = self.orchestrator.reflect(
+            question, requirement, negotiation, result)
+        answer = scrub_identifiers(reply, tool_names)
+        interpretation = scrub_identifiers(interpretation, tool_names)
         trace.append({"kind": "answer", "label": "Composed reply", "detail": answer})
+        events.emit(events.EventType.RESPONSE_SYNTHESIS_COMPLETED,
+                    agent=AgentId.ORCHESTRATOR.value,
+                    title="Response composed", status="completed",
+                    request_id=ledger.user_request_id)
 
         return self._finish(AgentOutcome(
             answer=answer, route="data_request", intent=intent,
             requirement=requirement, negotiation=negotiation, catalogue=catalogue,
             tables=[table] if table.get("columns") else [],
             calculation=result.get("calculation"), trace=trace,
-            validation=validation, citations=requirement.citations), ledger)
+            validation=validation, citations=requirement.citations,
+            structured=answer_builder.build(
+                route="data_request", answer=answer, requirement=requirement,
+                negotiation=negotiation, result=result, validation=validation,
+                citations=requirement.citations,
+                interpretation=interpretation,
+                request_id=ledger.user_request_id)), ledger)
 
     def _validate_result(self, requirement: Requirement, result: dict[str, Any],
                          trace: list[dict], ledger: TurnLedger):
@@ -611,12 +802,17 @@ class AgentPipeline:
                       "label": f"Resumed and fetched {execution.get('rows_delivered', 0):,} row(s)",
                       "detail": {"title": table.get("title"),
                                  "notes": execution.get("notes")}})
-        answer = self.orchestrator.reflect(reply, None, None, execution)
+        answer, interpretation = self.orchestrator.reflect(
+            reply, None, None, execution)
         trace.append({"kind": "answer", "label": "Composed reply", "detail": answer})
         return self._finish(AgentOutcome(
             answer=answer, route="data_request", trace=trace,
             tables=[table] if table.get("columns") else [],
-            calculation=execution.get("calculation")), ledger)
+            calculation=execution.get("calculation"),
+            structured=answer_builder.build(
+                route="data_request", answer=answer, result=execution,
+                interpretation=interpretation,
+                request_id=ledger.user_request_id)), ledger)
 
     def _revalidate(self, reply: str, answers: dict[str, Any],
                     waiting: dict[str, Any], history: list[dict] | None,
@@ -766,7 +962,62 @@ class AgentPipeline:
         outcome.langsmith_url = run_url()
         outcome.langsmith_trace_id = run_id()
         outcome.handoffs = ledger.as_dict()
+        outcome.request_id = ledger.user_request_id
+        # Summed here, at the one point every path passes through, from the
+        # durations the turn actually measured. Nothing is estimated: a stage
+        # with no instrumentation shows up in `unattributed_ms` rather than
+        # being apportioned into a component that did not spend it.
+        outcome.latency = events.latency_report(ledger.user_request_id)
+        if outcome.structured is None:
+            # Every path gets a structured document, including the ones that
+            # refuse. A declined request has a shape too - what was asked, what
+            # the data layer could not do, and the citations behind that - and
+            # a client that renders sections should not fall back to a bare
+            # paragraph precisely when the answer is "no".
+            outcome.structured = answer_builder.build(
+                route=outcome.route, answer=outcome.answer,
+                requirement=outcome.requirement,
+                negotiation=outcome.negotiation,
+                citations=outcome.citations,
+                missing=[{"question": q}
+                         for q in ((outcome.intent.question,)
+                                   if outcome.intent and outcome.intent.question
+                                   else ())],
+                request_id=ledger.user_request_id,
+                langsmith_url=outcome.langsmith_url,
+                trace_id=outcome.langsmith_trace_id)
+        events.emit(
+            events.EventType.REQUEST_COMPLETED, agent="system",
+            title="Completed", status="completed",
+            request_id=ledger.user_request_id, route=outcome.route,
+            handoffs=ledger.used)
         return outcome
+
+
+def _options_for(verdict: CompletenessVerdict,
+                 choices: dict[str, Any]) -> list[dict[str, str]]:
+    """Clickable answers for a missing field, built only from things that exist.
+
+    Nothing is generated. Every label is a name the data layer returned, so an
+    option can never offer a scenario or a book this system does not hold - the
+    same rule `_catalogue_options` enforces on the router's own clarifications,
+    applied at the gate.
+    """
+    wanted = {m.options_from for m in verdict.missing}
+    built: list[dict[str, str]] = []
+    if "scenarios" in wanted:
+        for scenario in (choices or {}).get("scenarios") or []:
+            name = scenario.get("name") or scenario.get("scenario_id")
+            if name:
+                built.append({"label": str(name),
+                              "value": f"Run the {name} scenario."})
+    if "portfolios" in wanted:
+        for portfolio in (choices or {}).get("portfolios") or []:
+            name = portfolio.get("name") or portfolio.get("portfolio_id")
+            if name:
+                built.append({"label": str(name),
+                              "value": f"Use the {name} book."})
+    return built[:4]
 
 
 def _user_facing_failure(agent: AgentId, kind: str) -> str:
