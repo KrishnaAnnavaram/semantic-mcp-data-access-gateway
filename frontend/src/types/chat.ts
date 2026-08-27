@@ -2,6 +2,8 @@
 // Keep this file in lockstep with that pydantic model; it is the one contract
 // the whole app is built against.
 
+import type { LatencyReport, StructuredAnswer } from './execution'
+
 export interface ElicitationOption {
   label: string
   value: string
@@ -139,6 +141,12 @@ export interface ChatResponse {
   langsmith_trace_id: string | null
   langsmith_project: string | null
   handoffs: Handoffs | null
+  // Added alongside the live execution stream. `request_id` is the correlation
+  // key for /chat/stream/{id}, /trace/{id} and the graph; `structured` is the
+  // sectioned reply; `latency` is where this turn's time actually went.
+  request_id: string | null
+  structured: StructuredAnswer | null
+  latency: LatencyReport | null
 }
 
 // What one assistant turn carries for its own trace/graph views. Every field is
@@ -155,6 +163,9 @@ export interface ChatMessage {
   langsmith_url?: string | null
   langsmith_trace_id?: string | null
   langsmith_project?: string | null
+  request_id?: string | null
+  structured?: StructuredAnswer | null
+  latency?: LatencyReport | null
 }
 
 // The generic node the GRAPH and TRACE views render, derived from the trace

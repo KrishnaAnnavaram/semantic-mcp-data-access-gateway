@@ -292,6 +292,13 @@ function demoAnswer(opts: {
     langsmithUrl: null,
     langsmithTraceId: null,
     langsmithProject: null,
+    // The mock backend runs no agents, so there is no turn to correlate, no
+    // sectioned document and nothing measured. Null rather than invented: a
+    // fabricated latency table in demo mode is exactly the kind of plausible
+    // number this project refuses everywhere else.
+    requestId: null,
+    structured: null,
+    latency: null,
   }
 }
 
@@ -312,6 +319,9 @@ export function mockDemoAnswer(query: string, latencyMs: number): AnswerResult {
       langsmithUrl: null,
       langsmithTraceId: null,
       langsmithProject: null,
+      requestId: null,
+      structured: null,
+      latency: null,
     }
   }
 

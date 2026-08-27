@@ -56,7 +56,7 @@ describe('TraceView', () => {
       langsmith_url: 'https://smith.langchain.com/r/abc',
       langsmith_project: 'proj-x',
     }
-    render(<TraceView message={message} />)
+    render(<TraceView message={message} events={[]} />)
     const link = screen.getByRole('link', { name: /open full trace/i })
     expect(link).toHaveAttribute('href', 'https://smith.langchain.com/r/abc')
     expect(link).toHaveAttribute('target', '_blank')
@@ -68,14 +68,14 @@ describe('TraceView', () => {
 
   it('shows no broken button and a clear message when there is no trace', () => {
     const message: ChatMessage = { role: 'assistant', content: 'x' }
-    render(<TraceView message={message} />)
+    render(<TraceView message={message} events={[]} />)
     expect(screen.queryByRole('link', { name: /open full trace/i })).toBeNull()
     expect(screen.getByText(/tracing is disabled or was unavailable/i)).toBeInTheDocument()
   })
 
   it('renders without timing when durations are absent (never invents them)', () => {
     const message: ChatMessage = { role: 'assistant', content: 'x', trace: [{ kind: 'answer', label: 'Answered' }] }
-    render(<TraceView message={message} />)
+    render(<TraceView message={message} events={[]} />)
     // No agent calls -> the timeline degrades to its explanatory empty note.
     expect(screen.getByText(/no agent-to-agent calls/i)).toBeInTheDocument()
     expect(screen.getByText('Answered')).toBeInTheDocument()
@@ -88,7 +88,7 @@ describe('TraceView', () => {
       handoffs: ledger,
       langsmith_url: 'https://smith.langchain.com/r/abc',
     }
-    const { container } = render(<TraceView message={message} />)
+    const { container } = render(<TraceView message={message} events={[]} />)
     expect(container.textContent).not.toMatch(/api[_-]?key/i)
     expect(container.textContent).not.toMatch(/ls__|lsv2_/i)
   })

@@ -2,6 +2,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { Components } from 'react-markdown'
 import type { ChatMessage } from '../types/chat'
+import { StructuredAnswerView } from './StructuredAnswer'
 
 const markdownComponents: Components = {
   table: ({ children }) => (
@@ -23,7 +24,13 @@ const markdownComponents: Components = {
 // a flat, unbubbled block with a left rule — a research-note register rather
 // than a rounded chat bubble, which is the one visual cue every consumer chat
 // app shares and this product deliberately does not want to look like.
-export function MessageBubble({ message }: { message: ChatMessage }) {
+export function MessageBubble({
+  message,
+  onOpenTable,
+}: {
+  message: ChatMessage
+  onOpenTable?: (index: number) => void
+}) {
   if (message.role === 'user') {
     return (
       <div className="flex justify-end">
@@ -39,11 +46,24 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
       <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-text-faint">
         Analysis
       </div>
-      <div className="md-content text-[0.9rem] leading-relaxed text-text">
-        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-          {message.content}
-        </ReactMarkdown>
-      </div>
+      {/* The sectioned reply when the backend produced one, and the plain
+          prose otherwise. A turn answered before this contract existed, or by a
+          path that produced no sections, still renders exactly as it always
+          did — the structured document is additive, never a replacement that
+          could leave an older message blank. */}
+      {message.structured && message.structured.sections.length > 0 ? (
+        <StructuredAnswerView
+          structured={message.structured}
+          tables={message.tables ?? []}
+          onOpenTable={onOpenTable}
+        />
+      ) : (
+        <div className="md-content text-[0.9rem] leading-relaxed text-text">
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+            {message.content}
+          </ReactMarkdown>
+        </div>
+      )}
     </div>
   )
 }
