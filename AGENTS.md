@@ -23,6 +23,14 @@ request from it by name.
        ├─ missing detail ──A2A──► MCP AGENT: list_data_choices ──► ask once
        └─ data request
             │
+            │ A2A: check_requirement_completeness   ── THE GATE, and it is first
+            ▼
+       DOMAIN EXPERT  deterministic check on the user's own words
+            │        no model call, no vector search
+            ├─ incomplete ──► missing fields ──► ORCHESTRATOR ──► ask the user
+            │                 (nothing expensive has run)
+            └─ complete
+            │
             │ A2A: derive_data_requirement
             ▼
        DOMAIN EXPERT  Qdrant vector search → requirement
@@ -52,7 +60,7 @@ as `mcp_reader`, and no other agent has a road to the database at all.
 | Agent | Module | A2A address | Job | Model is |
 |---|---|---|---|---|
 | **Orchestrator** | `agents/orchestrator_agent.py` | `/a2a/orchestrator` | Routing, and the only agent a user reaches. Runs on *every* turn, including "hi". | configuration |
-| **Domain Expert** | `agents/domain_expert_agent.py` | `/a2a/domain-expert` | The thinking. Retrieval, requirement, citation, and the discussion. | configuration |
+| **Domain Expert** | `agents/domain_expert_agent.py` | `/a2a/domain-expert` | The gate, then the thinking. Retrieval, requirement, citation, and the discussion. | configuration |
 | **MCP Agent** | `agents/mcp_agent.py` | `/a2a/mcp-agent` | Judging what a source can serve, and serving it. | configuration |
 
 There are **three**, and a fourth would be a design change rather than a
@@ -90,7 +98,38 @@ Two guarantees live in code rather than in the prompt:
   catalogue before asking, so the options are actual portfolios and scenarios —
   clicking one *ends* the ambiguity instead of restating it.
 
-### 2. Domain Expert — what does this task actually need?
+### 2. Domain Expert — is this answerable, and what does it need?
+
+**The cheap question first.** Before any retrieval or reasoning,
+`check_requirement_completeness` decides whether the question carries the inputs
+its analysis needs. It is deterministic — regular expressions and a lexicon over
+the user's own words (`agents/preflight.py`) — so it costs under a millisecond
+and no tokens. An incomplete question is stopped there and the missing fields
+travel to the orchestrator as structured data.
+
+Measured, on the real handoff ledger (`python tools/measure_gate_saving.py`):
+
+| "Compare the curve and show the biggest movements" | A2A calls | Vector queries | Model calls |
+|---|---:|---:|---:|
+| before the gate | 5 | 4 | 4 |
+| with the gate | 2 | 0 | 1 |
+
+A complete question pays one extra A2A hop and nothing else — no model call, no
+vector query.
+
+**It is deliberately reluctant to ask.** A field with a documented default —
+confidence level, holding period, observation window, as-of date — is never a
+reason to interrupt a senior quant; the answer states which default it used.
+Only a field no default can honestly stand in for may stop a turn: a comparison
+with no period, a stress with no scenario, a reverse stress with no target loss.
+At most three questions, grouped into one message, and bounded at
+`PREFLIGHT_MAX_ROUNDS` asks before the turn proceeds on defaults and says so.
+
+**The expert still never speaks to the user.** It returns the intent, the
+missing field names, one question each and why each matters; the orchestrator
+composes the sentence and attaches real options from the catalogue.
+
+### What does this task actually need?
 
 Retrieves from Qdrant and emits a `Requirement`: the fields, the row window, the
 tenors, the calculation, the parameters that calculation reads, and the
@@ -270,16 +309,40 @@ call, not how to reshape a payload.
 `backend/src/backend/api/service.py` (FastAPI):
 
 ```
-POST /chat      {query, session_id}
+POST /chat      {query, session_id, request_id?}
   -> {answer, sources, trace, awaiting_clarification, elicitation, route,
       tables, data_plan, negotiation, catalogue, calculation, langsmith_url,
-      handoffs}
+      handoffs, request_id, structured, latency}
 POST /summarise {messages} -> {title}
 GET  /health    -> {..., a2a: {transport, protocol_version, agents, limits}}
+
+GET  /chat/stream/{request_id}     live execution events (SSE)
+GET  /trace/{request_id}           the gateway's own timeline + latency report
+GET  /langsmith/trace/{trace_id}   sanitised LangSmith spans, key held server-side
 
 GET  /a2a/<agent>/.well-known/agent-card.json     discovery
 POST /a2a/<agent>/                                JSON-RPC (agents only)
 ```
+
+**One id, four views.** The client chooses `request_id`, subscribes to the
+stream, then posts. That same id is the `TurnLedger`'s `user_request_id`, the
+key `handoffs` reports, and what `/trace` and the latency table are addressed
+by — so the live feed, the handoff trail, the waterfall and the graph are views
+of one turn rather than four observability systems to reconcile.
+
+**The live stream is a view, never a dependency.** Publishers never wait on a
+subscriber. If nobody connects, the connection drops, or `EventSource` is
+unavailable, the turn answers identically. Prompts, completions, retrieved text
+and secret-looking metadata are dropped at the source (`agents/events.py`), not
+by the UI declining to render them.
+
+**`structured` is the reply as sections** — executive answer, scope, metrics,
+table, chart, interpretation, methodology, assumptions, caveats, sources —
+adapted to the kind of question, and assembled from facts already established
+rather than generated (`agents/answer_builder.py`). Only the headline and the
+interpretation are model prose, and both come from the single `reflect` call
+that was already being made. `answer` is unchanged, so a client that ignores
+`structured` loses nothing.
 
 The service reaches the agents only by sending an A2A message to the
 orchestrator. The three agent endpoints are mounted here so each agent is
