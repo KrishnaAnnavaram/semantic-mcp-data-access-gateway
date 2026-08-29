@@ -72,6 +72,30 @@ _ARG_PAIR = re.compile(
     r"<arg_key>(?P<key>.*?)</arg_key>\s*<arg_value>(?P<value>.*?)</arg_value>",
     re.DOTALL)
 
+#: How little a model can be asked to think, in the two spellings GLM accepts.
+#:
+#: `reasoning_effort` is the portable one and is tried first. Measured on the
+#: orchestrator's real prompt at its shipped 1,200 ceiling, forced call and all:
+#:
+#:     glm-5.2  reasoning_effort=low ->   123 reasoning, call emitted
+#:     glm-5.3  reasoning_effort=low ->    19 reasoning, call emitted
+#:     glm-5.3  thinking.level=low   -> 1,010 reasoning, call emitted (barely)
+#:     glm-5.3  no lever             -> 1,200 reasoning, finish=length, NO CALL
+#:
+#: `thinking: disabled` is the older spelling and is **not** universal: glm-5.2
+#: accepts it, glm-5.3 answers HTTP 400 code 1210, *"This model always engages
+#: in thinking and cannot be disabled; please use low, high, or max"*. It is
+#: kept as the fallback for a model that does not know the standard field.
+_REDUCED_PRIMARY: dict[str, Any] = {"reasoning_effort": "low"}
+_REDUCED_FALLBACK: dict[str, Any] = {"thinking": {"type": "disabled"}}
+
+#: A rejected *request*, which is what "this model does not accept that field"
+#: looks like from here. `_kind_of` cannot help: it has no bad-request kind and
+#: a 400 falls through to the generic `error`, which would also match a real
+#: failure the fallback has no business retrying. The SDK writes the status
+#: into the message in exactly this form.
+_BAD_REQUEST = "Error code: 400"
+
 
 class ZaiProvider:
     """GLM models through Z.AI's OpenAI-compatible endpoint."""
@@ -92,6 +116,9 @@ class ZaiProvider:
         self.config = config
         self._client: Any = None
         self._call_stats = threading.local()
+        # Per model, the cheapest reasoning setting it will actually accept.
+        # Discovered from the API's own refusal; see `_create_reduced`.
+        self._reduced: dict[str, dict[str, Any]] = {}
 
     def _reset_call_stats(self) -> None:
         if not hasattr(self, "_call_stats"):
@@ -138,6 +165,37 @@ class ZaiProvider:
         except Exception as exc:  # noqa: BLE001
             raise ProviderError(f"zai call failed: {exc}",
                                 kind=_kind_of(exc)) from exc
+
+    def _create_reduced(self, **request: Any) -> Any:
+        """One request that spends as little as this model will allow on
+        reasoning.
+
+        The escalation for a call that has already burned its whole budget
+        thinking. It has to work on a model this file has never met, and the
+        spelling is the part that moves: glm-5.2 takes `thinking: disabled`,
+        glm-5.3 refuses it outright — HTTP 400, code 1210, *"This model always
+        engages in thinking and cannot be disabled"* — so on glm-5.3 the escape
+        hatch was not a weaker retry at all, it was a second failure carrying a
+        worse error than the one it was sent to rescue.
+
+        So the request is made in the portable spelling and the older one is
+        the fallback, chosen from the API's own refusal rather than from a
+        version table — a table is only ever right about the models that have
+        already shipped. Which spelling a model took is remembered, so the
+        wasted round is paid once per process rather than on every escalation.
+        """
+        model = request.get("model", "")
+        extra = self._reduced.get(model, _REDUCED_PRIMARY)
+        try:
+            return self._create(extra_body=extra, **request)
+        except ProviderError as exc:
+            if extra is not _REDUCED_PRIMARY or _BAD_REQUEST not in str(exc):
+                raise
+            LOGGER.info(
+                "%s rejected reasoning_effort; falling back to the older "
+                "thinking-disabled spelling | %s", model, exc)
+            self._reduced[model] = _REDUCED_FALLBACK
+            return self._create(extra_body=_REDUCED_FALLBACK, **request)
 
     @staticmethod
     def _usage(response: Any) -> dict[str, int]:
@@ -265,26 +323,28 @@ class ZaiProvider:
                      thinking: bool = True) -> dict[str, Any]:
         """One forced-function-call round: request, extract, parse, validate."""
         started = time.time()
-        try:
-            response = self._create(
-                model=model,
-                max_tokens=budget,
-            # GLM bills thinking against the output budget, and it expands to
-            # fill whatever it is given — measured 5,241 reasoning tokens under
-            # a 12,000 ceiling and 9,576 under 20,000, on the same prompt. So
-            # raising the ceiling does not remove the truncation, it relocates
-            # it and charges more for the privilege. `thinking=False` is the
-            # escalation for a call that has already been truncated once.
-            **({} if thinking else
-               {"extra_body": {"thinking": {"type": "disabled"}}}),
-            messages=messages,
-            tools=[{"type": "function", "function": {
+        # GLM bills thinking against the output budget, and it expands to fill
+        # whatever it is given — measured 5,241 reasoning tokens under a 12,000
+        # ceiling and 9,576 under 20,000, on the same prompt. So raising the
+        # ceiling does not remove the truncation, it relocates it and charges
+        # more for the privilege. `thinking=False` is the escalation for a call
+        # that has already been truncated once; `_create_reduced` settles how
+        # far down this particular model lets us turn it.
+        request: dict[str, Any] = {
+            "model": model,
+            "max_tokens": budget,
+            "messages": messages,
+            "tools": [{"type": "function", "function": {
                 "name": result_name,
                 "description": ("Emit the result. You MUST call this function "
                                 "exactly once, with every required field."),
                 "parameters": schema}}],
-                tool_choice={"type": "function", "function": {"name": result_name}},
-            )
+            "tool_choice": {"type": "function",
+                            "function": {"name": result_name}},
+        }
+        try:
+            response = (self._create(**request) if thinking
+                        else self._create_reduced(**request))
         except Exception:
             self._record_attempt(started)
             raise

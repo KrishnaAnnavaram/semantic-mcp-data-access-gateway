@@ -118,14 +118,14 @@ def test_a_missing_zai_key_names_both_ways_out(monkeypatch):
 
 @pytest.mark.parametrize("call_site", list(CallSite))
 def test_zai_model_allocation(monkeypatch, call_site):
-    """Every call site runs glm-5.2 by default. The split remains *possible*
+    """Every call site runs glm-5.3 by default. The split remains *possible*
     - each site is independently overridable - but is not the shipped default."""
     monkeypatch.setenv("LLM_BACKEND", "zai")
     monkeypatch.setenv("ZAI_API_KEY", "placeholder-not-a-real-key")
     for var in ("SAMPLING_MODEL", "MCP_AGENT_MODEL", "HOST_AGENT_MODEL",
                 "DOMAIN_EXPERT_MODEL", "ORCHESTRATOR_MODEL"):
         monkeypatch.delenv(var, raising=False)
-    assert load_config().model_for(call_site) == "glm-5.2"
+    assert load_config().model_for(call_site) == "glm-5.3"
 
 
 def test_no_call_site_falls_back_to_the_weaker_model(monkeypatch):
@@ -727,3 +727,71 @@ def test_a_string_null_is_read_as_a_json_null():
     # A real value that merely contains the word is untouched.
     assert _unstring_nulls({"note": "null hypothesis"}) == {"note": "null hypothesis"}
     assert _unstring_nulls({"rows": 250}) == {"rows": 250}
+
+
+def test_the_reduced_retry_survives_a_model_that_refuses_to_stop_thinking():
+    """Measured on glm-5.3, and the reason it could not run this project at all.
+
+    The budget-exhausted escape hatch used to send `thinking: disabled`. glm-5.2
+    accepts it; glm-5.3 answers HTTP 400 code 1210 — *"This model always engages
+    in thinking and cannot be disabled; please use low, high, or max"* — so the
+    rescue call failed harder than the call it was rescuing, and every
+    orchestrator routing decision that overran its 1,200 tokens (1 in 4,
+    measured) collapsed to `defaulting to data_request`.
+
+    The escalation is therefore made in the portable spelling, with the old one
+    as the fallback, and the model's own 400 is what chooses between them.
+    """
+    from llm.contracts import ProviderError
+    from llm.zai_provider import (
+        _REDUCED_FALLBACK,
+        _REDUCED_PRIMARY,
+        ZaiProvider,
+    )
+
+    provider = ZaiProvider.__new__(ZaiProvider)
+    provider.config = _StubConfig()
+    provider._reduced = {}
+    sent: list[dict] = []
+
+    def fake_create(**request):
+        sent.append(request["extra_body"])
+        if "reasoning_effort" in request["extra_body"]:
+            raise ProviderError(
+                "zai call failed: Error code: 400 - {'error': {'code': '1210', "
+                "'message': 'unsupported parameter'}}", kind="error")
+        return "response"
+
+    provider._create = fake_create
+    assert provider._create_reduced(model="glm-legacy") == "response"
+    assert sent == [_REDUCED_PRIMARY, _REDUCED_FALLBACK]
+
+    # Remembered, so the wasted round is paid once per process, not per call.
+    assert provider._create_reduced(model="glm-legacy") == "response"
+    assert sent[-1] is _REDUCED_FALLBACK
+    assert len(sent) == 3
+
+
+def test_a_real_failure_is_not_mistaken_for_an_unsupported_parameter():
+    """The fallback fires on a rejected *request* and nothing else. Matching the
+    generic `error` kind would send a rate limit or a server fault round the
+    loop a second time, at full price, before failing anyway."""
+    import pytest
+
+    from llm.contracts import ProviderError
+    from llm.zai_provider import _REDUCED_PRIMARY, ZaiProvider
+
+    provider = ZaiProvider.__new__(ZaiProvider)
+    provider.config = _StubConfig()
+    provider._reduced = {}
+    sent: list[dict] = []
+
+    def fake_create(**request):
+        sent.append(request["extra_body"])
+        raise ProviderError("zai call failed: Error code: 429 - rate limited",
+                            kind="rate_limit")
+
+    provider._create = fake_create
+    with pytest.raises(ProviderError):
+        provider._create_reduced(model="glm-5.3")
+    assert sent == [_REDUCED_PRIMARY], "a 429 must not buy a second attempt"

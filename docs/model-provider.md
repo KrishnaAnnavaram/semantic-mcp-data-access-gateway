@@ -45,11 +45,11 @@ requirement are different problems.
 
 | Call site | `LLM_BACKEND=zai` *(default)* | `LLM_BACKEND=anthropic` | Override |
 |---|---|---|---|
-| Orchestrator | `glm-5.2` | `claude-haiku-4-5` | `ORCHESTRATOR_MODEL` |
-| Sampling | `glm-5.2` | `claude-opus-5` | `SAMPLING_MODEL` |
-| MCP agent | `glm-5.2` | `claude-opus-5` | `MCP_AGENT_MODEL` |
-| Host agent | `glm-5.2` | `claude-opus-5` | `HOST_AGENT_MODEL` |
-| Domain expert | `glm-5.2` | `claude-opus-5` | `DOMAIN_EXPERT_MODEL` |
+| Orchestrator | `glm-5.3` | `claude-haiku-4-5` | `ORCHESTRATOR_MODEL` |
+| Sampling | `glm-5.3` | `claude-opus-5` | `SAMPLING_MODEL` |
+| MCP agent | `glm-5.3` | `claude-opus-5` | `MCP_AGENT_MODEL` |
+| Host agent | `glm-5.3` | `claude-opus-5` | `HOST_AGENT_MODEL` |
+| Domain expert | `glm-5.3` | `claude-opus-5` | `DOMAIN_EXPERT_MODEL` |
 
 ### Why the orchestrator is not on the cheap model
 

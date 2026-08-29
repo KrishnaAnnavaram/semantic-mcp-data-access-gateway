@@ -256,7 +256,7 @@ flowchart TB
         RD[("Redis 8.8<br/>optional, fail-open")]
     end
 
-    LLM["ModelProvider seam<br/>Z.AI GLM-5.2 default<br/>Anthropic alternative"]
+    LLM["ModelProvider seam<br/>Z.AI GLM-5.3 default<br/>Anthropic alternative"]
     LS["LangSmith<br/>optional, fail-open"]
 
     U --> R
@@ -306,7 +306,7 @@ flowchart TB
 | Agent runtime | Python 3.11+ · `gateway-agents` distribution | Three agents, pipeline, planning, guardrails, events |
 | Agent protocol | **A2A** — `a2a-sdk` ≥1.1.2, protocol revision 1.0 | Agent-to-agent tasks, cards, artifacts, task lifecycle |
 | Tool protocol | **MCP** — `mcp` ≥2.0.0, protocol revision **2026-07-28** | Tools, resources, prompts, elicitation, roots, sampling |
-| Primary LLM | **`glm-5.2`** via Z.AI OpenAI-compatible API (`LLM_BACKEND=zai`, the default) | All five call sites |
+| Primary LLM | **`glm-5.3`** via Z.AI OpenAI-compatible API (`LLM_BACKEND=zai`, the default) | All five call sites |
 | Alternative LLM | `claude-haiku-4-5` (orchestrator) + `claude-opus-5` (everything else) via `LLM_BACKEND=anthropic` | Maintained; see §55 for a current limitation |
 | Structured output | `jsonschema` ≥4.20 with a strict type-checker | Schema + type validation of every model object |
 | Relational data | PostgreSQL 17 (`postgres:17-alpine`) · `psycopg2-binary` | Treasury observations, series semantics, lineage, demo book |
@@ -3271,11 +3271,11 @@ flowchart TB
 
 | Component | Call site | `LLM_BACKEND=zai` **(default)** | `LLM_BACKEND=anthropic` | Override | Structured output? | Tool calling? | Token floor |
 |---|---|---|---|---|---|---|---:|
-| **Orchestrator** — `classify`, `ground_options`, `reflect`, `summarise_session` | `ORCHESTRATOR` | **`glm-5.2`** | `claude-haiku-4-5` | `ORCHESTRATOR_MODEL` | ✅ | ✖ | 1,200 |
-| **Domain Expert** — `derive`, `revise`, `validate_result`, `_interpret` | `DOMAIN_EXPERT` | **`glm-5.2`** | `claude-opus-5` | `DOMAIN_EXPERT_MODEL` | ✅ | ✖ | 12,000 |
-| **MCP Agent** — `assess` | `MCP_AGENT` | **`glm-5.2`** | `claude-opus-5` | `MCP_AGENT_MODEL` | ✅ | ✖ | 10,000 |
-| **MCP host agent** — a standalone loop, **not in the `/chat` path** | `HOST_AGENT` | **`glm-5.2`** | `claude-opus-5` | `HOST_AGENT_MODEL` | ✖ | ✅ `tool_turn` | 8,000 |
-| **MCP sampling** — `brief_dataset_caveat` borrows the client's model | `SAMPLING` | **`glm-5.2`** | `claude-opus-5` | `SAMPLING_MODEL` | ✖ | ✖ `complete` | 2,048 |
+| **Orchestrator** — `classify`, `ground_options`, `reflect`, `summarise_session` | `ORCHESTRATOR` | **`glm-5.3`** | `claude-haiku-4-5` | `ORCHESTRATOR_MODEL` | ✅ | ✖ | 1,200 |
+| **Domain Expert** — `derive`, `revise`, `validate_result`, `_interpret` | `DOMAIN_EXPERT` | **`glm-5.3`** | `claude-opus-5` | `DOMAIN_EXPERT_MODEL` | ✅ | ✖ | 12,000 |
+| **MCP Agent** — `assess` | `MCP_AGENT` | **`glm-5.3`** | `claude-opus-5` | `MCP_AGENT_MODEL` | ✅ | ✖ | 10,000 |
+| **MCP host agent** — a standalone loop, **not in the `/chat` path** | `HOST_AGENT` | **`glm-5.3`** | `claude-opus-5` | `HOST_AGENT_MODEL` | ✖ | ✅ `tool_turn` | 8,000 |
+| **MCP sampling** — `brief_dataset_caveat` borrows the client's model | `SAMPLING` | **`glm-5.3`** | `claude-opus-5` | `SAMPLING_MODEL` | ✖ | ✖ `complete` | 2,048 |
 
 > **No agent names a model.** Each declares a *call site*; which model serves it is decided by
 > `LLM_BACKEND` and the per-call-site variables, exactly as `DATA_BACKEND` decides which
@@ -3322,7 +3322,7 @@ repository or its git history; where something is absent, that is stated rather 
 
 | Model | Exact identifier | Status in this repository | Evidence |
 |---|---|---|---|
-| **GLM-5.2** | `glm-5.2` | **Current default at all five call sites** | `llm/config.py` `_DEFAULT_MODELS[ZAI]`; `.env.example`; `docs/model-provider.md` |
+| **GLM-5.3** | `glm-5.3` | **Current default at all five call sites** | `llm/config.py` `_DEFAULT_MODELS[ZAI]`; `.env.example`; `docs/model-provider.md` |
 | **GLM-4.5-Air** | `glm-4.5-air` | **Legacy / rejected.** Measured, documented, and asserted *not* to be a default | `llm/config.py` comments; `docs/model-provider.md`; `tests/test_model_provider.py:145` — `assert "glm-4.5-air" not in set(config.models.values())` |
 | **Claude Opus 5** | `claude-opus-5` | **Configured alternative** — sampling, MCP agent, host agent, domain expert under `LLM_BACKEND=anthropic` | `llm/config.py` `_DEFAULT_MODELS[ANTHROPIC]` |
 | **Claude Haiku 4.5** | `claude-haiku-4-5` | **Configured alternative** — orchestrator under `LLM_BACKEND=anthropic` | same |
@@ -4530,11 +4530,11 @@ Complete reference, from `.env.example` and the code that reads it. **Placeholde
 | `ZAI_API_KEY` | **yes** when `zai` | — | Z.AI credential | `<your-zai-key>` |
 | `ZAI_BASE_URL` | no | `https://api.z.ai/api/paas/v4` | Z.AI endpoint | — |
 | `ANTHROPIC_API_KEY` | **yes** when `anthropic` | — | Anthropic credential | `<your-anthropic-key>` |
-| `ORCHESTRATOR_MODEL` | no | `glm-5.2` / `claude-haiku-4-5` | Per-call-site override | `glm-5.2` |
-| `DOMAIN_EXPERT_MODEL` | no | `glm-5.2` / `claude-opus-5` | " | — |
-| `MCP_AGENT_MODEL` | no | `glm-5.2` / `claude-opus-5` | " | — |
-| `HOST_AGENT_MODEL` | no | `glm-5.2` / `claude-opus-5` | " | — |
-| `SAMPLING_MODEL` | no | `glm-5.2` / `claude-opus-5` | " | — |
+| `ORCHESTRATOR_MODEL` | no | `glm-5.3` / `claude-haiku-4-5` | Per-call-site override | `glm-5.3` |
+| `DOMAIN_EXPERT_MODEL` | no | `glm-5.3` / `claude-opus-5` | " | — |
+| `MCP_AGENT_MODEL` | no | `glm-5.3` / `claude-opus-5` | " | — |
+| `HOST_AGENT_MODEL` | no | `glm-5.3` / `claude-opus-5` | " | — |
+| `SAMPLING_MODEL` | no | `glm-5.3` / `claude-opus-5` | " | — |
 | `LLM_TIMEOUT_SECONDS` | no | `300` | Wall clock for **one** model call | `300` |
 | `LLM_MAX_RETRIES` | no | `2` | **Transport** retries only | `2` |
 
@@ -4948,11 +4948,11 @@ Shape taken from `service.health()`. Values are illustrative; **no secret appear
   "status": "ok",
   "llm_backend": "zai",
   "models": {
-    "orchestrator": "glm-5.2",
-    "sampling": "glm-5.2",
-    "mcp_agent": "glm-5.2",
-    "host_agent": "glm-5.2",
-    "domain_expert": "glm-5.2"
+    "orchestrator": "glm-5.3",
+    "sampling": "glm-5.3",
+    "mcp_agent": "glm-5.3",
+    "host_agent": "glm-5.3",
+    "domain_expert": "glm-5.3"
   },
   "api_key_configured": true,
   "data_backend": "mcp",

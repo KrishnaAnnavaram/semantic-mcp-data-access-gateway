@@ -66,11 +66,11 @@ _DEFAULT_MODELS: dict[str, dict[CallSite, str]] = {
     #   uniform default is safe. `_MIN_TOKENS[SAMPLING]` is what keeps it safe;
     #   do not lower it without re-measuring.
     ZAI: {
-        CallSite.ORCHESTRATOR:  "glm-5.2",
-        CallSite.SAMPLING:      "glm-5.2",
-        CallSite.MCP_AGENT:     "glm-5.2",
-        CallSite.HOST_AGENT:    "glm-5.2",
-        CallSite.DOMAIN_EXPERT: "glm-5.2",
+        CallSite.ORCHESTRATOR:  "glm-5.3",
+        CallSite.SAMPLING:      "glm-5.3",
+        CallSite.MCP_AGENT:     "glm-5.3",
+        CallSite.HOST_AGENT:    "glm-5.3",
+        CallSite.DOMAIN_EXPERT: "glm-5.3",
     },
 }
 
