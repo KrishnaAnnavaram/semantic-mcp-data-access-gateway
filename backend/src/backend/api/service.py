@@ -39,8 +39,9 @@ Run it:
 
     python -m backend.api.service      # :8000
 
-The model backend defaults to `zai` (glm-5.3 at every call site); set
-LLM_BACKEND=anthropic to run on Claude. `/health` reports which one is live.
+The model backend defaults to `zai` (glm-5.3 at every call site; glm-5.2 still
+works); set LLM_BACKEND=anthropic to run on Claude. `/health` reports which one
+is live, and names the model per call site.
 """
 
 from __future__ import annotations

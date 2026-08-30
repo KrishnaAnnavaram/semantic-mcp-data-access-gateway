@@ -324,8 +324,17 @@ in `treasury.series.placeholder_zero_before`, as data, not code.
   configuration (`LLM_BACKEND` + `ORCHESTRATOR_MODEL` and friends). A pinned model
   string is how a cheap routing path quietly becomes an expensive one.
 - **Model:** the default backend is **`zai`**, running `glm-5.3` at every call
-  site. `LLM_BACKEND=anthropic` returns to `claude-opus-5` with adaptive thinking
-  and is fully maintained. See `docs/model-provider.md`.
+  site. `glm-5.2` is the previous default and is still supported — set any
+  `*_MODEL` variable to it. `LLM_BACKEND=anthropic` returns to `claude-opus-5`
+  with adaptive thinking and is fully maintained. See `docs/model-provider.md`.
+- **A GLM version is not a drop-in swap.** `glm-5.3` expands its reasoning to
+  fill whatever `max_tokens` it is given (1,200 of 1,200 at the orchestrator;
+  3,996 of 4,000 on the same question) and **refuses to have reasoning
+  disabled** — HTTP 400 code 1210. So do not answer a truncation by raising
+  `_MIN_TOKENS`: that relocates the failure and charges more for it. The
+  budget-exhaustion retry asks with `reasoning_effort`, falls back to the older
+  `thinking: disabled` spelling on a 400, and remembers which one the model
+  took. Measurements: README §35, `docs/model-provider.md`.
 
 ## Adding a maturity Treasury has started publishing
 

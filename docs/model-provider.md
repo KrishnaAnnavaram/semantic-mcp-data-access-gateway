@@ -69,14 +69,14 @@ not serialise `requested_rows: integer | null`:
 
 A corrective retry did not change it. Every failure collapsed into
 `data_request` — safe, but it destroys the cheap path the split exists to
-protect: a greeting would reach Qdrant and frontier-tier reasoning. `glm-5.2` is
+protect: a greeting would reach Qdrant and frontier-tier reasoning. The GLM default is
 also *faster* here (60s vs 82s over eight calls) because it needs no retries.
 
 ### Sampling runs the same model, and needs a bigger floor for it
 
 `glm-4.5-air` is the cheaper fit for sampling on paper — plain prose, no schema,
 and **no reasoning tokens at all**, so a small server-set ceiling is never eaten
-by thinking. The shipped default is nevertheless `glm-5.2` everywhere: one model
+by thinking. The shipped default is nevertheless `glm-5.3` everywhere: one model
 to reason about, one latency profile, one set of quirks.
 
 That choice has a measured consequence. The MCP data server sets the sampling
@@ -359,6 +359,52 @@ The quality argument matters more than the latency one. A truncation followed by
 a thinking-disabled retry means the data layer's half of the negotiation was
 running with its reasoning discarded — computed, paid for, and thrown away — on
 a quarter of all assessments.
+
+## Turning reasoning down, on a model that will not turn it off
+
+A truncated structured call is retried **with reasoning reduced**, because
+retrying it unchanged burns the same budget again. That escalation has to work
+on a model this file has never met, and the spelling is the part that moves.
+
+Measured on the orchestrator's real prompt at its shipped 1,200 ceiling, forced
+call and all:
+
+| Request | `glm-5.2` | `glm-5.3` |
+|---|---|---|
+| `thinking: {"type": "disabled"}` | accepted | **HTTP 400, code 1210** — *"This model always engages in thinking and cannot be disabled; please use low, high, or max"* |
+| `thinking: {"type": "enabled", "level": "low"}` | accepted | accepted — 1,010 reasoning against a 1,200 ceiling |
+| `reasoning_effort: "low"` | accepted — 123 reasoning | accepted — **19** reasoning |
+
+Under the old code the escape hatch sent `thinking: disabled` unconditionally,
+so on `glm-5.3` **the rescue call failed harder than the call it was rescuing**
+— and the orchestrator logged `classification failed; defaulting to
+data_request`, sending greetings down the full data path.
+
+`_create_reduced()` now asks in the portable spelling and keeps the older one as
+a fallback, **chosen by the API's own refusal rather than by a version table** —
+a table is only ever right about the models that have already shipped. Which
+spelling a model accepted is remembered per model, so the wasted round is paid
+once per process rather than on every escalation. A 400 buys the fallback; a 429
+or a timeout buys nothing, because a real failure has no business being retried
+at full price.
+
+### `glm-5.3` fills whatever ceiling it is given
+
+The warning above about the MCP agent's headroom being free is **specific to
+`glm-5.2` at that call site**. On `glm-5.3` the orchestrator's own 1,200-token
+call site behaves the other way:
+
+| Ceiling | `glm-5.2` reasoning | `glm-5.3` reasoning |
+|---:|---|---|
+| 1,200 | 11 · 289 · 111 · 275 | 92 · **1,200** · 613 · 168 |
+| 2,400 | 22 · 466 · 63 · 240 | 34 · 934 · 325 · 129 |
+| 4,000 | 7 · 385 · 59 · 207 | 41 · **3,996** · 122 · 156 |
+
+The same question that burned 1,200 of 1,200 burned 3,996 of 4,000. `_MIN_TOKENS`
+was therefore **not** raised for `glm-5.3`: a bigger budget buys a more expensive
+failure, not a success, and the escalation is what had to work instead. The
+floors in this file were all measured on `glm-5.2` and have **not** been
+re-measured on `glm-5.3`.
 
 ## Adding a third provider
 

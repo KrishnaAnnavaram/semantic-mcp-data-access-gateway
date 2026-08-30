@@ -5,8 +5,9 @@ job, and a traced boundary.
 
 **No agent names a model.** Each declares a *call site*; which model serves it is
 configuration (`LLM_BACKEND` plus the per-call-site variables). The shipped
-default is `zai`, running **glm-5.3 at every call site**; `LLM_BACKEND=anthropic`
-returns to `claude-haiku-4-5` for routing and `claude-opus-5` elsewhere. See
+default is `zai`, running **glm-5.3 at every call site** (`glm-5.2`, the previous
+default, is still supported); `LLM_BACKEND=anthropic` returns to
+`claude-haiku-4-5` for routing and `claude-opus-5` elsewhere. See
 [`docs/model-provider.md`](../docs/model-provider.md).
 
 | Agent | Call site | Job |
