@@ -76,7 +76,7 @@ also *faster* here (60s vs 82s over eight calls) because it needs no retries.
 
 `glm-4.5-air` is the cheaper fit for sampling on paper — plain prose, no schema,
 and **no reasoning tokens at all**, so a small server-set ceiling is never eaten
-by thinking. The shipped default is nevertheless `glm-5.3` everywhere: one model
+by thinking. The shipped default is nevertheless `glm-5.2` everywhere: one model
 to reason about, one latency profile, one set of quirks.
 
 That choice has a measured consequence. The MCP data server sets the sampling
@@ -375,24 +375,32 @@ call and all:
 | `thinking: {"type": "enabled", "level": "low"}` | accepted | accepted — 1,010 reasoning against a 1,200 ceiling |
 | `reasoning_effort: "low"` | accepted — 123 reasoning | accepted — **19** reasoning |
 
-Under the old code the escape hatch sent `thinking: disabled` unconditionally,
-so on `glm-5.3` **the rescue call failed harder than the call it was rescuing**
-— and the orchestrator logged `classification failed; defaulting to
-data_request`, sending greetings down the full data path.
+Sending `thinking: disabled` unconditionally meant that on `glm-5.3` **the
+rescue call failed harder than the call it was rescuing** — and the orchestrator
+logged `classification failed; defaulting to data_request`, sending greetings
+down the full data path.
 
-`_create_reduced()` now asks in the portable spelling and keeps the older one as
-a fallback, **chosen by the API's own refusal rather than by a version table** —
+`_create_reduced()` asks in the portable spelling and keeps the older one as a
+fallback, **chosen by the API's own refusal rather than by a version table** —
 a table is only ever right about the models that have already shipped. Which
 spelling a model accepted is remembered per model, so the wasted round is paid
-once per process rather than on every escalation. A 400 buys the fallback; a 429
-or a timeout buys nothing, because a real failure has no business being retried
-at full price.
+once per process. A 400 buys the fallback; a 429 or a timeout buys nothing,
+because a real failure has no business being retried at full price.
 
-### `glm-5.3` fills whatever ceiling it is given
+This is not `glm-5.3`-specific plumbing. It is a straight improvement to
+`glm-5.2`'s own recovery path, and it is what will stop the next GLM version
+needing the same investigation.
 
-The warning above about the MCP agent's headroom being free is **specific to
-`glm-5.2` at that call site**. On `glm-5.3` the orchestrator's own 1,200-token
-call site behaves the other way:
+## The `glm-5.3` trial, and why the default did not move
+
+`glm-5.3` was made the default on 2026-08-29 and **reverted the same day**. It
+runs and remains a supported override; it was simply worse here, and better at
+nothing that was measured.
+
+The deciding measurement is that it expands reasoning to fill whatever ceiling
+it is given. The warning elsewhere in this document about the MCP agent's
+headroom being free is **specific to `glm-5.2` at that call site** — on
+`glm-5.3` the orchestrator's own 1,200-token call site behaves the other way:
 
 | Ceiling | `glm-5.2` reasoning | `glm-5.3` reasoning |
 |---:|---|---|
@@ -400,11 +408,15 @@ call site behaves the other way:
 | 2,400 | 22 · 466 · 63 · 240 | 34 · 934 · 325 · 129 |
 | 4,000 | 7 · 385 · 59 · 207 | 41 · **3,996** · 122 · 156 |
 
-The same question that burned 1,200 of 1,200 burned 3,996 of 4,000. `_MIN_TOKENS`
-was therefore **not** raised for `glm-5.3`: a bigger budget buys a more expensive
-failure, not a success, and the escalation is what had to work instead. The
-floors in this file were all measured on `glm-5.2` and have **not** been
-re-measured on `glm-5.3`.
+The same question that burned 1,200 of 1,200 burned 3,996 of 4,000, so one call
+in four truncated at *both* ceilings and no budget would have fixed it.
+`_MIN_TOKENS` was therefore **not** raised: a bigger ceiling buys a more
+expensive failure, not a success. End-to-end `/chat` turns measured 476s and
+557s against 110–370s on `glm-5.2`.
+
+Every floor in this file was measured on `glm-5.2`, and the table above is why
+they should not be assumed to transfer to a future model. Re-measure them; do
+not port them.
 
 ## Adding a third provider
 

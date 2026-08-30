@@ -323,18 +323,23 @@ in `treasury.series.placeholder_zero_before`, as data, not code.
 - **Never name a model in an agent.** Agents declare a *call site*; the model is
   configuration (`LLM_BACKEND` + `ORCHESTRATOR_MODEL` and friends). A pinned model
   string is how a cheap routing path quietly becomes an expensive one.
-- **Model:** the default backend is **`zai`**, running `glm-5.3` at every call
-  site. `glm-5.2` is the previous default and is still supported — set any
-  `*_MODEL` variable to it. `LLM_BACKEND=anthropic` returns to `claude-opus-5`
-  with adaptive thinking and is fully maintained. See `docs/model-provider.md`.
-- **A GLM version is not a drop-in swap.** `glm-5.3` expands its reasoning to
-  fill whatever `max_tokens` it is given (1,200 of 1,200 at the orchestrator;
-  3,996 of 4,000 on the same question) and **refuses to have reasoning
-  disabled** — HTTP 400 code 1210. So do not answer a truncation by raising
-  `_MIN_TOKENS`: that relocates the failure and charges more for it. The
-  budget-exhaustion retry asks with `reasoning_effort`, falls back to the older
-  `thinking: disabled` spelling on a 400, and remembers which one the model
-  took. Measurements: README §35, `docs/model-provider.md`.
+- **Model:** the default backend is **`zai`**, running `glm-5.2` at every call
+  site. `glm-5.3` runs and is a supported override, but is **not** the default
+  — trialled 2026-08-29 and reverted the same day on measurement.
+  `LLM_BACKEND=anthropic` returns to `claude-opus-5` with adaptive thinking and
+  is fully maintained. See `docs/model-provider.md`.
+- **A newer GLM is not automatically a better one, and the trial is the
+  evidence.** `glm-5.3` expands its reasoning to fill whatever `max_tokens` it
+  is given (1,200 of 1,200 at the orchestrator; 3,996 of 4,000 on the same
+  question, so one call in four truncated at *both* ceilings) and **refuses to
+  have reasoning disabled** — HTTP 400 code 1210. It measured 476–557s per
+  `/chat` turn against 110–370s. It was reverted the day it was adopted.
+  Two rules survive it: never answer a truncation by raising `_MIN_TOKENS`
+  (that relocates the failure and charges more for it), and the
+  budget-exhaustion retry asks with `reasoning_effort`, falling back to the
+  older `thinking: disabled` spelling on a 400 and remembering which the model
+  took — so either model runs. Measurements: README §35,
+  `docs/model-provider.md`.
 
 ## Adding a maturity Treasury has started publishing
 

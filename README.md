@@ -65,8 +65,8 @@ Three A2A agents · two MCP servers · PostgreSQL · Qdrant · Redis · LangSmit
 
 33. [LLM Architecture](#33-llm-architecture)
 34. [LLM Evaluation and Model Selection](#34-llm-evaluation-and-model-selection)
-35. [GLM-5.3 vs GLM-5.2 vs Anthropic vs Kimi](#35-glm-53-vs-glm-52-vs-anthropic-vs-kimi)
-36. [Why GLM-5.3 Is the Default](#36-why-glm-53-is-the-default)
+35. [GLM-5.2 vs GLM-5.3 vs Anthropic vs Kimi](#35-glm-52-vs-glm-53-vs-anthropic-vs-kimi)
+36. [Why GLM-5.2 Is the Default](#36-why-glm-52-is-the-default)
 37. [The Earlier GLM Experiment](#37-the-earlier-glm-experiment)
 38. [Provider-Specific Behaviour: GLM vs Anthropic](#38-provider-specific-behaviour-glm-vs-anthropic)
 39. [Structured Output & Validation Architecture](#39-structured-output--validation-architecture)
@@ -3385,7 +3385,7 @@ GLM-5.2 measurements in §36–§38.
 
 ---
 
-# 35. GLM-5.3 vs GLM-5.2 vs Anthropic vs Kimi
+# 35. GLM-5.2 vs GLM-5.3 vs Anthropic vs Kimi
 
 ## Official list prices
 
@@ -3393,8 +3393,8 @@ GLM-5.2 measurements in §36–§38.
 
 | Model | Provider | Input | Cached input | Output | Source |
 |---|---|---:|---:|---:|---|
-| **`glm-5.3`** | Z.AI | *not verified* | *not verified* | *not verified* | **The current default.** Z.AI's published price for this model was not checked for the 2026-08-29 change; the `glm-5.2` row below is the last verified GLM figure |
-| `glm-5.2` | Z.AI | **$1.40** | **$0.26** | **$4.40** | [docs.z.ai/guides/overview/pricing](https://docs.z.ai/guides/overview/pricing) |
+| **`glm-5.2`** | Z.AI | **$1.40** | **$0.26** | **$4.40** | [docs.z.ai/guides/overview/pricing](https://docs.z.ai/guides/overview/pricing) — **the default** |
+| `glm-5.3` | Z.AI | *not verified* | *not verified* | *not verified* | Trialled and reverted (below). Z.AI's published price was never checked, so none is quoted here |
 | `glm-4.5-air` | Z.AI | $0.20 | $0.03 | $1.10 | same |
 | **`claude-opus-5`** | Anthropic | **$5.00** | **$0.50** (cache hit) | **$25.00** | [platform.claude.com/docs/en/about-claude/pricing](https://platform.claude.com/docs/en/about-claude/pricing) |
 | **`claude-haiku-4-5`** | Anthropic | **$1.00** | **$0.10** (cache hit) | **$5.00** | same |
@@ -3411,7 +3411,7 @@ GLM-5.2 measurements in §36–§38.
 
 ## Engineering comparison
 
-| Dimension | **GLM-5.2** † | **Claude Opus 5** | **Claude Haiku 4.5** | **Kimi K3** |
+| Dimension | **GLM-5.2** | **Claude Opus 5** | **Claude Haiku 4.5** | **Kimi K3** |
 |---|---|---|---|---|
 | Provider | Z.AI | Anthropic | Anthropic | Moonshot AI |
 | Model type | Reasoning model (reports reasoning tokens) | Frontier reasoning model | Small/fast model | Reasoning model |
@@ -3425,27 +3425,22 @@ GLM-5.2 measurements in §36–§38.
 | Effective project cost | **Lowest of the reasoning-capable options.** Per output token: 5.7× cheaper than Opus 5, 3.4× cheaper than Kimi K3 | Highest | Cheap, but not used for grounded reasoning | ~2.1× GLM on input, **~3.4× on output** |
 | Latency observed | **Slower per call than Claude** — `LLM_TIMEOUT_SECONDS` is 300s for this reason. But **faster than `glm-4.5-air` at routing** (60s vs 82s over eight calls) because it needs no retries | Faster per call | Fastest | Not measured here |
 | Agentic suitability | Proven across all five call sites in this system | Proven, and **currently blocked on the data-request path** by two schema rules (§55) | Routing only | Unknown here |
-| **Project role** | **Previous default**, all five call sites — superseded by `glm-5.3` on 2026-08-29, still supported | Configured alternative: sampling, MCP agent, host agent, domain expert | Configured alternative: orchestrator | **None** |
+| **Project role** | **Default, all five call sites** | Configured alternative: sampling, MCP agent, host agent, domain expert | Configured alternative: orchestrator | **None** |
 
-† **The GLM column is `glm-5.2`, deliberately.** Every figure in it — the 8/8 routing score,
-the latency comparison, the price — was measured on `glm-5.2`, and none of it was re-measured
-when the default moved to `glm-5.3`. Relabelling the column would be asserting measurements
-nobody took. What *was* measured about `glm-5.3` is the next subsection, and only that.
+## GLM-5.3: trialled, measured, reverted
 
-## GLM-5.2 → GLM-5.3, measured
+**`glm-5.3` was made the default on 2026-08-29 and reverted the same day.** It runs, and it
+stays a supported override — `ORCHESTRATOR_MODEL=glm-5.3` and friends work — but on this
+project's own prompts it was **measurably worse and better at nothing that was measured**.
 
-The default moved from `glm-5.2` to `glm-5.3` on 2026-08-29. Both remain supported — the
-provider adapts to either, and any `*_MODEL` variable set to `glm-5.2` still runs.
+This subsection is kept as the evidence for that decision. Everything below was measured against
+the live endpoint on this project's real prompts and schemas, not read from a changelog.
 
-**They are not drop-in equivalents.** The version change broke one code path outright and
-degraded another, and both faults were found by running the system rather than by reading a
-changelog. What follows is measured against the live endpoint, on this project's own prompts.
+### What we observed
 
-### The behavioural difference that matters
-
-`glm-5.3` **expands its reasoning to fill whatever ceiling it is given.** Measured on the
-orchestrator's real `CLASSIFY_SYSTEM` prompt and eight-field schema, forced call and all,
-four representative questions per row:
+**1. It expands reasoning to fill whatever ceiling it is given.** Measured on the orchestrator's
+real `CLASSIFY_SYSTEM` prompt and eight-field schema, forced call and all, four representative
+questions per row:
 
 | Model | Ceiling | Reasoning tokens observed | Truncated before emitting the call |
 |---|---:|---|---:|
@@ -3457,68 +3452,76 @@ four representative questions per row:
 | `glm-5.3` | 4,000 | 41 · **3,996** · 122 · 156 | **1/4** |
 
 Read the 4,000 row carefully: the same question that burned 1,200 of 1,200 burned 3,996 of
-4,000. **Raising the ceiling did not remove the truncation, it relocated it** — which is
-exactly what `zai_provider.py` already warned about for `glm-5.2` at larger budgets, now
-reaching the smallest call site in the system. `_MIN_TOKENS` was therefore left unchanged: a
-bigger budget buys a more expensive failure, not a success.
+4,000. **Raising the ceiling did not remove the truncation, it relocated it.** So there was no
+budget that would have fixed this — `_MIN_TOKENS` was left alone deliberately, because a bigger
+ceiling buys a more expensive failure, not a success.
 
-The same thing was observed live at the MCP agent's 10,000-token ceiling — `9,999 of 10,000
-spent on reasoning` — during a real `/chat` turn.
+Seen live too, at the MCP agent's 10,000-token ceiling during a real `/chat` turn:
+`9,999 of 10,000 spent on reasoning`.
 
-### The escape hatch that stopped working
-
-A truncated structured call is not fatal, because the provider retries it with reasoning
-turned down. That retry is what broke:
+**2. It cannot have reasoning disabled, which broke the recovery path.** A truncated structured
+call is retried with reasoning turned down. That retry sent `thinking: {"type": "disabled"}`:
 
 | Request | `glm-5.2` | `glm-5.3` |
 |---|---|---|
 | `thinking: {"type": "disabled"}` | ✅ accepted | ❌ **HTTP 400, code 1210** — *"This model always engages in thinking and cannot be disabled; please use low, high, or max"* |
-| `thinking: {"type": "enabled", "level": "low"}` | ✅ accepted | ✅ accepted — but **1,010** reasoning tokens against a 1,200 ceiling: it survives by a margin of 190 |
+| `thinking: {"type": "enabled", "level": "low"}` | ✅ accepted | ✅ accepted — but **1,010** reasoning against a 1,200 ceiling: it survives by 190 tokens |
 | `reasoning_effort: "low"` | ✅ accepted — 123 reasoning | ✅ accepted — **19** reasoning |
 
-So on `glm-5.3` the rescue call failed harder than the call it was sent to rescue, and the
-orchestrator logged `classification failed; defaulting to data_request` — sending a greeting
-down the full data path, which is precisely the economics the routing split exists to protect.
+So the rescue call failed harder than the call it was sent to rescue, and the orchestrator logged
+`classification failed; defaulting to data_request` — sending greetings down the full data path,
+which inverts the economics the routing split exists to create.
 
-The fix is in `_create_reduced()`: ask in the portable spelling, keep the older one as a
-fallback, and let the **model's own 400** choose between them rather than a version table. The
-answer is remembered per model, so the wasted round is paid once per process. Two tests pin it,
-including one that a real failure must **not** trigger the fallback:
-
-```python
-assert sent == [_REDUCED_PRIMARY, _REDUCED_FALLBACK]   # a 400 buys the older spelling
-assert sent == [_REDUCED_PRIMARY]                      # a 429 buys nothing
-```
+**3. It is slower.** Full `/chat` turns, end to end through the real stack: **476 s** and
+**557 s**, against the **110–370 s** this README records for `glm-5.2`.
 
 ### Side by side
 
-| Dimension | **GLM-5.2** | **GLM-5.3** |
+| Dimension | **GLM-5.2** — the default | **GLM-5.3** — trialled, reverted |
 |---|---|---|
 | Reasoning burn, orchestrator prompt @1,200 | 11–289 | 92–1,200 |
-| Truncation rate at the shipped ceiling | 0/4 | 1/4 |
+| Truncation rate at the shipped ceiling | **0/4** | **1/4** |
 | Fills the ceiling as it grows | No — 7–385 at 4,000 | **Yes** — up to 3,996 at 4,000 |
 | Reasoning can be disabled | Yes | **No** — levels only |
-| Honours `reasoning_effort` | Yes | Yes, and strongly (19 tokens) |
-| Trivial completion | — | 4.7 s, 21 reasoning tokens |
-| Full `/chat` data turn, end to end | 110–370 s (recorded) | **476 s** and **557 s** (measured, two turns) |
-| Routing quality on the real 8-field schema | 8/8 | Correct on every turn observed; **not** re-scored over a full 8-call run |
-| List price per M tokens | $1.40 / $4.40 (verified 2026-08-26) | **Not verified** — Z.AI's published price for `glm-5.3` was not checked for this change |
+| Honours `reasoning_effort` | Yes — 123 tokens | Yes, strongly — 19 tokens |
+| Full `/chat` data turn | **110–370 s** | **476 s** and **557 s** |
+| Routing quality on the real 8-field schema | **8/8** | Correct on every turn observed; **never re-scored** over a full 8-call run |
+| List price per M tokens | **$1.40 / $4.40**, verified 2026-08-26 | Not verified — no figure is quoted |
 | Structured output mechanism | Forced function call | Forced function call — unchanged |
-| Project role | Previous default; still supported | **Default, all five call sites** |
 
-**The honest summary: `glm-5.3` is slower and burns far more reasoning per call, and nothing
-here demonstrates it reasons better.** It was adopted as the newer model in the line, and the
-work reported above is what it cost to make it run at all. If a turn's latency matters more
-than its recency, `ORCHESTRATOR_MODEL=glm-5.2` and friends are a supported, measured fallback.
+### What we got out of it
 
-### What was *not* re-measured
+The trial was reverted, but three things were kept, and they are the return on it:
 
-Stated so no one mistakes silence for evidence. The measurements recorded elsewhere in this
-README and in `llm/config.py` — the 8/8 routing score, the `_MIN_TOKENS` floors, the sampling
-burn, the `assess` ceiling sweep, the serialisation repairs — were taken against `glm-5.2` and
-are **left as written**, because they say what was measured. None of them was re-run on
-`glm-5.3`. The floors in particular were sized from `glm-5.2` behaviour and the table above
-shows `glm-5.3` does not respect them the same way; re-measuring them is open work.
+1. **A portable escape hatch.** `_create_reduced()` now asks with `reasoning_effort` and keeps
+   `thinking: disabled` as a fallback, **chosen by the API's own 400 rather than by a version
+   table** — a table is only ever right about the models that have already shipped. The answer is
+   remembered per model, so the wasted round is paid once per process. This is a straight
+   improvement to `glm-5.2`'s path too, and it means the *next* GLM will not need this
+   investigation repeated.
+
+2. **Two tests that pin the behaviour**, including one asserting a real failure must **not**
+   trigger the fallback:
+
+   ```python
+   assert sent == [_REDUCED_PRIMARY, _REDUCED_FALLBACK]   # a 400 buys the older spelling
+   assert sent == [_REDUCED_PRIMARY]                      # a 429 buys nothing
+   ```
+
+3. **A measured answer to "should we upgrade?"** — which is worth more than the upgrade would
+   have been. The next time a GLM version appears, this table is the shape of the check to run:
+   reasoning burn against ceiling, truncation rate, the thinking-lever spellings, and end-to-end
+   turn latency.
+
+### What was *not* measured
+
+Stated so no one mistakes silence for evidence. `glm-5.3` was **never re-scored** on the
+orchestrator's 8/8 routing benchmark over a full eight-call run — it was correct on every turn
+observed, which is a weaker claim. Its list price was never checked. Its behaviour at the
+sampling and domain-expert call sites was not swept the way the orchestrator's was. **None of
+this is evidence that it is bad at those things** — it is evidence that we stopped once the
+orchestrator numbers and the turn latency made the decision, and a fuller evaluation is open work
+if someone wants to revisit it.
 
 ## Effective cost, worked
 
@@ -3543,14 +3546,13 @@ it simply has not been captured in-repo.
 
 ---
 
-# 36. Why GLM-5.3 Is the Default
+# 36. Why GLM-5.2 Is the Default
 
-**The short answer: it is the current model in the GLM line, and the reasons the project runs on
-GLM at all are unchanged from `glm-5.2`.** Everything below was established when `glm-5.2` was
-selected and still holds for `glm-5.3` — the provider mechanism, the seam, the economics of
-running on open weights by default. What `glm-5.3` changed is covered in §35: it burns markedly
-more reasoning, it cannot have reasoning disabled, and it is slower per turn. No measurement in
-this repository shows it reasoning *better*, and this README does not claim it does.
+**`glm-5.3` was trialled as the default on 2026-08-29 and reverted the same day.** It runs, and
+it remains a supported override, but on this project's own prompts it was measurably worse and
+better at nothing that was measured — §35 has the numbers. The reasons below are why the
+project runs on GLM at all, and they were all established on `glm-5.2`, which is where the
+default has stayed.
 
 The project deliberately explored strong reasoning models **outside the Anthropic-only path**.
 `llm/config.py` states the resulting position plainly: *"This project runs on open weights by
@@ -5145,7 +5147,7 @@ rather than turning `/health` into a 500.
 | **Why local MCP servers over stdio?** | No port to secure, no network hop, the child processes stay warm, and the risk server's isolation is a fact about its process environment | Not remotely callable without changing transport |
 | **Why a local embedding model?** | No embedding key, no per-token embedding cost, ingest and retrieval work offline — and adding a second mandatory vendor would undo the point of the seams | 512-token ceiling, which required a whole chunker |
 | **Why GLM?** | Measured 8/8 on the real routing schema (on `glm-5.2`), proven across five call sites and a multi-agent negotiation, and the cheapest reasoning-capable option compared ($1.40/$4.40 per M) | Slower per call than Claude; needs forced tool calls and three serialisation repairs |
-| **Why `glm-5.3` over `glm-5.2`?** | It is the current model in the line, and the provider now adapts to either | **It is the weaker case in this README.** Slower per turn (476–557 s vs 110–370 s), fills any reasoning ceiling it is given, and cannot have reasoning disabled — which broke the budget-exhaustion retry until `_create_reduced()` was written (§35). `glm-5.2` remains supported and measured |
+| **Why not `glm-5.3`?** | Nothing — it runs, and `_create_reduced()` keeps it runnable | **Measured worse, better at nothing measured.** Fills any reasoning ceiling it is given (one orchestrator call in four truncated at *both* 1,200 and 4,000), refuses to have reasoning disabled, and ran 476–557 s per turn against 110–370 s. Adopted 2026-08-29, reverted the same day (§35) |
 | **Why preserve Anthropic compatibility?** | A seam is only real if something else can go through it. It is maintained, tested and evaluated (72/73) — and it is what exposed two schema portability bugs that Z.AI silently accepted | Two schema rules currently break its data-request path (§55) |
 | **Why React + FastAPI?** | The turn is multi-minute and produces a *structured document* — table, plan, negotiation, trace, graph, latency. That needs real components and real client state, and SSE needs a real HTTP stack | A build toolchain and a second language |
 | **Why SSE over WebSockets?** | The traffic is one-directional. `EventSource` reconnects on its own, survives the same CORS configuration, and the client is thirty lines | The browser cannot send anything mid-turn — the moment it must, a WebSocket earns its keep |
@@ -5187,8 +5189,8 @@ Longer form: [`docs/architecture-decisions.md`](docs/architecture-decisions.md).
 | **MCP execution caching** | ⛔ **Deliberately not implemented** | Awaits immutable snapshot identity from every provider |
 | **LangSmith** | ✅ **Implemented**, optional, fail-open | 20 traced spans, distributed across A2A, server-side read-back |
 | **Evaluation harness** | ✅ **Implemented** | 13 cases × 11 scorers, offline or LangSmith |
-| **Z.AI / GLM-5.3** | ✅ **Implemented — the default** | All five call sites |
-| **Z.AI / GLM-5.2** | ⚙️ **Previous default — still supported** | Set any `*_MODEL` variable to `glm-5.2`; the provider adapts to either |
+| **Z.AI / GLM-5.2** | ✅ **Implemented — the default** | All five call sites |
+| **Z.AI / GLM-5.3** | ⚙️ **Supported override — trialled and reverted** | Runs on the same provider; measured worse on this project's prompts (§35) |
 | **`glm-4.5-air`** | ⛔ **Legacy — rejected and pinned** | 2/8 on the real routing schema; a test forbids it as a default |
 | **Anthropic (`claude-opus-5` + `claude-haiku-4-5`)** | ⚙️ **Configured, maintained — with a current limitation** | 72/73 on the suite; **cannot currently plan a data request** (§55) |
 | **Kimi / Moonshot** | ❌ **Not present** | No configuration, no code, **no git history**. Any evaluation happened outside this repository |
@@ -5550,7 +5552,7 @@ flowchart TB
 
     PG[("🗄️ PostgreSQL 17 :5432<br/>267,517 observations · 52 series<br/>1990-01-02 → 2026-08-11<br/>reached ONLY as mcp_reader")]
     RD[("⚡ Redis 8.8 :6379<br/>derived memory · fail-open<br/>execution NEVER cached")]
-    LLM["🤖 ModelProvider seam<br/>**glm-5.3** at 5 call sites (default)<br/>claude-opus-5 / haiku-4-5 (alternative)"]
+    LLM["🤖 ModelProvider seam<br/>**glm-5.2** at 5 call sites (default)<br/>claude-opus-5 / haiku-4-5 (alternative)"]
     LS["📊 LangSmith<br/>20 traced spans · fail-open"]
 
     U --> UI

@@ -118,14 +118,19 @@ def test_a_missing_zai_key_names_both_ways_out(monkeypatch):
 
 @pytest.mark.parametrize("call_site", list(CallSite))
 def test_zai_model_allocation(monkeypatch, call_site):
-    """Every call site runs glm-5.3 by default. The split remains *possible*
-    - each site is independently overridable - but is not the shipped default."""
+    """Every call site runs glm-5.2 by default. The split remains *possible*
+    - each site is independently overridable - but is not the shipped default.
+
+    glm-5.3 was trialled here on 2026-08-29 and reverted the same day: it
+    truncated one orchestrator call in four before it could emit the forced
+    call, and measured 476-557s per /chat turn against 110-370s. See
+    `llm/config.py` for the numbers."""
     monkeypatch.setenv("LLM_BACKEND", "zai")
     monkeypatch.setenv("ZAI_API_KEY", "placeholder-not-a-real-key")
     for var in ("SAMPLING_MODEL", "MCP_AGENT_MODEL", "HOST_AGENT_MODEL",
                 "DOMAIN_EXPERT_MODEL", "ORCHESTRATOR_MODEL"):
         monkeypatch.delenv(var, raising=False)
-    assert load_config().model_for(call_site) == "glm-5.3"
+    assert load_config().model_for(call_site) == "glm-5.2"
 
 
 def test_no_call_site_falls_back_to_the_weaker_model(monkeypatch):
