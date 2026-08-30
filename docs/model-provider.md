@@ -45,11 +45,11 @@ requirement are different problems.
 
 | Call site | `LLM_BACKEND=zai` *(default)* | `LLM_BACKEND=anthropic` | Override |
 |---|---|---|---|
-| Orchestrator | `glm-5.2` | `claude-haiku-4-5` | `ORCHESTRATOR_MODEL` |
-| Sampling | `glm-5.2` | `claude-opus-5` | `SAMPLING_MODEL` |
-| MCP agent | `glm-5.2` | `claude-opus-5` | `MCP_AGENT_MODEL` |
-| Host agent | `glm-5.2` | `claude-opus-5` | `HOST_AGENT_MODEL` |
-| Domain expert | `glm-5.2` | `claude-opus-5` | `DOMAIN_EXPERT_MODEL` |
+| Orchestrator | `glm-5.3` | `claude-haiku-4-5` | `ORCHESTRATOR_MODEL` |
+| Sampling | `glm-5.3` | `claude-opus-5` | `SAMPLING_MODEL` |
+| MCP agent | `glm-5.3` | `claude-opus-5` | `MCP_AGENT_MODEL` |
+| Host agent | `glm-5.3` | `claude-opus-5` | `HOST_AGENT_MODEL` |
+| Domain expert | `glm-5.3` | `claude-opus-5` | `DOMAIN_EXPERT_MODEL` |
 
 ### Why the orchestrator is not on the cheap model
 
@@ -69,7 +69,7 @@ not serialise `requested_rows: integer | null`:
 
 A corrective retry did not change it. Every failure collapsed into
 `data_request` — safe, but it destroys the cheap path the split exists to
-protect: a greeting would reach Qdrant and frontier-tier reasoning. `glm-5.2` is
+protect: a greeting would reach Qdrant and frontier-tier reasoning. The GLM default is
 also *faster* here (60s vs 82s over eight calls) because it needs no retries.
 
 ### Sampling runs the same model, and needs a bigger floor for it
@@ -359,6 +359,64 @@ The quality argument matters more than the latency one. A truncation followed by
 a thinking-disabled retry means the data layer's half of the negotiation was
 running with its reasoning discarded — computed, paid for, and thrown away — on
 a quarter of all assessments.
+
+## Turning reasoning down, on a model that will not turn it off
+
+A truncated structured call is retried **with reasoning reduced**, because
+retrying it unchanged burns the same budget again. That escalation has to work
+on a model this file has never met, and the spelling is the part that moves.
+
+Measured on the orchestrator's real prompt at its shipped 1,200 ceiling, forced
+call and all:
+
+| Request | `glm-5.2` | `glm-5.3` |
+|---|---|---|
+| `thinking: {"type": "disabled"}` | accepted | **HTTP 400, code 1210** — *"This model always engages in thinking and cannot be disabled; please use low, high, or max"* |
+| `thinking: {"type": "enabled", "level": "low"}` | accepted | accepted — 1,010 reasoning against a 1,200 ceiling |
+| `reasoning_effort: "low"` | accepted — 123 reasoning | accepted — **19** reasoning |
+
+Sending `thinking: disabled` unconditionally meant that on `glm-5.3` **the
+rescue call failed harder than the call it was rescuing** — and the orchestrator
+logged `classification failed; defaulting to data_request`, sending greetings
+down the full data path.
+
+`_create_reduced()` asks in the portable spelling and keeps the older one as a
+fallback, **chosen by the API's own refusal rather than by a version table** —
+a table is only ever right about the models that have already shipped. Which
+spelling a model accepted is remembered per model, so the wasted round is paid
+once per process. A 400 buys the fallback; a 429 or a timeout buys nothing,
+because a real failure has no business being retried at full price.
+
+This is not `glm-5.3`-specific plumbing. It is a straight improvement to
+`glm-5.2`'s own recovery path, and it is what will stop the next GLM version
+needing the same investigation.
+
+## The `glm-5.3` trial, and why the default did not move
+
+`glm-5.3` was made the default on 2026-08-29 and **reverted the same day**. It
+runs and remains a supported override; it was simply worse here, and better at
+nothing that was measured.
+
+The deciding measurement is that it expands reasoning to fill whatever ceiling
+it is given. The warning elsewhere in this document about the MCP agent's
+headroom being free is **specific to `glm-5.2` at that call site** — on
+`glm-5.3` the orchestrator's own 1,200-token call site behaves the other way:
+
+| Ceiling | `glm-5.2` reasoning | `glm-5.3` reasoning |
+|---:|---|---|
+| 1,200 | 11 · 289 · 111 · 275 | 92 · **1,200** · 613 · 168 |
+| 2,400 | 22 · 466 · 63 · 240 | 34 · 934 · 325 · 129 |
+| 4,000 | 7 · 385 · 59 · 207 | 41 · **3,996** · 122 · 156 |
+
+The same question that burned 1,200 of 1,200 burned 3,996 of 4,000, so one call
+in four truncated at *both* ceilings and no budget would have fixed it.
+`_MIN_TOKENS` was therefore **not** raised: a bigger ceiling buys a more
+expensive failure, not a success. End-to-end `/chat` turns measured 476s and
+557s against 110–370s on `glm-5.2`.
+
+Every floor in this file was measured on `glm-5.2`, and the table above is why
+they should not be assumed to transfer to a future model. Re-measure them; do
+not port them.
 
 ## Adding a third provider
 

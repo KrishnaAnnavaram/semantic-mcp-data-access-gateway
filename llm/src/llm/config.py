@@ -65,6 +65,26 @@ _DEFAULT_MODELS: dict[str, dict[CallSite, str]] = {
     #   ceiling and still returned 701 characters of usable prose, so the
     #   uniform default is safe. `_MIN_TOKENS[SAMPLING]` is what keeps it safe;
     #   do not lower it without re-measuring.
+    #
+    # glm-5.3 was trialled as the default on 2026-08-29 and reverted the same
+    # day. It runs - the provider was made portable enough for it and stays
+    # that way - but on this project's own prompts it was measurably worse and
+    # better at nothing that was measured:
+    #
+    # * It expands reasoning to fill whatever ceiling it is given. On the
+    #   orchestrator's real prompt: 92/1200/613/168 reasoning tokens at a 1,200
+    #   ceiling against 11/289/111/275 for glm-5.2, and the same question that
+    #   burned 1,200 of 1,200 burned 3,996 of 4,000. One call in four truncated
+    #   before it could emit the forced call, at both ceilings. Raising the
+    #   floor relocates that failure and charges more for it.
+    # * It refuses `thinking: {"type": "disabled"}` (HTTP 400, code 1210), so
+    #   the budget-exhaustion escape hatch failed harder than the call it was
+    #   rescuing, and routing collapsed to `defaulting to data_request`.
+    # * Measured /chat turns ran 476s and 557s against 110-370s on glm-5.2.
+    #
+    # Nothing measured showed it reasoning better. Set any *_MODEL variable to
+    # glm-5.3 to run it; `_create_reduced` handles its refusal either way.
+    # Full evidence: README section 35, docs/model-provider.md.
     ZAI: {
         CallSite.ORCHESTRATOR:  "glm-5.2",
         CallSite.SAMPLING:      "glm-5.2",
